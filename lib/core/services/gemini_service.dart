@@ -37,11 +37,13 @@ class TurnResult {
 
 class GeminiService {
   final GenerativeModel _model;
+  final String _apiKey;
 
-  GeminiService()
-      : _model = GenerativeModel(
+  GeminiService(String apiKey)
+      : _apiKey = apiKey,
+        _model = GenerativeModel(
           model: 'gemini-1.5-flash',
-          apiKey: const String.fromEnvironment('GEMINI_API_KEY'),
+          apiKey: apiKey,
           generationConfig: GenerationConfig(
             responseMimeType: 'application/json',
           ),
@@ -79,6 +81,8 @@ User Action: $userMessage
 """;
 
     // Send to model
+    print(
+        'DEBUG: Sending request to model: gemini-1.5-flash with key starting: ${_apiKey.substring(0, 5)}...');
     final content = [Content.text(prompt)];
     final response = await _model.generateContent(content);
 
