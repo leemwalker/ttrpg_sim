@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ttrpg_sim/features/game/presentation/game_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: TtrpgSimApp()));
@@ -16,11 +17,7 @@ class TtrpgSimApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const Scaffold(
-        body: Center(
-          child: Text('TTRPG Sim Initialized'),
-        ),
-      ),
+      home: const GameScreen(),
     );
   }
 }
