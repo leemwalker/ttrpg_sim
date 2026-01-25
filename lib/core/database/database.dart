@@ -39,7 +39,10 @@ class Inventory extends Table {
 
 @DriftDatabase(tables: [ChatMessages, Character, Inventory], daos: [GameDao])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  final int instanceId = DateTime.now().millisecondsSinceEpoch;
+  AppDatabase([QueryExecutor? e]) : super(e ?? _openConnection()) {
+    print('🏗️ DATABASE CREATED! Instance ID: $instanceId');
+  }
 
   @override
   int get schemaVersion => 1;
@@ -74,10 +77,42 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
         .get();
   }
 
+  Future<void> updateHp(int id, int newHp) {
+    return (update(character)..where((tbl) => tbl.id.equals(id)))
+        .write(CharacterCompanion(currentHp: Value(newHp)));
+  }
+
   Future<void> updateCharacterStats(CharacterCompanion stats) {
     // Assuming we are updating a single character or creating if not exists.
     // Use insertOnConflictUpdate for robustness if id is set.
     return into(character).insertOnConflictUpdate(stats);
+  }
+
+  Future<bool> updateCharacter(CharacterData entry) =>
+      update(character).replace(entry);
+
+  Future<void> forceUpdateHp(int id, int newHp) async {
+    // Using simple statement. Table name matches the class Character -> character (default Drift behavior)
+    // Note: Column names are snake_case by default in Drift unless named otherwise.
+    // Character class fields: currentHp -> current_hp ?
+    // Usually Drift maps camelCase fields to snake_case columns.
+    await customStatement(
+      'UPDATE character SET current_hp = ? WHERE id = ?',
+      [newHp, id],
+    );
+    // Force a notification to listeners (just in case we switch back to streams later)
+    // This is a bit of a hack since we aren't using streams anymore, but good for completeness.
+    // Also valid to just perform the query.
+  }
+
+  Future<void> updateGold(int id, int newGold) {
+    return (update(character)..where((tbl) => tbl.id.equals(id)))
+        .write(CharacterCompanion(gold: Value(newGold)));
+  }
+
+  Future<void> updateLocation(int id, String newLocation) {
+    return (update(character)..where((tbl) => tbl.id.equals(id)))
+        .write(CharacterCompanion(location: Value(newLocation)));
   }
 
   Future<void> addItem(String name) async {
@@ -118,7 +153,28 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
     return (select(character)..limit(1)).getSingleOrNull();
   }
 
+  Future<List<CharacterData>> getAllCharacters() => select(character).get();
+
+  Stream<CharacterData?> watchCharacter() {
+    return (select(character)..limit(1)).watchSingleOrNull();
+  }
+
   Future<List<InventoryData>> getInventory() {
     return select(inventory).get();
+  }
+
+  Future<List<InventoryData>> getInventoryForCharacter(int characterId) {
+    return (select(inventory)..where((t) => t.characterId.equals(characterId)))
+        .get();
+  }
+
+  Stream<List<InventoryData>> watchInventory() {
+    return select(inventory).watch();
+  }
+
+  Future<int> debugCountCharacters() async {
+    final result =
+        await customSelect('SELECT count(*) as c FROM character').getSingle();
+    return result.data['c'] as int;
   }
 }

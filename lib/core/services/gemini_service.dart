@@ -42,7 +42,7 @@ class GeminiService {
   GeminiService(String apiKey)
       : _apiKey = apiKey,
         _model = GenerativeModel(
-          model: 'gemini-1.5-flash',
+          model: 'gemini-flash-latest',
           apiKey: apiKey,
           generationConfig: GenerationConfig(
             responseMimeType: 'application/json',
@@ -82,9 +82,11 @@ User Action: $userMessage
 
     // Send to model
     print(
-        'DEBUG: Sending request to model: gemini-1.5-flash with key starting: ${_apiKey.substring(0, 5)}...');
+        'DEBUG: Sending request to model: gemini-flash-latest with key starting: ${_apiKey.substring(0, 5)}...');
     final content = [Content.text(prompt)];
     final response = await _model.generateContent(content);
+
+    print('🔍 RAW GEMINI RESPONSE: ${response.text}');
 
     final text = response.text;
     if (text == null) {
@@ -92,7 +94,9 @@ User Action: $userMessage
     }
 
     try {
-      final json = jsonDecode(text) as Map<String, dynamic>;
+      final cleanJson =
+          text.replaceAll('```json', '').replaceAll('```', '').trim();
+      final json = jsonDecode(cleanJson) as Map<String, dynamic>;
       return TurnResult.fromJson(json);
     } catch (e) {
       throw Exception(
