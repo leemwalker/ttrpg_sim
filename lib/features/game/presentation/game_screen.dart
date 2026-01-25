@@ -5,7 +5,8 @@ import 'package:ttrpg_sim/features/game/state/game_controller.dart';
 import 'package:ttrpg_sim/features/game/state/game_state.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
-  const GameScreen({super.key});
+  final int worldId;
+  const GameScreen({super.key, required this.worldId});
 
   @override
   ConsumerState<GameScreen> createState() => _GameScreenState();
@@ -35,7 +36,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   void _handleSubmitted(String text) {
     if (text.isEmpty) return;
     _textController.clear();
-    ref.read(gameControllerProvider.notifier).submitAction(text);
+    ref
+        .read(gameControllerProvider.notifier)
+        .submitAction(text, widget.worldId);
   }
 
   @override
@@ -58,7 +61,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       appBar: AppBar(
         title: const Text('TTRPG Sim'),
       ),
-      drawer: const CharacterDrawer(),
+      drawer: CharacterDrawer(worldId: widget.worldId),
       body: Column(
         children: [
           Expanded(
@@ -131,14 +134,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 }
 
 class CharacterDrawer extends ConsumerWidget {
-  const CharacterDrawer({super.key});
+  final int worldId;
+  const CharacterDrawer({super.key, required this.worldId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     print('🎨 DRAWER: Rebuilding...');
-    final characterAsync = ref.watch(characterDataProvider);
-    // Using the non-family provider for now as we are single player
-    final inventoryAsync = ref.watch(inventoryDataProvider(1));
+    final characterAsync = ref.watch(characterDataProvider(worldId));
 
     return Drawer(
       child: ListView(
@@ -155,6 +157,10 @@ class CharacterDrawer extends ConsumerWidget {
             data: (char) {
               if (char == null)
                 return const ListTile(title: Text("No Character Data"));
+
+              // Watch inventory only if character exists
+              final inventoryAsync = ref.watch(inventoryDataProvider(char.id));
+
               return Column(
                 children: [
                   ListTile(
@@ -178,6 +184,28 @@ class CharacterDrawer extends ConsumerWidget {
                     leading: const Icon(Icons.map, color: Colors.green),
                     title: Text("Location: ${char.location}"),
                   ),
+                  const Divider(),
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text("Inventory",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                  inventoryAsync.when(
+                    data: (items) {
+                      if (items.isEmpty)
+                        return const ListTile(title: Text("Empty"));
+                      return Column(
+                        children: items
+                            .map((i) => ListTile(
+                                  title: Text(i.itemName),
+                                  trailing: Text("x${i.quantity}"),
+                                ))
+                            .toList(),
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  )
                 ],
               );
             },
@@ -187,27 +215,6 @@ class CharacterDrawer extends ConsumerWidget {
             ),
             error: (err, stack) => ListTile(title: Text('Error: $err')),
           ),
-          const Divider(),
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text("Inventory",
-                style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-          inventoryAsync.when(
-            data: (items) {
-              if (items.isEmpty) return const ListTile(title: Text("Empty"));
-              return Column(
-                children: items
-                    .map((i) => ListTile(
-                          title: Text(i.itemName),
-                          trailing: Text("x${i.quantity}"),
-                        ))
-                    .toList(),
-              );
-            },
-            loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
-          )
         ],
       ),
     );

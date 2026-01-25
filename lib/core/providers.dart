@@ -22,12 +22,13 @@ final geminiServiceProvider = Provider<GeminiService>((ref) {
   return GeminiService(apiKey);
 });
 
-final characterDataProvider = FutureProvider<CharacterData?>((ref) async {
+final characterDataProvider =
+    FutureProvider.family<CharacterData?, int>((ref, worldId) async {
   final dao = ref.watch(gameDaoProvider);
   final db = ref.watch(databaseProvider);
-  print('🔮 FUTURE using DB Instance: ${db.instanceId}');
+  print('🔮 FUTURE using DB Instance: ${db.instanceId} for World: $worldId');
   print('🔮 FUTURE: Fetching fresh character data...');
-  final char = await dao.getCharacter();
+  final char = await dao.getCharacter(worldId);
   print('🔮 FUTURE RESULT: HP ${char?.currentHp}');
   return char;
 });
@@ -36,4 +37,9 @@ final inventoryDataProvider =
     FutureProvider.family<List<InventoryData>, int>((ref, charId) async {
   final dao = ref.watch(gameDaoProvider);
   return dao.getInventoryForCharacter(charId);
+});
+
+final worldsProvider = FutureProvider<List<World>>((ref) async {
+  final dao = ref.watch(gameDaoProvider);
+  return dao.getAllWorlds();
 });

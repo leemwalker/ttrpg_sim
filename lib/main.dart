@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ttrpg_sim/features/game/presentation/game_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:ttrpg_sim/features/menu/main_menu_screen.dart';
 
 void main() async {
   await dotenv.load(fileName: ".env");
@@ -19,7 +19,7 @@ class TtrpgSimApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const GameScreen(),
+      home: const MainMenuScreen(),
     );
   }
 }

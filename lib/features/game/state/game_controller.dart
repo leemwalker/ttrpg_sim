@@ -20,25 +20,37 @@ class GameController extends _$GameController {
     );
   }
 
-  Future<void> submitAction(String text) async {
+  Future<void> submitAction(String text, int worldId) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final dao = ref.read(gameDaoProvider);
       final gemini = ref.read(geminiServiceProvider);
       final db = ref.read(databaseProvider);
-      print('🎮 CONTROLLER using DB Instance: ${db.instanceId}');
+      print(
+          '🎮 CONTROLLER using DB Instance: ${db.instanceId} for World $worldId');
 
-      // Save user message
+      // Save user message (Global chat for now as per schema)
       await dao.insertMessage('user', text);
 
+      // Fetch World Context
+      final world = await dao.getWorld(worldId);
+      final genre = world?.genre ?? "Fantasy";
+      final description = world?.description ?? "A standard fantasy world.";
+
       // Call Gemini
-      final result = await gemini.sendMessage(text, dao);
+      final result = await gemini.sendMessage(
+        text,
+        dao,
+        worldId,
+        genre: genre,
+        description: description,
+      );
 
       print('🎮 CONTROLLER: Received updates: ${result.stateUpdates}');
 
       // Apply Updates (Additive Math)
       if (result.stateUpdates.isNotEmpty) {
-        final currentCharacter = await dao.getCharacter();
+        final currentCharacter = await dao.getCharacter(worldId);
         if (currentCharacter != null) {
           final updates = result.stateUpdates;
 
@@ -46,7 +58,7 @@ class GameController extends _$GameController {
             final change = updates['hp_change'];
             if (change != null && change is int) {
               // 1. Fetch the LATEST fresh copy of the character
-              final freshChar = await dao.getCharacter();
+              final freshChar = await dao.getCharacter(worldId);
               if (freshChar != null) {
                 // 2. Calculate new HP
                 final currentHp = freshChar.currentHp;
@@ -60,7 +72,7 @@ class GameController extends _$GameController {
                 await dao.forceUpdateHp(charId, newHp);
 
                 // 4. Verify immediately
-                final verification = await dao.getCharacter();
+                final verification = await dao.getCharacter(worldId);
                 if (verification?.currentHp == newHp) {
                   print(
                       '✅ VERIFIED: DB now holds HP ${verification?.currentHp}');
@@ -70,7 +82,7 @@ class GameController extends _$GameController {
                 }
 
                 // 5. Refresh UI
-                ref.invalidate(characterDataProvider);
+                ref.invalidate(characterDataProvider(worldId));
               }
             }
           }
@@ -88,23 +100,22 @@ class GameController extends _$GameController {
             }
           }
 
-          // Refresh context likely needed if items change logic depends on it, but we reload at end.
-        }
-
-        if (result.stateUpdates.containsKey('add_items')) {
-          final items = result.stateUpdates['add_items'] as List<dynamic>?;
-          if (items != null) {
-            for (final item in items) {
-              await dao.addItem(item as String);
+          // Refresh context
+          if (result.stateUpdates.containsKey('add_items')) {
+            final items = result.stateUpdates['add_items'] as List<dynamic>?;
+            if (items != null) {
+              for (final item in items) {
+                await dao.addItem(currentCharacter.id, item as String);
+              }
             }
           }
-        }
 
-        if (result.stateUpdates.containsKey('remove_items')) {
-          final items = result.stateUpdates['remove_items'] as List<dynamic>?;
-          if (items != null) {
-            for (final item in items) {
-              await dao.removeItem(item as String);
+          if (result.stateUpdates.containsKey('remove_items')) {
+            final items = result.stateUpdates['remove_items'] as List<dynamic>?;
+            if (items != null) {
+              for (final item in items) {
+                await dao.removeItem(currentCharacter.id, item as String);
+              }
             }
           }
         }
@@ -112,8 +123,17 @@ class GameController extends _$GameController {
 
       // FORCE REFRESH: Tell the UI stream to re-fetch data immediately
       await Future.delayed(const Duration(milliseconds: 50)); // The "Breath"
-      ref.invalidate(characterDataProvider);
-      ref.invalidate(inventoryDataProvider);
+      ref.invalidate(characterDataProvider(worldId));
+      ref.invalidate(inventoryDataProvider(
+          await dao.getCharacter(worldId).then((c) => c?.id ?? -1)));
+      // Note: Invalidating inventory requires charId. We fetch it again or cache it.
+      // Simplified: Just invalidate the specific provider if we knew the ID, but here we re-fetch to be safe or just don't invalidate if null.
+      // Better approach:
+      final c = await dao.getCharacter(worldId);
+      if (c != null) {
+        ref.invalidate(inventoryDataProvider(c.id));
+      }
+
       print('🔄 CONTROLLER: Invalidated Streams to force UI update.');
 
       // Save AI message

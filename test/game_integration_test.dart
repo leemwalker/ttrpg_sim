@@ -19,7 +19,13 @@ class MockGeminiService implements GeminiService {
   });
 
   @override
-  Future<TurnResult> sendMessage(String userMessage, GameDao dao) async {
+  Future<TurnResult> sendMessage(
+    String userMessage,
+    GameDao dao,
+    int worldId, {
+    required String genre,
+    required String description,
+  }) async {
     return TurnResult(
       narrative: nextNarrative,
       stateUpdates: nextStateUpdates,
@@ -32,12 +38,21 @@ void main() {
     // 2. Setup In-Memory Database
     final inMemoryExecutor = NativeDatabase.memory();
     final db = AppDatabase(inMemoryExecutor);
+    final worldId = 1;
 
     // 3. Setup Mock Gemini to deal 1 damage
     final mockGemini = MockGeminiService(
       nextStateUpdates: {'hp_change': -1},
       nextNarrative: "You punch yourself. It hurts.",
     );
+
+    // Seed World
+    await db.gameDao.createWorld(WorldsCompanion.insert(
+      id: const Value(1),
+      name: 'Test World',
+      genre: 'Test',
+      description: 'Test Description',
+    ));
 
     // Seed Database due to Controller refactor removing auto-init
     await db.gameDao.updateCharacterStats(
@@ -49,6 +64,7 @@ void main() {
         maxHp: Value(10),
         gold: Value(0),
         location: Value('Unknown'),
+        worldId: Value(1),
       ),
     );
 
@@ -59,7 +75,7 @@ void main() {
           databaseProvider.overrideWithValue(db),
           geminiServiceProvider.overrideWithValue(mockGemini),
         ],
-        child: const MaterialApp(home: GameScreen()),
+        child: const MaterialApp(home: GameScreen(worldId: 1)),
       ),
     );
 
@@ -97,7 +113,7 @@ void main() {
     expect(find.text('HP: 9/10'), findsOneWidget);
 
     // 10. Verify DB State directly
-    final char = await db.gameDao.getCharacter();
+    final char = await db.gameDao.getCharacter(worldId);
     expect(char?.currentHp, 9);
 
     // Cleanup
@@ -107,12 +123,21 @@ void main() {
   testWidgets('Gold Update Integration Test', (WidgetTester tester) async {
     final inMemoryExecutor = NativeDatabase.memory();
     final db = AppDatabase(inMemoryExecutor);
+    final worldId = 1;
 
     // Mock Genimi to give 10 gold
     final mockGemini = MockGeminiService(
       nextStateUpdates: {'gold_change': 10},
       nextNarrative: "You find a purse.",
     );
+
+    // Seed World
+    await db.gameDao.createWorld(WorldsCompanion.insert(
+      id: const Value(1),
+      name: 'Test World',
+      genre: 'Test',
+      description: 'Test Description',
+    ));
 
     // Seed Database
     await db.gameDao.updateCharacterStats(
@@ -124,6 +149,7 @@ void main() {
         maxHp: Value(10),
         gold: Value(0),
         location: Value('Unknown'),
+        worldId: Value(1),
       ),
     );
 
@@ -133,7 +159,7 @@ void main() {
           databaseProvider.overrideWithValue(db),
           geminiServiceProvider.overrideWithValue(mockGemini),
         ],
-        child: const MaterialApp(home: GameScreen()),
+        child: const MaterialApp(home: GameScreen(worldId: 1)),
       ),
     );
 
@@ -161,7 +187,7 @@ void main() {
 
     expect(find.text('Gold: 10'), findsOneWidget);
 
-    final char = await db.gameDao.getCharacter();
+    final char = await db.gameDao.getCharacter(worldId);
     expect(char?.gold, 10);
 
     await db.close();
@@ -170,6 +196,7 @@ void main() {
   testWidgets('Item Addition Integration Test', (WidgetTester tester) async {
     final inMemoryExecutor = NativeDatabase.memory();
     final db = AppDatabase(inMemoryExecutor);
+    final worldId = 1;
 
     final mockGemini = MockGeminiService(
       nextStateUpdates: {
@@ -177,6 +204,14 @@ void main() {
       },
       nextNarrative: "You find a sword.",
     );
+
+    // Seed World
+    await db.gameDao.createWorld(WorldsCompanion.insert(
+      id: const Value(1),
+      name: 'Test World',
+      genre: 'Test',
+      description: 'Test Description',
+    ));
 
     // Seed Database
     await db.gameDao.updateCharacterStats(
@@ -188,6 +223,7 @@ void main() {
         maxHp: Value(10),
         gold: Value(0),
         location: Value('Unknown'),
+        worldId: Value(1),
       ),
     );
 
@@ -197,7 +233,7 @@ void main() {
           databaseProvider.overrideWithValue(db),
           geminiServiceProvider.overrideWithValue(mockGemini),
         ],
-        child: const MaterialApp(home: GameScreen()),
+        child: const MaterialApp(home: GameScreen(worldId: 1)),
       ),
     );
 
@@ -222,10 +258,12 @@ void main() {
     await tester.pumpAndSettle();
 
     // Check for UI update
-    expect(find.text('Sword (x1)'), findsOneWidget);
+    expect(find.text('Sword'), findsOneWidget);
+    expect(find.text('x1'), findsOneWidget);
 
     // Verify DB
-    final inventory = await db.gameDao.getInventoryForCharacter(1);
+    final char = await db.gameDao.getCharacter(worldId);
+    final inventory = await db.gameDao.getInventoryForCharacter(char!.id);
     expect(inventory.length, 1);
     expect(inventory.first.itemName, 'Sword');
 
@@ -235,6 +273,7 @@ void main() {
   testWidgets('Item Removal Integration Test', (WidgetTester tester) async {
     final inMemoryExecutor = NativeDatabase.memory();
     final db = AppDatabase(inMemoryExecutor);
+    final worldId = 1;
 
     final mockGemini = MockGeminiService(
       nextStateUpdates: {
@@ -242,6 +281,14 @@ void main() {
       },
       nextNarrative: "You drink the potion.",
     );
+
+    // Seed World
+    await db.gameDao.createWorld(WorldsCompanion.insert(
+      id: const Value(1),
+      name: 'Test World',
+      genre: 'Test',
+      description: 'Test Description',
+    ));
 
     // Seed Database & Inventory
     await db.gameDao.updateCharacterStats(
@@ -253,9 +300,13 @@ void main() {
         maxHp: Value(10),
         gold: Value(0),
         location: Value('Unknown'),
+        worldId: Value(1),
       ),
     );
-    await db.gameDao.addItem('Potion');
+
+    // Helper to get seeded char id
+    final char = await db.gameDao.getCharacter(worldId);
+    await db.gameDao.addItem(char!.id, 'Potion');
 
     await tester.pumpWidget(
       ProviderScope(
@@ -263,7 +314,7 @@ void main() {
           databaseProvider.overrideWithValue(db),
           geminiServiceProvider.overrideWithValue(mockGemini),
         ],
-        child: const MaterialApp(home: GameScreen()),
+        child: const MaterialApp(home: GameScreen(worldId: 1)),
       ),
     );
 
@@ -273,7 +324,8 @@ void main() {
     await tester.dragFrom(
         tester.getTopLeft(find.byType(MaterialApp)), const Offset(300, 0));
     await tester.pumpAndSettle();
-    expect(find.text('Potion (x1)'), findsOneWidget);
+    expect(find.text('Potion'), findsOneWidget);
+    expect(find.text('x1'), findsOneWidget);
     await tester.tapAt(const Offset(400, 300));
     await tester.pumpAndSettle();
 
@@ -287,10 +339,10 @@ void main() {
         tester.getTopLeft(find.byType(MaterialApp)), const Offset(300, 0));
     await tester.pumpAndSettle();
 
-    expect(find.text('Potion (x1)'), findsNothing);
+    expect(find.text('Potion'), findsNothing);
 
     // Verify DB
-    final inventory = await db.gameDao.getInventoryForCharacter(1);
+    final inventory = await db.gameDao.getInventoryForCharacter(char.id);
     expect(inventory.isEmpty, true);
 
     await db.close();

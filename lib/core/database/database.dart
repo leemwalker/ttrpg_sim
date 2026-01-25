@@ -19,15 +19,25 @@ class ChatMessages extends Table {
   DateTimeColumn get timestamp => dateTime().withDefault(currentDateAndTime)();
 }
 
+class Worlds extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get genre => text()();
+  TextColumn get description => text()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 class Character extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   TextColumn get heroClass => text()();
+  TextColumn get species => text().withDefault(const Constant('Human'))();
   IntColumn get level => integer()();
   IntColumn get currentHp => integer()();
   IntColumn get maxHp => integer()();
   IntColumn get gold => integer()();
   TextColumn get location => text()();
+  IntColumn get worldId => integer().nullable().references(Worlds, #id)();
 }
 
 class Inventory extends Table {
@@ -37,7 +47,8 @@ class Inventory extends Table {
   IntColumn get quantity => integer()();
 }
 
-@DriftDatabase(tables: [ChatMessages, Character, Inventory], daos: [GameDao])
+@DriftDatabase(
+    tables: [ChatMessages, Character, Inventory, Worlds], daos: [GameDao])
 class AppDatabase extends _$AppDatabase {
   final int instanceId = DateTime.now().millisecondsSinceEpoch;
   AppDatabase([QueryExecutor? e]) : super(e ?? _openConnection()) {
@@ -45,7 +56,41 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 3;
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (Migrator m) async {
+        await m.createAll();
+      },
+      onUpgrade: (Migrator m, int from, int to) async {
+        if (from < 2) {
+          // Create the Worlds table
+          await m.createTable(worlds);
+
+          // Add worldId column to Character table
+          await m.addColumn(character, character.worldId);
+
+          // Create a Legacy World for existing data
+          final legacyWorldId =
+              await into(worlds).insert(WorldsCompanion.insert(
+            name: 'Legacy Save',
+            genre: 'Unknown',
+            description: 'Migrated from previous version',
+          ));
+
+          // Link existing characters to the Legacy World
+          await (update(character)..where((t) => t.worldId.isNull()))
+              .write(CharacterCompanion(worldId: Value(legacyWorldId)));
+        }
+        if (from < 3) {
+          // Add species column
+          await m.addColumn(character, character.species);
+        }
+      },
+    );
+  }
 }
 
 LazyDatabase _openConnection() {
@@ -56,7 +101,7 @@ LazyDatabase _openConnection() {
   });
 }
 
-@DriftAccessor(tables: [ChatMessages, Character, Inventory])
+@DriftAccessor(tables: [ChatMessages, Character, Inventory, Worlds])
 class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
   GameDao(super.db);
 
@@ -115,27 +160,28 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
         .write(CharacterCompanion(location: Value(newLocation)));
   }
 
-  Future<void> addItem(String name) async {
+  Future<void> addItem(int characterId, String name) async {
     final item = await (select(inventory)
-          ..where((t) => t.itemName.equals(name)))
+          ..where((t) =>
+              t.characterId.equals(characterId) & t.itemName.equals(name)))
         .getSingleOrNull();
 
     if (item != null) {
       await update(inventory)
           .replace(item.copyWith(quantity: item.quantity + 1));
     } else {
-      // Assuming a default character ID of 1 for single player MVP.
       await into(inventory).insert(InventoryCompanion(
-        characterId: const Value(1),
+        characterId: Value(characterId),
         itemName: Value(name),
         quantity: const Value(1),
       ));
     }
   }
 
-  Future<void> removeItem(String name) async {
+  Future<void> removeItem(int characterId, String name) async {
     final item = await (select(inventory)
-          ..where((t) => t.itemName.equals(name)))
+          ..where((t) =>
+              t.characterId.equals(characterId) & t.itemName.equals(name)))
         .getSingleOrNull();
 
     if (item != null) {
@@ -148,15 +194,20 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
     }
   }
 
-  Future<CharacterData?> getCharacter() {
-    // Assuming single character for now, or get the first one
-    return (select(character)..limit(1)).getSingleOrNull();
+  Future<CharacterData?> getCharacter(int worldId) {
+    return (select(character)
+          ..where((t) => t.worldId.equals(worldId))
+          ..limit(1))
+        .getSingleOrNull();
   }
 
   Future<List<CharacterData>> getAllCharacters() => select(character).get();
 
-  Stream<CharacterData?> watchCharacter() {
-    return (select(character)..limit(1)).watchSingleOrNull();
+  Stream<CharacterData?> watchCharacter(int worldId) {
+    return (select(character)
+          ..where((t) => t.worldId.equals(worldId))
+          ..limit(1))
+        .watchSingleOrNull();
   }
 
   Future<List<InventoryData>> getInventory() {
@@ -176,5 +227,39 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
     final result =
         await customSelect('SELECT count(*) as c FROM character').getSingle();
     return result.data['c'] as int;
+  }
+
+  // -- NEW WORLD METHODS --
+  Future<int> createWorld(WorldsCompanion world) {
+    return into(worlds).insert(world);
+  }
+
+  Future<List<World>> getAllWorlds() {
+    return select(worlds).get();
+  }
+
+  Future<World?> getWorld(int id) {
+    return (select(worlds)..where((t) => t.id.equals(id))).getSingleOrNull();
+  }
+
+  /// Update character bio after creation screen finishes.
+  Future<void> updateCharacterBio({
+    required int characterId,
+    required String name,
+    required String characterClass,
+    required String species,
+    required int level,
+    required int maxHp,
+  }) async {
+    await (update(character)..where((t) => t.id.equals(characterId))).write(
+      CharacterCompanion(
+        name: Value(name),
+        heroClass: Value(characterClass),
+        species: Value(species),
+        level: Value(level),
+        currentHp: Value(maxHp),
+        maxHp: Value(maxHp),
+      ),
+    );
   }
 }

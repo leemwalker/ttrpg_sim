@@ -2,23 +2,7 @@ import 'dart:convert';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:ttrpg_sim/core/database/database.dart';
 
-const String systemInstruction = """
-You are a Dungeon Master for a solo D&D 5e campaign.
-1. **Rules:** Adhere strictly to the D&D 5.1 SRD.
-2. **Output Format:** You must ALWAYS return valid JSON.
-3. **Schema:**
-{
-  "narrative": "The story description and dialogue goes here.",
-  "state_updates": {
-    "hp_change": 0, 
-    "gold_change": 0, 
-    "add_items": [], 
-    "remove_items": [], 
-    "location_update": null
-  }
-}
-4. **Style:** Be evocative and concise. Do not ask the user to update their sheet; YOU calculate the updates and put them in 'state_updates'.
-""";
+// Static instruction removed in favor of dynamic generation
 
 class TurnResult {
   final String narrative;
@@ -36,26 +20,65 @@ class TurnResult {
 }
 
 class GeminiService {
-  final GenerativeModel _model;
   final String _apiKey;
+  ChatSession? _currentSession;
+  int? _currentWorldId;
 
-  GeminiService(String apiKey)
-      : _apiKey = apiKey,
-        _model = GenerativeModel(
-          model: 'gemini-flash-latest',
-          apiKey: apiKey,
-          generationConfig: GenerationConfig(
-            responseMimeType: 'application/json',
-          ),
-          systemInstruction: Content.system(systemInstruction),
-        );
+  GeminiService(this._apiKey);
 
-  Future<TurnResult> sendMessage(String userMessage, GameDao dao) async {
-    // Step 1: Fetch Context
-    final character = await dao.getCharacter();
-    final inventory = await dao.getInventory();
+  String _buildInstruction(String genre, String description) {
+    return """
+You are a Game Master running a $genre tabletop RPG.
+World Context: $description.
 
-    // Step 2: Format Context
+Rules:
+1. Adhere strictly to the D&D 5.1 SRD.
+2. Output Format: You must ALWAYS return valid JSON.
+3. Schema:
+{
+  "narrative": "The story description and dialogue goes here.",
+  "state_updates": {
+    "hp_change": 0, 
+    "gold_change": 0, 
+    "add_items": [], 
+    "remove_items": [], 
+    "location_update": null
+  }
+}
+4. Style: Be evocative and concise. Do not ask the user to update their sheet; YOU calculate the updates and put them in 'state_updates'.
+""";
+  }
+
+  Future<TurnResult> sendMessage(
+    String userMessage,
+    GameDao dao,
+    int worldId, {
+    required String genre,
+    required String description,
+  }) async {
+    // Step 1: Initialize Session if needed
+    if (_currentSession == null || _currentWorldId != worldId) {
+      print('🧠 GEMINI: Initializing new session for World $worldId ($genre)');
+      final instruction = _buildInstruction(genre, description);
+      final model = GenerativeModel(
+        model: 'gemini-flash-latest',
+        apiKey: _apiKey,
+        generationConfig: GenerationConfig(
+          responseMimeType: 'application/json',
+        ),
+        systemInstruction: Content.system(instruction),
+      );
+      _currentSession = model.startChat();
+      _currentWorldId = worldId;
+    } else {
+      print('🧠 GEMINI: Reusing existing session for World $worldId');
+    }
+
+    // Step 2: Fetch Context
+    final character = await dao.getCharacter(worldId);
+    final inventory = await dao.getInventoryForCharacter(character?.id ?? -1);
+
+    // Step 3: Format Context
     String contextSummary = "Current Status: ";
     if (character != null) {
       contextSummary += "HP ${character.currentHp}/${character.maxHp}, ";
@@ -73,7 +96,7 @@ class GeminiService {
       contextSummary += "Empty";
     }
 
-    // Step 3: Interpolate Prompt
+    // Step 4: Interpolate Prompt
     final prompt = """
 $contextSummary
 
@@ -83,8 +106,9 @@ User Action: $userMessage
     // Send to model
     print(
         'DEBUG: Sending request to model: gemini-flash-latest with key starting: ${_apiKey.substring(0, 5)}...');
-    final content = [Content.text(prompt)];
-    final response = await _model.generateContent(content);
+
+    // Using sendMessage on the chat session maintains history
+    final response = await _currentSession!.sendMessage(Content.text(prompt));
 
     print('🔍 RAW GEMINI RESPONSE: ${response.text}');
 
