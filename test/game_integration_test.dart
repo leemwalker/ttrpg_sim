@@ -25,6 +25,7 @@ class MockGeminiService implements GeminiService {
     int worldId, {
     required String genre,
     required String description,
+    required CharacterData player,
   }) async {
     return TurnResult(
       narrative: nextNarrative,

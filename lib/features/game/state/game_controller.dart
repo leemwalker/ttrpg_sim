@@ -37,6 +37,12 @@ class GameController extends _$GameController {
       final genre = world?.genre ?? "Fantasy";
       final description = world?.description ?? "A standard fantasy world.";
 
+      // Fetch Character
+      final character = await dao.getCharacter(worldId);
+      if (character == null) {
+        throw Exception('No character found for world $worldId');
+      }
+
       // Call Gemini
       final result = await gemini.sendMessage(
         text,
@@ -44,6 +50,7 @@ class GameController extends _$GameController {
         worldId,
         genre: genre,
         description: description,
+        player: character,
       );
 
       print('🎮 CONTROLLER: Received updates: ${result.stateUpdates}');

@@ -23,18 +23,29 @@ class GeminiService {
   final String _apiKey;
   ChatSession? _currentSession;
   int? _currentWorldId;
+  // Track player state to detect changes requiring session refresh
+  String? _lastPlayerClass;
+  int? _lastPlayerLevel;
 
   GeminiService(this._apiKey);
 
-  String _buildInstruction(String genre, String description) {
+  String _buildInstruction(
+      String genre, String description, CharacterData player) {
     return """
 You are a Game Master running a $genre tabletop RPG.
 World Context: $description.
 
+Player Profile:
+- Name: ${player.name}
+- Class: ${player.heroClass} (Level ${player.level})
+- Species: ${player.species}
+- Max HP: ${player.maxHp}
+
 Rules:
 1. Adhere strictly to the D&D 5.1 SRD.
-2. Output Format: You must ALWAYS return valid JSON.
-3. Schema:
+2. If the player tries to use a class ability (like spells), verify if a Level ${player.level} ${player.heroClass} would realistically know it.
+3. Output Format: You must ALWAYS return valid JSON.
+4. Schema:
 {
   "narrative": "The story description and dialogue goes here.",
   "state_updates": {
@@ -45,7 +56,7 @@ Rules:
     "location_update": null
   }
 }
-4. Style: Be evocative and concise. Do not ask the user to update their sheet; YOU calculate the updates and put them in 'state_updates'.
+5. Style: Be evocative and concise. Do not ask the user to update their sheet; YOU calculate the updates and put them in 'state_updates'.
 """;
   }
 
@@ -55,11 +66,18 @@ Rules:
     int worldId, {
     required String genre,
     required String description,
+    required CharacterData player,
   }) async {
-    // Step 1: Initialize Session if needed
-    if (_currentSession == null || _currentWorldId != worldId) {
-      print('🧠 GEMINI: Initializing new session for World $worldId ($genre)');
-      final instruction = _buildInstruction(genre, description);
+    // Check if session needs refresh (world changed OR player class/level changed)
+    final needsRefresh = _currentSession == null ||
+        _currentWorldId != worldId ||
+        _lastPlayerClass != player.heroClass ||
+        _lastPlayerLevel != player.level;
+
+    if (needsRefresh) {
+      print(
+          '🧠 GEMINI: Initializing new session for World $worldId (${player.name} the ${player.heroClass})');
+      final instruction = _buildInstruction(genre, description, player);
       final model = GenerativeModel(
         model: 'gemini-flash-latest',
         apiKey: _apiKey,
@@ -70,23 +88,20 @@ Rules:
       );
       _currentSession = model.startChat();
       _currentWorldId = worldId;
+      _lastPlayerClass = player.heroClass;
+      _lastPlayerLevel = player.level;
     } else {
       print('🧠 GEMINI: Reusing existing session for World $worldId');
     }
 
-    // Step 2: Fetch Context
-    final character = await dao.getCharacter(worldId);
-    final inventory = await dao.getInventoryForCharacter(character?.id ?? -1);
+    // Fetch Context (inventory)
+    final inventory = await dao.getInventoryForCharacter(player.id);
 
-    // Step 3: Format Context
+    // Format Context
     String contextSummary = "Current Status: ";
-    if (character != null) {
-      contextSummary += "HP ${character.currentHp}/${character.maxHp}, ";
-      contextSummary += "Location: ${character.location}, ";
-      contextSummary += "Gold: ${character.gold}";
-    } else {
-      contextSummary += "Character not found.";
-    }
+    contextSummary += "HP ${player.currentHp}/${player.maxHp}, ";
+    contextSummary += "Location: ${player.location}, ";
+    contextSummary += "Gold: ${player.gold}";
 
     contextSummary += "\nInventory: ";
     if (inventory.isNotEmpty) {
@@ -96,7 +111,7 @@ Rules:
       contextSummary += "Empty";
     }
 
-    // Step 4: Interpolate Prompt
+    // Interpolate Prompt
     final prompt = """
 $contextSummary
 
