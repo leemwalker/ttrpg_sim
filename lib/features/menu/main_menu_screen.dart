@@ -5,6 +5,7 @@ import 'package:ttrpg_sim/core/providers.dart';
 import 'package:ttrpg_sim/features/creation/character_creation_screen.dart';
 import 'package:ttrpg_sim/features/game/presentation/game_screen.dart';
 import 'package:drift/drift.dart' as drift;
+import 'package:ttrpg_sim/features/settings/settings_screen.dart';
 
 class MainMenuScreen extends ConsumerStatefulWidget {
   const MainMenuScreen({super.key});
@@ -19,7 +20,19 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
     final worldsAsync = ref.watch(worldsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Select World")),
+      appBar: AppBar(
+        title: const Text("Select World"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => const SettingsScreen(),
+              ));
+            },
+          ),
+        ],
+      ),
       body: worldsAsync.when(
         data: (worlds) {
           if (worlds.isEmpty) {

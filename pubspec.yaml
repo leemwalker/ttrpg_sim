@@ -20,16 +20,37 @@ dependencies:
   json_annotation: ^4.8.1
   uuid: ^4.3.3
   flutter_dotenv: ^6.0.0
+  shared_preferences: ^2.5.4
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.3.1
   flutter_lints: ^3.0.1
   build_runner: ^2.4.8
   riverpod_generator: ^2.3.9
   drift_dev: ^2.14.0
   freezed: ^2.4.6
   json_serializable: ^6.7.1
+
+# Configuration Block 1: App Icons
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/icon.png"
+  remove_alpha_ios: true
+
+# Configuration Block 2: Splash Screen
+flutter_native_splash:
+  color: "#121212" # Matches your dark theme background
+  image: "assets/splash/splash.png"
+  branding: "assets/splash/splash.png" # Optional for Android 12
+  color_dark: "#121212"
+  image_dark: "assets/splash/splash.png"
+  android_12:
+    image: "assets/splash/splash.png"
+    color: "#121212"
 
 
 flutter:

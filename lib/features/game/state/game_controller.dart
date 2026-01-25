@@ -1,7 +1,10 @@
+import 'dart:math';
 import 'package:drift/drift.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:ttrpg_sim/core/database/database.dart';
 import 'package:ttrpg_sim/core/providers.dart';
+import 'package:ttrpg_sim/core/rules/dnd5e_rules.dart';
+import 'package:ttrpg_sim/core/errors/app_exceptions.dart';
 import 'package:ttrpg_sim/features/game/state/game_state.dart';
 
 part 'game_controller.g.dart';
@@ -21,11 +24,15 @@ class GameController extends _$GameController {
   }
 
   Future<void> submitAction(String text, int worldId) async {
+    if (text.trim().isEmpty) return;
+
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
-      final dao = ref.read(gameDaoProvider);
-      final gemini = ref.read(geminiServiceProvider);
-      final db = ref.read(databaseProvider);
+
+    final dao = ref.read(gameDaoProvider);
+    final gemini = ref.read(geminiServiceProvider);
+    final db = ref.read(databaseProvider);
+
+    try {
       print(
           '🎮 CONTROLLER using DB Instance: ${db.instanceId} for World $worldId');
 
@@ -43,15 +50,144 @@ class GameController extends _$GameController {
         throw Exception('No character found for world $worldId');
       }
 
+      // Fetch Rules Context
+      final rules = Dnd5eRules();
+      final features =
+          rules.getClassFeatures(character.heroClass, character.level);
+      final slots =
+          rules.getMaxSpellSlots(character.heroClass, character.level);
+      final spells = rules.getKnownSpells(character.heroClass, character.level);
+
+      // Fetch Atlas Data (Location, POIs, NPCs) if character has a location
+      Location? location;
+      List<PointsOfInterestData> pois = [];
+      List<Npc> npcs = [];
+
+      if (character.currentLocationId != null) {
+        location = await dao.getLocation(character.currentLocationId!);
+        if (location != null) {
+          pois = await dao.getPoisForLocation(location.id);
+          npcs = await dao.getNpcsForLocation(location.id);
+        }
+      }
+
       // Call Gemini
-      final result = await gemini.sendMessage(
+      var result = await gemini.sendMessage(
         text,
         dao,
         worldId,
         genre: genre,
         description: description,
         player: character,
+        features: features,
+        spellSlots: slots,
+        spells: spells,
+        location: location,
+        pois: pois,
+        npcs: npcs,
       );
+
+      // Handle Function Calls (Tool Use)
+      String narrative = result.narrative;
+      if (result.functionCall != null) {
+        final fc = result.functionCall!;
+        if (fc.name == 'generate_location') {
+          print('✨ GENERATING LOCATION from function call...');
+          final args = fc.args;
+
+          // Parse arguments
+          final locName = args['name'] as String? ?? 'Unknown Location';
+          final locDesc =
+              args['description'] as String? ?? 'A mysterious place.';
+          final locType = args['type'] as String? ?? 'Wilderness';
+          final poisData = args['pois'] as List<dynamic>? ?? [];
+          final npcsData = args['npcs'] as List<dynamic>? ?? [];
+
+          // Create the location
+          final locationId = await dao.createLocation(LocationsCompanion.insert(
+            worldId: worldId,
+            name: locName,
+            description: locDesc,
+            type: locType,
+          ));
+          print('✨ GENERATED LOCATION: $locName (ID: $locationId)');
+
+          // Create POIs
+          for (final poi in poisData) {
+            if (poi is Map<String, dynamic>) {
+              await dao.createPoi(PointsOfInterestCompanion.insert(
+                locationId: locationId,
+                name: poi['name'] as String? ?? 'Unknown POI',
+                description: poi['description'] as String? ?? '',
+                type: poi['type'] as String? ?? 'Unknown',
+              ));
+              print('  📍 Created POI: ${poi['name']}');
+            }
+          }
+
+          // Create NPCs
+          for (final npc in npcsData) {
+            if (npc is Map<String, dynamic>) {
+              await dao.createNpc(NpcsCompanion.insert(
+                worldId: worldId,
+                locationId: Value(locationId),
+                name: npc['name'] as String? ?? 'Unknown NPC',
+                role: npc['role'] as String? ?? 'Commoner',
+                description: npc['description'] as String? ?? '',
+              ));
+              print('  👤 Created NPC: ${npc['name']}');
+            }
+          }
+
+          // Update character's location
+          await dao.updateCharacterLocation(character.id, locationId);
+          print('📍 Updated character location to: $locName');
+
+          // Generate a welcome narrative since the function call had no text
+          narrative = 'You arrive at **$locName**. $locDesc';
+
+          // Invalidate to refresh UI with new location
+          ref.invalidate(characterDataProvider(worldId));
+        }
+
+        if (fc.name == 'roll_check') {
+          print('🎲 DICE ROLL requested...');
+          final args = fc.args;
+          final checkName = args['check_name'] as String? ?? 'dexterity';
+          final difficulty = args['difficulty'] as int? ?? 10;
+
+          // Calculate modifier
+          final mod = rules.getModifier(character, checkName);
+
+          // Roll d20
+          final roll = Random().nextInt(20) + 1;
+          final total = roll + mod;
+          final isSuccess = total >= difficulty;
+
+          print(
+              '🎲 $checkName check: rolled $roll + $mod = $total vs DC $difficulty -> ${isSuccess ? "SUCCESS" : "FAILURE"}');
+
+          // Log System Message
+          final systemMsg = "🎲 **${args['check_name']} Check**\n"
+              "Roll: $roll + $mod = **$total** vs DC $difficulty\n"
+              "${isSuccess ? '✅ SUCCESS' : '❌ FAILURE'}";
+          await dao.insertMessage('system', systemMsg);
+
+          // Send result back to Gemini for narrative
+          final rollResult = await gemini.sendFunctionResponse('roll_check', {
+            'roll': roll,
+            'modifier': mod,
+            'total': total,
+            'success': isSuccess,
+            'check_name': checkName,
+            'difficulty': difficulty,
+          });
+
+          // Update result so narrative and state updates are applied
+          result = rollResult;
+          narrative = result.narrative;
+        }
+      }
 
       print('🎮 CONTROLLER: Received updates: ${result.stateUpdates}');
 
@@ -134,7 +270,6 @@ class GameController extends _$GameController {
       ref.invalidate(inventoryDataProvider(
           await dao.getCharacter(worldId).then((c) => c?.id ?? -1)));
       // Note: Invalidating inventory requires charId. We fetch it again or cache it.
-      // Simplified: Just invalidate the specific provider if we knew the ID, but here we re-fetch to be safe or just don't invalidate if null.
       // Better approach:
       final c = await dao.getCharacter(worldId);
       if (c != null) {
@@ -144,16 +279,43 @@ class GameController extends _$GameController {
       print('🔄 CONTROLLER: Invalidated Streams to force UI update.');
 
       // Save AI message
-      await dao.insertMessage('ai', result.narrative);
+      await dao.insertMessage('ai', narrative);
 
       // Reload messages
       final messages = await dao.getRecentMessages(50);
-      return GameState(
+      state = AsyncValue.data(GameState(
         messages: messages,
         character: null,
         inventory: [],
         isLoading: false,
-      );
-    });
+      ));
+    } catch (e) {
+      print('❌ ERROR: $e');
+
+      String errorMsg;
+      if (e is ApiKeyException) {
+        errorMsg = "⛔ Auth Error: Please check your API Key in Settings.";
+      } else if (e is NetworkException) {
+        errorMsg = "📡 Network Error: Unable to reach the oracle.";
+      } else if (e is AppBaseException) {
+        errorMsg = "❌ Error: ${e.message}";
+      } else {
+        errorMsg = "❌ Error: $e";
+      }
+
+      // Persist error system message
+      await dao.insertMessage('system', errorMsg);
+
+      // Reload messages to show the error
+      final messages = await dao.getRecentMessages(50);
+
+      // Update state to valid data (not error) so UI updates
+      state = AsyncValue.data(GameState(
+        messages: messages,
+        character: null,
+        inventory: [],
+        isLoading: false,
+      ));
+    }
   }
 }

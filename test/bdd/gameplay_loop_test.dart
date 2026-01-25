@@ -1,0 +1,211 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ttrpg_sim/core/database/database.dart';
+import 'package:ttrpg_sim/core/providers.dart';
+import 'package:ttrpg_sim/core/services/gemini_service.dart';
+import 'package:ttrpg_sim/features/game/presentation/game_screen.dart';
+import 'package:drift/native.dart';
+import 'package:drift/drift.dart' hide isNull, isNotNull;
+import 'package:google_generative_ai/google_generative_ai.dart';
+
+// Smart Mock for Sequencing Responses
+class SmartMockGemini implements GeminiService {
+  final List<TurnResult> responses;
+  int _index = 0;
+
+  SmartMockGemini(this.responses);
+
+  @override
+  Future<TurnResult> sendMessage(
+    String userMessage,
+    GameDao dao,
+    int worldId, {
+    required String genre,
+    required String description,
+    required CharacterData player,
+    required List<String> features,
+    required Map<String, int> spellSlots,
+    required List<String> spells,
+    Location? location,
+    List<PointsOfInterestData> pois = const [],
+    List<Npc> npcs = const [],
+  }) async {
+    if (_index >= responses.length) {
+      return TurnResult(
+          narrative: "Error: No more responses", stateUpdates: {});
+    }
+    return responses[_index++];
+  }
+
+  @override
+  Future<TurnResult> sendFunctionResponse(
+    String functionName,
+    Map<String, dynamic> response,
+  ) async {
+    if (_index >= responses.length) {
+      return TurnResult(
+          narrative: "Error: No more responses", stateUpdates: {});
+    }
+    return responses[_index++];
+  }
+}
+
+void main() {
+  testWidgets('BDD Scenario: Session Zero (Genesis Mode)',
+      (WidgetTester tester) async {
+    // GIVEN I have a new character with no location (currentLocationId is null)
+    final inMemoryExecutor = NativeDatabase.memory();
+    final db = AppDatabase(inMemoryExecutor);
+    final worldId = 1;
+
+    // Seed World & Character
+    await db.gameDao.createWorld(WorldsCompanion.insert(
+      id: const Value(1),
+      name: 'Test Realm',
+      genre: 'Fantasy',
+      description: 'Test',
+    ));
+    await db.gameDao.updateCharacterStats(
+      CharacterCompanion(
+        id: const Value(1),
+        name: const Value('Traveler'),
+        heroClass: const Value('Fighter'),
+        level: const Value(1),
+        currentHp: const Value(10),
+        maxHp: const Value(10),
+        gold: const Value(0),
+        location: const Value('Unknown'),
+        worldId: Value(worldId),
+        // currentLocationId is null by default
+      ),
+    );
+
+    // AND The AI tool generate_location is mocked to return "The Rusty Anchor"
+    final mockGemini = SmartMockGemini([
+      TurnResult(
+        narrative:
+            "Generating location...", // Narrative ignored during function call in controller usually, but stored?
+        stateUpdates: {},
+        functionCall: FunctionCall(
+          'generate_location',
+          {
+            'name': 'The Rusty Anchor',
+            'description': 'A salty tavern.',
+            'type': 'Tavern'
+          },
+        ),
+      ),
+    ]);
+
+    // Pump App
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          geminiServiceProvider.overrideWithValue(mockGemini),
+        ],
+        child: MaterialApp(
+          home: GameScreen(worldId: worldId),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // WHEN I send the message "I start in a tavern"
+    await tester.enterText(find.byType(TextField), "I start in a tavern");
+    await tester.tap(find.byIcon(Icons.send));
+    await tester.pumpAndSettle();
+
+    // THEN The Locations table should contain "The Rusty Anchor"
+    final locations = await db.gameDao.getLocationsForWorld(worldId);
+    expect(locations, isNotEmpty);
+    expect(locations.first.name, 'The Rusty Anchor');
+
+    // AND The Character's currentLocationId should be updated
+    final char = await db.gameDao.getCharacter(worldId);
+    expect(char!.currentLocationId, locations.first.id);
+
+    // AND The UI should verify receipt (we check the chat log for the generated narrative)
+    // Controller generates narrative: 'You arrive at **The Rusty Anchor**. A salty tavern.'
+    expect(find.textContaining('You arrive at **The Rusty Anchor**'),
+        findsOneWidget);
+
+    await db.close();
+  });
+
+  testWidgets('BDD Scenario: Dice Engine (Skill Check)',
+      (WidgetTester tester) async {
+    // GIVEN My character has 16 Strength (+3 Modifier)
+    final inMemoryExecutor = NativeDatabase.memory();
+    final db = AppDatabase(inMemoryExecutor);
+    final worldId = 1;
+
+    await db.gameDao.createWorld(WorldsCompanion.insert(
+      id: const Value(1),
+      name: 'Test Realm',
+      genre: 'Fantasy',
+      description: 'Test',
+    ));
+    await db.gameDao.updateCharacterStats(
+      CharacterCompanion(
+        id: const Value(1),
+        name: const Value('Strongman'),
+        heroClass: const Value('Fighter'),
+        level: const Value(1),
+        currentHp: const Value(10),
+        maxHp: const Value(10),
+        gold: const Value(0), // Required
+        strength: const Value(16), // +3
+        worldId: Value(worldId),
+        location: const Value('Unknown'),
+      ),
+    );
+
+    // AND The AI tool roll_check is mocked to request a "Strength" check (DC 10)
+    final mockGemini = SmartMockGemini([
+      // 1. Initial response to user input -> Function Call
+      TurnResult(
+        narrative: "",
+        stateUpdates: {},
+        functionCall: FunctionCall(
+          'roll_check',
+          {'check_name': 'strength', 'difficulty': 10},
+        ),
+      ),
+      // 2. Response after function execution (Narrative)
+      TurnResult(
+        narrative: "You lift the rock easily.",
+        stateUpdates: {},
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          geminiServiceProvider.overrideWithValue(mockGemini),
+        ],
+        child: MaterialApp(
+          home: GameScreen(worldId: worldId),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // WHEN I send the action "I lift the heavy rock"
+    await tester.enterText(find.byType(TextField), "I lift the heavy rock");
+    await tester.tap(find.byIcon(Icons.send));
+    await tester.pump(); // Start
+    await tester.pumpAndSettle(); // Finish
+
+    expect(find.textContaining('Roll:'), findsOneWidget);
+    expect(find.textContaining('+ 3'), findsOneWidget);
+    expect(find.textContaining('vs DC 10'), findsOneWidget);
+
+    // Also verify final narrative
+    expect(find.text('You lift the rock easily.'), findsOneWidget);
+
+    await db.close();
+  });
+}

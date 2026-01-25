@@ -6,16 +6,19 @@ import 'package:ttrpg_sim/core/providers.dart';
 import 'package:ttrpg_sim/core/services/gemini_service.dart';
 import 'package:ttrpg_sim/features/game/presentation/game_screen.dart';
 import 'package:drift/native.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNull, isNotNull;
+import 'package:google_generative_ai/google_generative_ai.dart';
 
 // 1. Mock Gemini Service
 class MockGeminiService implements GeminiService {
   final Map<String, dynamic> nextStateUpdates;
   final String nextNarrative;
+  final FunctionCall? nextFunctionCall;
 
   MockGeminiService({
     this.nextStateUpdates = const {},
     this.nextNarrative = "Mock Narrative",
+    this.nextFunctionCall,
   });
 
   @override
@@ -26,10 +29,31 @@ class MockGeminiService implements GeminiService {
     required String genre,
     required String description,
     required CharacterData player,
+    required List<String> features,
+    required Map<String, int> spellSlots,
+    required List<String> spells,
+    Location? location,
+    List<PointsOfInterestData> pois = const [],
+    List<Npc> npcs = const [],
   }) async {
     return TurnResult(
       narrative: nextNarrative,
       stateUpdates: nextStateUpdates,
+      functionCall: nextFunctionCall,
+    );
+  }
+
+  @override
+  Future<TurnResult> sendFunctionResponse(
+    String functionName,
+    Map<String, dynamic> response,
+  ) async {
+    // Return the same next state/narrative for simplicity in tests,
+    // or we could add specific fields for function response if needed.
+    return TurnResult(
+      narrative: nextNarrative,
+      stateUpdates: nextStateUpdates,
+      functionCall: nextFunctionCall,
     );
   }
 }
@@ -346,6 +370,224 @@ void main() {
     final inventory = await db.gameDao.getInventoryForCharacter(char.id);
     expect(inventory.isEmpty, true);
 
+    await db.close();
+  });
+
+  test('Atlas System CRUD', () async {
+    // Setup in-memory database
+    final inMemoryExecutor = NativeDatabase.memory();
+    final db = AppDatabase(inMemoryExecutor);
+
+    // 1. Create a World
+    final worldId = await db.gameDao.createWorld(WorldsCompanion.insert(
+      name: 'Test Realm',
+      genre: 'Fantasy',
+      description: 'A test world for Atlas System',
+    ));
+    expect(worldId, greaterThan(0));
+
+    // 2. Create a Location linked to that World
+    final locationId =
+        await db.gameDao.createLocation(LocationsCompanion.insert(
+      worldId: worldId,
+      name: 'Riverwood',
+      description: 'A small village by the river',
+      type: 'Village',
+      coordinates: const Value('0,1'),
+    ));
+    expect(locationId, greaterThan(0));
+
+    // 3. Verify the Location can be fetched
+    final fetchedLocation = await db.gameDao.getLocation(locationId);
+    expect(fetchedLocation, isNotNull);
+    expect(fetchedLocation!.name, 'Riverwood');
+    expect(fetchedLocation.type, 'Village');
+    expect(fetchedLocation.worldId, worldId);
+
+    // 4. Create a POI linked to that Location
+    final poiId = await db.gameDao.createPoi(PointsOfInterestCompanion.insert(
+      locationId: locationId,
+      name: 'The Sleeping Giant Inn',
+      description: 'A cozy tavern with warm food',
+      type: 'Tavern',
+    ));
+    expect(poiId, greaterThan(0));
+
+    // 5. Create an NPC linked to the Location and POI
+    final npcId = await db.gameDao.createNpc(NpcsCompanion.insert(
+      worldId: worldId,
+      locationId: Value(locationId),
+      poiId: Value(poiId),
+      name: 'Orgnar',
+      role: 'Innkeeper',
+      description: 'A gruff but friendly Nord who runs the inn',
+    ));
+    expect(npcId, greaterThan(0));
+
+    // 6. Verify POIs for Location
+    final pois = await db.gameDao.getPoisForLocation(locationId);
+    expect(pois.length, 1);
+    expect(pois.first.name, 'The Sleeping Giant Inn');
+
+    // 7. Verify NPCs for Location
+    final npcs = await db.gameDao.getNpcsForLocation(locationId);
+    expect(npcs.length, 1);
+    expect(npcs.first.name, 'Orgnar');
+    expect(npcs.first.role, 'Innkeeper');
+
+    // 8. Create a Character and update their location
+    await db.gameDao.updateCharacterStats(
+      CharacterCompanion(
+        id: const Value(1),
+        name: const Value('TestHero'),
+        heroClass: const Value('Fighter'),
+        level: const Value(1),
+        currentHp: const Value(10),
+        maxHp: const Value(10),
+        gold: const Value(0),
+        location: const Value('Unknown'),
+        worldId: Value(worldId),
+      ),
+    );
+
+    final charBefore = await db.gameDao.getCharacter(worldId);
+    expect(charBefore, isNotNull);
+    expect(charBefore!.currentLocationId, isNull);
+
+    // 9. Update character's location
+    await db.gameDao.updateCharacterLocation(charBefore.id, locationId);
+
+    final charAfter = await db.gameDao.getCharacter(worldId);
+    expect(charAfter, isNotNull);
+    expect(charAfter!.currentLocationId, locationId);
+
+    // Cleanup
+    await db.close();
+  });
+
+  test('Location Generation via Function Call', () async {
+    // Setup in-memory database
+    final inMemoryExecutor = NativeDatabase.memory();
+    final db = AppDatabase(inMemoryExecutor);
+
+    // 1. Create a World
+    final worldId = await db.gameDao.createWorld(WorldsCompanion.insert(
+      name: 'Test Realm',
+      genre: 'Fantasy',
+      description: 'A test world for function calling',
+    ));
+
+    // 2. Create a Character without a location
+    await db.gameDao.updateCharacterStats(
+      CharacterCompanion(
+        id: const Value(1),
+        name: const Value('TestHero'),
+        heroClass: const Value('Fighter'),
+        level: const Value(1),
+        currentHp: const Value(10),
+        maxHp: const Value(10),
+        gold: const Value(0),
+        location: const Value('Unknown'),
+        worldId: Value(worldId),
+      ),
+    );
+
+    // Verify character has no location initially
+    final charBefore = await db.gameDao.getCharacter(worldId);
+    expect(charBefore, isNotNull);
+    expect(charBefore!.currentLocationId, isNull);
+
+    // 3. Simulate function call data (what Gemini would return)
+    final mockFunctionArgs = {
+      'name': 'Riverwood',
+      'description': 'A small village nestled by the river',
+      'type': 'Village',
+      'pois': [
+        {
+          'name': 'The Sleeping Giant Inn',
+          'type': 'Tavern',
+          'description': 'A cozy tavern with warm food',
+        },
+        {
+          'name': 'Riverwood Trader',
+          'type': 'Shop',
+          'description': 'General goods store',
+        },
+      ],
+      'npcs': [
+        {
+          'name': 'Orgnar',
+          'role': 'Innkeeper',
+          'description': 'A gruff but friendly Nord',
+        },
+      ],
+    };
+
+    // 4. Create the location (simulating what GameController does)
+    final locationId =
+        await db.gameDao.createLocation(LocationsCompanion.insert(
+      worldId: worldId,
+      name: mockFunctionArgs['name'] as String,
+      description: mockFunctionArgs['description'] as String,
+      type: mockFunctionArgs['type'] as String,
+    ));
+    expect(locationId, greaterThan(0));
+
+    // 5. Create POIs
+    final poisData = mockFunctionArgs['pois'] as List<dynamic>;
+    for (final poi in poisData) {
+      if (poi is Map<String, dynamic>) {
+        await db.gameDao.createPoi(PointsOfInterestCompanion.insert(
+          locationId: locationId,
+          name: poi['name'] as String,
+          description: poi['description'] as String,
+          type: poi['type'] as String,
+        ));
+      }
+    }
+
+    // 6. Create NPCs
+    final npcsData = mockFunctionArgs['npcs'] as List<dynamic>;
+    for (final npc in npcsData) {
+      if (npc is Map<String, dynamic>) {
+        await db.gameDao.createNpc(NpcsCompanion.insert(
+          worldId: worldId,
+          locationId: Value(locationId),
+          name: npc['name'] as String,
+          role: npc['role'] as String,
+          description: npc['description'] as String,
+        ));
+      }
+    }
+
+    // 7. Update character location
+    await db.gameDao.updateCharacterLocation(charBefore.id, locationId);
+
+    // 8. Verify location was created
+    final location = await db.gameDao.getLocation(locationId);
+    expect(location, isNotNull);
+    expect(location!.name, 'Riverwood');
+    expect(location.type, 'Village');
+
+    // 9. Verify POIs were created
+    final pois = await db.gameDao.getPoisForLocation(locationId);
+    expect(pois.length, 2);
+    expect(
+        pois.map((p) => p.name).toList(), contains('The Sleeping Giant Inn'));
+    expect(pois.map((p) => p.name).toList(), contains('Riverwood Trader'));
+
+    // 10. Verify NPCs were created
+    final npcs = await db.gameDao.getNpcsForLocation(locationId);
+    expect(npcs.length, 1);
+    expect(npcs.first.name, 'Orgnar');
+    expect(npcs.first.role, 'Innkeeper');
+
+    // 11. Verify character location was updated
+    final charAfter = await db.gameDao.getCharacter(worldId);
+    expect(charAfter, isNotNull);
+    expect(charAfter!.currentLocationId, locationId);
+
+    // Cleanup
     await db.close();
   });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ttrpg_sim/core/providers.dart';
 import 'package:ttrpg_sim/core/rules/dnd5e_rules.dart';
+import 'package:ttrpg_sim/features/creation/widgets/point_buy_widget.dart';
 import 'package:ttrpg_sim/features/game/presentation/game_screen.dart';
 
 class CharacterCreationScreen extends ConsumerStatefulWidget {
@@ -21,7 +22,18 @@ class _CharacterCreationScreenState
 
   String _selectedClass = 'Fighter';
   String _selectedSpecies = 'Human';
+  String _selectedBackground = 'Acolyte'; // Default
   int _level = 1;
+
+  // Stats for Point Buy
+  Map<String, int> _stats = {
+    'Strength': 8,
+    'Dexterity': 8,
+    'Constitution': 8,
+    'Intelligence': 8,
+    'Wisdom': 8,
+    'Charisma': 8,
+  };
 
   bool _isLoading = true;
   int? _characterId;
@@ -34,6 +46,14 @@ class _CharacterCreationScreenState
 
   Future<void> _loadPlaceholderCharacter() async {
     final dao = ref.read(gameDaoProvider);
+
+    // Fetch custom traits first
+    final customSpecies = await dao.getCustomTraitsByType('Species');
+    final customClasses = await dao.getCustomTraitsByType('Class');
+
+    // Register them with the rules engine
+    _rules.registerCustomTraits([...customSpecies, ...customClasses]);
+
     final character = await dao.getCharacter(widget.worldId);
 
     if (character != null) {
@@ -71,6 +91,8 @@ class _CharacterCreationScreenState
       );
     }
 
+    final backgroundInfo = _rules.getBackgroundInfo(_selectedBackground);
+
     return Scaffold(
       appBar: AppBar(title: const Text("Create Your Character")),
       body: Padding(
@@ -87,6 +109,7 @@ class _CharacterCreationScreenState
                 ),
               ),
               const SizedBox(height: 24),
+              // CLASS SELECTION
               DropdownButtonFormField<String>(
                 value: _selectedClass,
                 decoration: const InputDecoration(
@@ -101,6 +124,7 @@ class _CharacterCreationScreenState
                 },
               ),
               const SizedBox(height: 16),
+              // SPECIES SELECTION
               DropdownButtonFormField<String>(
                 value: _selectedSpecies,
                 decoration: const InputDecoration(
@@ -114,6 +138,52 @@ class _CharacterCreationScreenState
                   if (val != null) setState(() => _selectedSpecies = val);
                 },
               ),
+              const SizedBox(height: 16),
+              // BACKGROUND SELECTION
+              DropdownButtonFormField<String>(
+                value: _selectedBackground,
+                decoration: const InputDecoration(
+                  labelText: "Background",
+                  border: OutlineInputBorder(),
+                ),
+                items: _rules.availableBackgrounds
+                    .map((b) => DropdownMenuItem(value: b, child: Text(b)))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _selectedBackground = val);
+                },
+              ),
+              const SizedBox(height: 8),
+              // BACKGROUND INFO CARD
+              Card(
+                color: Colors.blueGrey[900],
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Background Feature: ${backgroundInfo.featureName}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: Colors.amber),
+                      ),
+                      Text(
+                        backgroundInfo.featureDesc,
+                        style: const TextStyle(
+                            fontSize: 12, color: Colors.white70),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Origin Feat: ${backgroundInfo.originFeat}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.lightGreenAccent),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 24),
               Text("Level: $_level",
                   style: Theme.of(context).textTheme.titleMedium),
@@ -125,6 +195,17 @@ class _CharacterCreationScreenState
                 label: _level.toString(),
                 onChanged: (val) => setState(() => _level = val.toInt()),
               ),
+              const SizedBox(height: 16),
+
+              // POINT BUY WIDGET
+              PointBuyWidget(
+                onStatsChanged: (stats) {
+                  setState(() {
+                    _stats = stats;
+                  });
+                },
+              ),
+
               const SizedBox(height: 16),
               Card(
                 child: Padding(
@@ -175,8 +256,15 @@ class _CharacterCreationScreenState
       name: name,
       characterClass: _selectedClass,
       species: _selectedSpecies,
+      background: _selectedBackground,
       level: _level,
       maxHp: maxHp,
+      strength: _stats['Strength']!,
+      dexterity: _stats['Dexterity']!,
+      constitution: _stats['Constitution']!,
+      intelligence: _stats['Intelligence']!,
+      wisdom: _stats['Wisdom']!,
+      charisma: _stats['Charisma']!,
     );
 
     if (mounted) {

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ttrpg_sim/core/providers.dart';
 import 'package:ttrpg_sim/features/game/state/game_controller.dart';
 import 'package:ttrpg_sim/features/game/state/game_state.dart';
+import 'package:ttrpg_sim/features/game/presentation/drawer/character_drawer.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   final int worldId;
@@ -126,94 +127,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class CharacterDrawer extends ConsumerWidget {
-  final int worldId;
-  const CharacterDrawer({super.key, required this.worldId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    print('🎨 DRAWER: Rebuilding...');
-    final characterAsync = ref.watch(characterDataProvider(worldId));
-
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(color: Colors.deepPurple),
-            child: Text(
-              "Character Sheet",
-              style: TextStyle(color: Colors.white, fontSize: 24),
-            ),
-          ),
-          characterAsync.when(
-            data: (char) {
-              if (char == null)
-                return const ListTile(title: Text("No Character Data"));
-
-              // Watch inventory only if character exists
-              final inventoryAsync = ref.watch(inventoryDataProvider(char.id));
-
-              return Column(
-                children: [
-                  ListTile(
-                    title: Text(char.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text("${char.heroClass} Level ${char.level}"),
-                  ),
-                  ListTile(
-                    title: Text("HP: ${char.currentHp}/${char.maxHp}"),
-                    subtitle: LinearProgressIndicator(
-                      value:
-                          char.maxHp > 0 ? (char.currentHp / char.maxHp) : 0.0,
-                    ),
-                  ),
-                  ListTile(
-                    leading:
-                        const Icon(Icons.monetization_on, color: Colors.amber),
-                    title: Text("Gold: ${char.gold}"),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.map, color: Colors.green),
-                    title: Text("Location: ${char.location}"),
-                  ),
-                  const Divider(),
-                  const Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text("Inventory",
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                  inventoryAsync.when(
-                    data: (items) {
-                      if (items.isEmpty)
-                        return const ListTile(title: Text("Empty"));
-                      return Column(
-                        children: items
-                            .map((i) => ListTile(
-                                  title: Text(i.itemName),
-                                  trailing: Text("x${i.quantity}"),
-                                ))
-                            .toList(),
-                      );
-                    },
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
-                  )
-                ],
-              );
-            },
-            loading: () => const Padding(
-              padding: EdgeInsets.all(20.0),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (err, stack) => ListTile(title: Text('Error: $err')),
           ),
         ],
       ),

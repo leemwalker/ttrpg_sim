@@ -10,6 +10,7 @@ part 'database.g.dart';
 enum MessageRole {
   user,
   ai,
+  system,
 }
 
 class ChatMessages extends Table {
@@ -37,7 +38,19 @@ class Character extends Table {
   IntColumn get maxHp => integer()();
   IntColumn get gold => integer()();
   TextColumn get location => text()();
-  IntColumn get worldId => integer().nullable().references(Worlds, #id)();
+  IntColumn get worldId => integer()
+      .nullable()
+      .references(Worlds, #id, onDelete: KeyAction.cascade)();
+  IntColumn get currentLocationId =>
+      integer().nullable()(); // FK added after Locations table exists
+  TextColumn get background => text().nullable()();
+  // D&D 5e Ability Scores (default to 10 = average human)
+  IntColumn get strength => integer().withDefault(const Constant(10))();
+  IntColumn get dexterity => integer().withDefault(const Constant(10))();
+  IntColumn get constitution => integer().withDefault(const Constant(10))();
+  IntColumn get intelligence => integer().withDefault(const Constant(10))();
+  IntColumn get wisdom => integer().withDefault(const Constant(10))();
+  IntColumn get charisma => integer().withDefault(const Constant(10))();
 }
 
 class Inventory extends Table {
@@ -47,8 +60,60 @@ class Inventory extends Table {
   IntColumn get quantity => integer()();
 }
 
-@DriftDatabase(
-    tables: [ChatMessages, Character, Inventory, Worlds], daos: [GameDao])
+class Locations extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get worldId =>
+      integer().references(Worlds, #id, onDelete: KeyAction.cascade)();
+  TextColumn get name => text()(); // e.g., "Riverwood"
+  TextColumn get description => text()();
+  TextColumn get type => text()(); // e.g., "Village", "Forest", "Dungeon"
+  TextColumn get coordinates => text().nullable()(); // e.g., "0,1"
+}
+
+class PointsOfInterest extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get locationId =>
+      integer().references(Locations, #id, onDelete: KeyAction.cascade)();
+  TextColumn get name => text()(); // e.g., "The Sleeping Giant Inn"
+  TextColumn get description => text()();
+  TextColumn get type => text()(); // e.g., "Shop", "Tavern"
+}
+
+class Npcs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get worldId =>
+      integer().references(Worlds, #id, onDelete: KeyAction.cascade)();
+  IntColumn get locationId => integer().nullable().references(Locations, #id,
+      onDelete: KeyAction.cascade)(); // NPC might be travelling
+  IntColumn get poiId => integer().nullable()(); // NPC might work at a Tavern
+  TextColumn get name => text()();
+  TextColumn get role => text()(); // e.g., "Blacksmith"
+  TextColumn get description => text()();
+  TextColumn get stats => text().nullable()(); // JSON for future combat stats
+  IntColumn get relationshipScore => integer().withDefault(const Constant(0))();
+}
+
+class CustomTraits extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get type => text()(); // 'Species' or 'Class'
+  TextColumn get description => text()();
+  TextColumn get abilities => text().nullable()(); // JSON or text list
+  TextColumn get stats => text().nullable()(); // JSON or text map
+}
+
+@DriftDatabase(tables: [
+  ChatMessages,
+  Character,
+  Inventory,
+  Worlds,
+  Locations,
+  PointsOfInterest,
+  Npcs,
+  CustomTraits
+], daos: [
+  GameDao
+])
 class AppDatabase extends _$AppDatabase {
   final int instanceId = DateTime.now().millisecondsSinceEpoch;
   AppDatabase([QueryExecutor? e]) : super(e ?? _openConnection()) {
@@ -56,11 +121,14 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
+      beforeOpen: (details) async {
+        await customStatement('PRAGMA foreign_keys = ON');
+      },
       onCreate: (Migrator m) async {
         await m.createAll();
       },
@@ -88,6 +156,34 @@ class AppDatabase extends _$AppDatabase {
           // Add species column
           await m.addColumn(character, character.species);
         }
+        if (from < 4) {
+          // Atlas System: Create new tables
+          await m.createTable(locations);
+          await m.createTable(pointsOfInterest);
+          await m.createTable(npcs);
+          // Add currentLocationId column to Character
+          await m.addColumn(character, character.currentLocationId);
+        }
+        if (from < 5) {
+          // Dice Engine: Add ability score columns
+          await m.addColumn(character, character.strength);
+          await m.addColumn(character, character.dexterity);
+          await m.addColumn(character, character.constitution);
+          await m.addColumn(character, character.intelligence);
+          await m.addColumn(character, character.wisdom);
+          await m.addColumn(character, character.charisma);
+        }
+        if (from < 6) {
+          // Add background column
+          await m.addColumn(character, character.background);
+        }
+        if (from < 7) {
+          // Add Custom Traits table
+          await m.createTable(customTraits);
+        }
+        if (from < 8) {
+          // v8 adds Cascade constraints, requires table recreation
+        }
       },
     );
   }
@@ -101,7 +197,16 @@ LazyDatabase _openConnection() {
   });
 }
 
-@DriftAccessor(tables: [ChatMessages, Character, Inventory, Worlds])
+@DriftAccessor(tables: [
+  ChatMessages,
+  Character,
+  Inventory,
+  Worlds,
+  Locations,
+  PointsOfInterest,
+  Npcs,
+  CustomTraits
+])
 class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
   GameDao(super.db);
 
@@ -242,24 +347,106 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
     return (select(worlds)..where((t) => t.id.equals(id))).getSingleOrNull();
   }
 
+  Future<void> deleteWorld(int id) {
+    return (delete(worlds)..where((t) => t.id.equals(id))).go();
+  }
+
   /// Update character bio after creation screen finishes.
   Future<void> updateCharacterBio({
     required int characterId,
     required String name,
     required String characterClass,
     required String species,
+    required String? background,
     required int level,
     required int maxHp,
+    int strength = 10,
+    int dexterity = 10,
+    int constitution = 10,
+    int intelligence = 10,
+    int wisdom = 10,
+    int charisma = 10,
   }) async {
     await (update(character)..where((t) => t.id.equals(characterId))).write(
       CharacterCompanion(
         name: Value(name),
         heroClass: Value(characterClass),
         species: Value(species),
+        background: Value(background),
         level: Value(level),
         currentHp: Value(maxHp),
         maxHp: Value(maxHp),
+        strength: Value(strength),
+        dexterity: Value(dexterity),
+        constitution: Value(constitution),
+        intelligence: Value(intelligence),
+        wisdom: Value(wisdom),
+        charisma: Value(charisma),
       ),
     );
+  }
+
+  // -- ATLAS SYSTEM METHODS --
+
+  /// Get a location by ID
+  Future<Location?> getLocation(int id) {
+    return (select(locations)..where((t) => t.id.equals(id))).getSingleOrNull();
+  }
+
+  /// Get all locations for a world
+  Future<List<Location>> getLocationsForWorld(int worldId) {
+    return (select(locations)..where((t) => t.worldId.equals(worldId))).get();
+  }
+
+  /// Get all POIs for a location
+  Future<List<PointsOfInterestData>> getPoisForLocation(int locationId) {
+    return (select(pointsOfInterest)
+          ..where((t) => t.locationId.equals(locationId)))
+        .get();
+  }
+
+  /// Get all NPCs at a location
+  Future<List<Npc>> getNpcsForLocation(int locationId) {
+    return (select(npcs)..where((t) => t.locationId.equals(locationId))).get();
+  }
+
+  /// Get all NPCs at a POI
+  Future<List<Npc>> getNpcsForPoi(int poiId) {
+    return (select(npcs)..where((t) => t.poiId.equals(poiId))).get();
+  }
+
+  /// Create a new location
+  Future<int> createLocation(LocationsCompanion loc) {
+    return into(locations).insert(loc);
+  }
+
+  /// Create a new POI
+  Future<int> createPoi(PointsOfInterestCompanion poi) {
+    return into(pointsOfInterest).insert(poi);
+  }
+
+  /// Create a new NPC
+  Future<int> createNpc(NpcsCompanion npc) {
+    return into(npcs).insert(npc);
+  }
+
+  /// Update character's current location
+  Future<void> updateCharacterLocation(int charId, int locationId) {
+    return (update(character)..where((t) => t.id.equals(charId)))
+        .write(CharacterCompanion(currentLocationId: Value(locationId)));
+  }
+
+  // -- HOMEBREW METHODS --
+
+  Future<int> createCustomTrait(CustomTraitsCompanion trait) {
+    return into(customTraits).insert(trait);
+  }
+
+  Future<List<CustomTrait>> getCustomTraitsByType(String type) {
+    return (select(customTraits)..where((t) => t.type.equals(type))).get();
+  }
+
+  Future<void> deleteCustomTrait(int id) {
+    return (delete(customTraits)..where((t) => t.id.equals(id))).go();
   }
 }
