@@ -20,6 +20,9 @@ class ChatMessages extends Table {
   IntColumn get worldId => integer()
       .nullable()
       .references(Worlds, #id, onDelete: KeyAction.cascade)();
+  IntColumn get characterId => integer()
+      .nullable()
+      .references(Character, #id, onDelete: KeyAction.cascade)();
   TextColumn get content => text()();
   DateTimeColumn get timestamp => dateTime().withDefault(currentDateAndTime)();
 }
@@ -128,7 +131,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration {
@@ -204,6 +207,21 @@ class AppDatabase extends _$AppDatabase {
           // Phase 2: World Creation Tone
           await m.addColumn(worlds, worlds.tone);
         }
+        if (from < 11) {
+          // Phase 3: Character-scoped messages for Local Shared World
+          await m.addColumn(chatMessages, chatMessages.characterId);
+
+          // Link orphan messages to most recent character in their world
+          await customStatement('''
+            UPDATE chat_messages
+            SET character_id = (
+              SELECT c.id FROM character c
+              WHERE c.world_id = chat_messages.world_id
+              ORDER BY c.id DESC LIMIT 1
+            )
+            WHERE character_id IS NULL AND world_id IS NOT NULL
+          ''');
+        }
       },
     );
   }
@@ -230,17 +248,19 @@ LazyDatabase _openConnection() {
 class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
   GameDao(super.db);
 
-  Future<int> insertMessage(String role, String content, int? worldId) {
+  Future<int> insertMessage(
+      String role, String content, int? worldId, int? characterId) {
     return into(chatMessages).insert(ChatMessagesCompanion(
       role: Value(MessageRole.values.firstWhere((e) => e.name == role)),
       content: Value(content),
       worldId: Value(worldId),
+      characterId: Value(characterId),
     ));
   }
 
-  Future<List<ChatMessage>> getRecentMessages(int worldId, int limit) {
+  Future<List<ChatMessage>> getRecentMessages(int characterId, int limit) {
     return (select(chatMessages)
-          ..where((t) => t.worldId.equals(worldId))
+          ..where((t) => t.characterId.equals(characterId))
           ..orderBy([
             (t) =>
                 OrderingTerm(expression: t.timestamp, mode: OrderingMode.desc)
@@ -326,6 +346,15 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
           ..where((t) => t.worldId.equals(worldId))
           ..limit(1))
         .getSingleOrNull();
+  }
+
+  Future<CharacterData?> getCharacterById(int characterId) {
+    return (select(character)..where((t) => t.id.equals(characterId)))
+        .getSingleOrNull();
+  }
+
+  Future<List<CharacterData>> getCharactersForWorld(int worldId) {
+    return (select(character)..where((t) => t.worldId.equals(worldId))).get();
   }
 
   Future<List<CharacterData>> getAllCharacters() => select(character).get();
@@ -436,6 +465,11 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
   /// Get all NPCs at a location
   Future<List<Npc>> getNpcsForLocation(int locationId) {
     return (select(npcs)..where((t) => t.locationId.equals(locationId))).get();
+  }
+
+  /// Get all NPCs in a world
+  Future<List<Npc>> getNpcsForWorld(int worldId) {
+    return (select(npcs)..where((t) => t.worldId.equals(worldId))).get();
   }
 
   /// Get all NPCs at a POI

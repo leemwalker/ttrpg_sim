@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:ttrpg_sim/features/menu/main_menu_screen.dart';
 import 'package:ttrpg_sim/features/settings/settings_provider.dart';
 
-void main() async {
-  await dotenv.load(fileName: ".env");
+void main() {
   runApp(const ProviderScope(child: TtrpgSimApp()));
 }
 

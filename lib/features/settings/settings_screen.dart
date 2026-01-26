@@ -83,7 +83,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               labelText: 'Gemini API Key',
               hintText: 'Enter custom API Key',
               border: OutlineInputBorder(),
-              helperText: 'Leave empty to use default environment key',
+              helperText: 'Required - Get your key at aistudio.google.com',
             ),
             obscureText: true,
             onChanged: (value) {

@@ -26,7 +26,10 @@ abstract class RpgSystem {
   /// List of available backgrounds in this system.
   List<String> get availableBackgrounds;
 
-  /// Register custom traits (Species/Class) into the rules engine.
+  /// List of available feats in this system.
+  List<String> get availableFeats;
+
+  /// Register custom traits (Species/Class/Feat) into the rules engine.
   void registerCustomTraits(List<CustomTrait> traits);
 
   /// Get details for a specific background.

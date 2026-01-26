@@ -92,6 +92,7 @@ void main() {
             gold: 0,
             location: 'Loc',
             worldId: 1,
+            inventory: '[]',
             // Added required stats
             strength: 10,
             dexterity: 10,
@@ -134,6 +135,7 @@ void main() {
             gold: 0,
             location: 'Loc',
             worldId: 1,
+            inventory: '[]',
             // Added required stats
             strength: 10,
             dexterity: 10,

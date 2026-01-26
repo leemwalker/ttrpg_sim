@@ -41,21 +41,48 @@ class Dnd5eRules extends RpgSystem {
     'Survival': 'wisdom',
   };
 
+  // SRD 5.2.1 Feats by category
+  static const List<String> _defaultFeats = [
+    // Origin Feats
+    'Alert',
+    'Magic Initiate',
+    'Savage Attacker',
+    'Skilled',
+    // General Feats
+    'Ability Score Improvement',
+    'Grappler',
+    // Fighting Style Feats
+    'Archery',
+    'Defense',
+    'Great Weapon Fighting',
+    'Two-Weapon Fighting',
+    // Epic Boon Feats
+    'Boon of Combat Prowess',
+    'Boon of Dimensional Travel',
+    'Boon of Fate',
+    'Boon of Irresistible Offense',
+    'Boon of Spell Recall',
+    'Boon of the Night Spirit',
+    'Boon of Truesight',
+  ];
+
   // Mutable lists to allow homebrew content
   late final List<String> _classes;
   late final List<String> _species;
+  final List<String> _customFeats = [];
 
   Dnd5eRules() {
     _classes = _hitDice.keys.toList()..sort();
+    // SRD 5.2.1 Species (9 total)
     _species = [
-      'Human',
-      'Elf',
-      'Dwarf',
-      'Halfling',
       'Dragonborn',
+      'Dwarf',
+      'Elf',
       'Gnome',
-      'Half-Elf',
-      'Half-Orc',
+      'Goliath',
+      'Halfling',
+      'Human',
+      'Orc',
       'Tiefling',
     ];
   }
@@ -67,28 +94,33 @@ class Dnd5eRules extends RpgSystem {
   List<String> get availableSpecies => _species;
 
   @override
+  List<String> get availableFeats => [..._defaultFeats, ..._customFeats];
+
+  @override
   void registerCustomTraits(List<CustomTrait> traits) {
     for (final trait in traits) {
       if (trait.type == 'Class' && !_classes.contains(trait.name)) {
         _classes.add(trait.name);
       } else if (trait.type == 'Species' && !_species.contains(trait.name)) {
         _species.add(trait.name);
+      } else if (trait.type == 'Feat' &&
+          !_customFeats.contains(trait.name) &&
+          !_defaultFeats.contains(trait.name)) {
+        _customFeats.add(trait.name);
       }
     }
   }
 
+  // SRD 5.2.1 Backgrounds (4 total)
   @override
   List<String> get availableBackgrounds => [
         'Acolyte',
         'Criminal',
-        'Folk Hero',
-        'Noble',
         'Sage',
         'Soldier',
-        'Merchant',
-        'Outlander',
       ];
 
+  // SRD 5.2.1 Background details
   static const Map<String, BackgroundInfo> _backgrounds = {
     'Acolyte': BackgroundInfo(
       name: 'Acolyte',
@@ -104,20 +136,6 @@ class Dnd5eRules extends RpgSystem {
           'You have a reliable and trustworthy contact who acts as your liaison to a network of other criminals. You know how to get messages to and from your contact, even over great distances.',
       originFeat: 'Alert',
     ),
-    'Folk Hero': BackgroundInfo(
-      name: 'Folk Hero',
-      featureName: 'Rustic Hospitality',
-      featureDesc:
-          'Since you come from the ranks of the common folk, you fit in among them with ease. You can find a place to hide, rest, or recuperate among other commoners, unless you have shown yourself to be a danger to them.',
-      originFeat: 'Tough',
-    ),
-    'Noble': BackgroundInfo(
-      name: 'Noble',
-      featureName: 'Position of Privilege',
-      featureDesc:
-          'Thanks to your noble birth, people are inclined to think the best of you. You are welcome in high society, and people assume you have the right to be wherever you are. The common folk make every effort to accommodate you and avoid your displeasure.',
-      originFeat: 'Skilled',
-    ),
     'Sage': BackgroundInfo(
       name: 'Sage',
       featureName: 'Researcher',
@@ -131,20 +149,6 @@ class Dnd5eRules extends RpgSystem {
       featureDesc:
           'You have a military rank from your career as a soldier. Soldiers loyal to your former military organization still recognize your authority and influence, and they defer to you if they are of a lower rank.',
       originFeat: 'Savage Attacker',
-    ),
-    'Merchant': BackgroundInfo(
-      name: 'Merchant',
-      featureName: 'Guild Membership',
-      featureDesc:
-          'As an established and respected member of a guild, you can rely on certain benefits that membership provides. Your fellow guild members will provide you with lodging and food if necessary, and pay for your funeral if needed.',
-      originFeat: 'Lucky',
-    ),
-    'Outlander': BackgroundInfo(
-      name: 'Outlander',
-      featureName: 'Wanderer',
-      featureDesc:
-          'You have an excellent memory for maps and geography, and you can always recall the general layout of terrain, settlements, and other features around you. In addition, you can find food and fresh water for yourself and up to five other people each day.',
-      originFeat: 'Musician',
     ),
   };
 

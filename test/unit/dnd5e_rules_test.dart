@@ -43,7 +43,7 @@ void main() {
           name: 'Test',
           heroClass: 'Fighter',
           species: 'Human',
-          background: 'Noble',
+          background: 'Acolyte',
           level: 1,
           currentHp: 10,
           maxHp: 10,
@@ -54,6 +54,7 @@ void main() {
           wisdom: attr == 'wisdom' ? score : 10,
           charisma: attr == 'charisma' ? score : 10,
           gold: 0,
+          inventory: '[]',
         );
       }
 
@@ -78,10 +79,11 @@ void main() {
 
     // Task 1.3: getBackgroundInfo
     test('getBackgroundInfo returns correct features', () {
-      final noble = rules.getBackgroundInfo('Noble');
-      expect(noble.name, 'Noble');
-      expect(noble.featureName, 'Position of Privilege');
-      expect(noble.originFeat, 'Skilled');
+      // SRD 5.2.1: Criminal background
+      final criminal = rules.getBackgroundInfo('Criminal');
+      expect(criminal.name, 'Criminal');
+      expect(criminal.featureName, 'Criminal Contact');
+      expect(criminal.originFeat, 'Alert');
 
       final acolyte = rules.getBackgroundInfo('Acolyte');
       expect(acolyte.name, 'Acolyte');
