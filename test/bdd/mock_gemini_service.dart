@@ -34,6 +34,7 @@ class MockGeminiService implements GeminiService {
     Location? location,
     List<PointsOfInterestData> pois = const [],
     List<Npc> npcs = const [],
+    String? worldKnowledge,
   }) async {
     return TurnResult(
       narrative: nextNarrative,

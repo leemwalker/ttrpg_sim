@@ -198,7 +198,7 @@ class InventorySection extends ConsumerWidget {
             );
           },
           loading: () => const SizedBox.shrink(),
-          error: (_, __) => const SizedBox.shrink(),
+          error: (err, stack) => ListTile(title: Text('Error: $err')),
         )
       ],
     );

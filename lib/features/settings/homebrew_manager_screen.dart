@@ -73,14 +73,10 @@ class _CustomTraitList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // We can't easily use a stream here because the DAO returns Future<List>.
-    // So we use a FutureBuilder that re-triggers when we need to.
-    // For simplicity in this non-reactive setup, we'll just fetch on build.
-    // A better way would be meaningful state management, but this works for MVP.
     final dao = ref.watch(gameDaoProvider);
 
-    return FutureBuilder<List<CustomTrait>>(
-      future: dao.getCustomTraitsByType(type),
+    return StreamBuilder<List<CustomTrait>>(
+      stream: dao.watchCustomTraitsByType(type),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -146,17 +142,6 @@ class _AddTraitDialogState extends ConsumerState<_AddTraitDialog> {
 
     if (mounted) {
       Navigator.of(context).pop();
-      // Force refresh of the parent list?
-      // Since the list uses FutureBuilder directly on the DAO call from provider,
-      // creating a trait won't auto-refresh unless we trigger a rebuild.
-      // We can use ref.invalidate(gameDaoProvider) but that's overkill.
-      // For MVP, calling setState in parent or using a StreamProvider is best.
-      // But we are inside a Dialog here.
-      // Users will see the change when they navigate or if we setup a refresh mechanism.
-      // To fix this simply: The FutureBuilder in _CustomTraitList will re-run if the parent rebuilds.
-      // But the parent doesn't rebuild on dialog close automatically.
-      // We'll rely on the user interacting or simple navigation for now, OR:
-      // We can make the FutureBuilder dependent on a provider we invalidate.
     }
   }
 

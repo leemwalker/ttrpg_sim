@@ -1,4 +1,5 @@
-import 'package:ttrpg_sim/core/utils/dice_utils.dart';
+import 'package:ttrpg_sim/features/game/services/game_action_handler.dart';
+
 import 'package:ttrpg_sim/core/constants/app_constants.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:ttrpg_sim/core/database/database.dart';
@@ -50,10 +51,11 @@ class GameController extends _$GameController {
     state = const AsyncValue.loading();
 
     final dao = ref.read(gameDaoProvider);
-    final gemini = ref.read(geminiServiceProvider);
     final worldId = _worldId;
 
     try {
+      final gemini = ref.read(geminiServiceProvider);
+
       // Save user message (scoped to this character)
       await dao.insertMessage('user', text, worldId, _characterId);
 
@@ -95,19 +97,18 @@ class GameController extends _$GameController {
       final knownNpcs = await dao.getNpcsForWorld(worldId);
 
       // Build world knowledge section for prompt
-      String? worldKnowledge;
-      if (knownLocations.isNotEmpty || knownNpcs.isNotEmpty) {
-        worldKnowledge = '''
+      final worldKnowledge = (knownLocations.isNotEmpty || knownNpcs.isNotEmpty)
+          ? '''
 [PERSISTENT WORLD DATA]
 The following locations and NPCs already exist in this world. Use these details to maintain consistency if the player encounters them:
 Locations: ${knownLocations.map((l) => "${l.name}: ${l.description}").join('; ')}
 NPCs: ${knownNpcs.map((n) => "${n.name}: ${n.role}").join('; ')}
-''';
-      }
+'''
+          : null;
 
       // Call Gemini (includes world knowledge if available)
       final result = await gemini.sendMessage(
-        worldKnowledge != null ? '$text\n\n$worldKnowledge' : text,
+        text,
         dao,
         worldId,
         genre: genre,
@@ -120,6 +121,8 @@ NPCs: ${knownNpcs.map((n) => "${n.name}: ${n.role}").join('; ')}
         location: location,
         pois: pois,
         npcs: npcs,
+        worldKnowledge:
+            worldKnowledge, // Pass context explicitly if GeminiService supports it, or it will be built in the builder
       );
 
       // Handle Result (Function Calls, State Updates, Narrative)
@@ -131,10 +134,10 @@ NPCs: ${knownNpcs.map((n) => "${n.name}: ${n.role}").join('; ')}
 
   Future<void> _startSessionZero() async {
     final dao = ref.read(gameDaoProvider);
-    final gemini = ref.read(geminiServiceProvider);
     final rules = Dnd5eRules();
 
     try {
+      final gemini = ref.read(geminiServiceProvider);
       final world = await dao.getWorld(_worldId);
       final character = await dao.getCharacterById(_characterId);
 
@@ -186,135 +189,25 @@ NPCs: ${knownNpcs.map((n) => "${n.name}: ${n.role}").join('; ')}
 
     // Handle Function Calls
     if (currentResult.functionCall != null) {
-      final fc = currentResult.functionCall!;
+      final handler = GameActionHandler(dao, rules);
+      final functionResult = await handler.handleFunctionCall(
+        functionCall: currentResult.functionCall!,
+        worldId: worldId,
+        characterId: _characterId,
+        gemini: gemini,
+      );
 
-      if (fc.name == 'generate_location') {
-        final args = fc.args;
-        final locName = args['name'] as String? ?? 'Unknown Location';
-        final locDesc = args['description'] as String? ?? 'A mysterious place.';
-        final locType = args['type'] as String? ?? 'Wilderness';
-        final poisData = args['pois'] as List<dynamic>? ?? [];
-        final npcsData = args['npcs'] as List<dynamic>? ?? [];
-
-        final locationId = await dao.createLocationFromValues(
-          worldId: worldId,
-          name: locName,
-          description: locDesc,
-          type: locType,
-        );
-
-        for (final poi in poisData) {
-          if (poi is Map<String, dynamic>) {
-            await dao.createPoiFromValues(
-              locationId: locationId,
-              name: poi['name'] as String? ?? 'Unknown POI',
-              description: poi['description'] as String? ?? '',
-              type: poi['type'] as String? ?? 'Unknown',
-            );
-          }
-        }
-
-        for (final npc in npcsData) {
-          if (npc is Map<String, dynamic>) {
-            await dao.createNpcFromValues(
-              worldId: worldId,
-              locationId: locationId,
-              name: npc['name'] as String? ?? 'Unknown NPC',
-              role: npc['role'] as String? ?? 'Commoner',
-              description: npc['description'] as String? ?? '',
-            );
-          }
-        }
-
-        final char = await dao.getCharacterById(_characterId);
-        if (char != null) {
-          await dao.updateCharacterLocation(char.id, locationId);
-        }
-
-        narrative = 'You arrive at **$locName**. $locDesc';
-        ref.invalidate(characterDataProvider(worldId));
-      }
-
-      if (fc.name == 'roll_check') {
-        final args = fc.args;
-        final checkName = args['check_name'] as String? ?? 'dexterity';
-        final difficulty = args['difficulty'] as int? ?? 10;
-
-        final char = await dao.getCharacterById(_characterId);
-        // Default to +0 if char is missing (should verify char existence before)
-        final mod = char != null ? rules.getModifier(char, checkName) : 0;
-
-        final roll = DiceUtils.rollD20();
-        final total = roll + mod;
-        final isSuccess = total >= difficulty;
-
-        final systemMsg = "🎲 **\${args['check_name']} Check**\n"
-            "Roll: $roll + $mod = **$total** vs DC $difficulty\n"
-            "\${isSuccess ? '✅ SUCCESS' : '❌ FAILURE'}";
-
-        await dao.insertMessage('system', systemMsg, worldId, _characterId);
-
-        final rollResult = await gemini.sendFunctionResponse('roll_check', {
-          'roll': roll,
-          'modifier': mod,
-          'total': total,
-          'success': isSuccess,
-          'check_name': checkName,
-          'difficulty': difficulty,
-        });
-
-        currentResult = rollResult;
+      if (functionResult != null) {
+        currentResult = functionResult;
         narrative = currentResult.narrative;
       }
     }
 
     // Apply State Updates
     if (currentResult.stateUpdates.isNotEmpty) {
-      final updates = currentResult.stateUpdates;
-      final currentCharacter = await dao.getCharacterById(_characterId);
-
-      if (currentCharacter != null) {
-        if (updates.containsKey('hp_change')) {
-          final change = updates['hp_change'];
-          if (change != null && change is int) {
-            final newHp = (currentCharacter.currentHp + change)
-                .clamp(0, currentCharacter.maxHp);
-            await dao.forceUpdateHp(currentCharacter.id, newHp);
-            ref.invalidate(characterDataProvider(worldId));
-          }
-        }
-
-        if (updates.containsKey('gold_change')) {
-          final change = updates['gold_change'] as int? ?? 0;
-          final newGold = currentCharacter.gold + change;
-          await dao.updateGold(currentCharacter.id, newGold);
-        }
-
-        if (updates.containsKey('location_update')) {
-          final newLoc = updates['location_update'] as String?;
-          if (newLoc != null) {
-            await dao.updateLocation(currentCharacter.id, newLoc);
-          }
-        }
-
-        if (updates.containsKey('add_items')) {
-          final items = updates['add_items'] as List<dynamic>?;
-          if (items != null) {
-            for (final item in items) {
-              await dao.addItem(currentCharacter.id, item as String);
-            }
-          }
-        }
-
-        if (updates.containsKey('remove_items')) {
-          final items = updates['remove_items'] as List<dynamic>?;
-          if (items != null) {
-            for (final item in items) {
-              await dao.removeItem(currentCharacter.id, item as String);
-            }
-          }
-        }
-      }
+      final handler = GameActionHandler(dao, rules);
+      await handler.processStateUpdates(
+          currentResult.stateUpdates, _characterId);
     }
 
     // Force Refresh UI

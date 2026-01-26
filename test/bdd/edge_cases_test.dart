@@ -32,6 +32,7 @@ class MockGeminiService implements GeminiService {
     Location? location,
     List<PointsOfInterestData> pois = const [],
     List<Npc> npcs = const [],
+    String? worldKnowledge,
   }) async {
     return Future.value(
         TurnResult(narrative: 'Mock Response', stateUpdates: {}));
@@ -109,6 +110,22 @@ void main() {
         description: 'Test Description',
       ));
 
+      // Create a dummy character
+      await dao.updateCharacterStats(CharacterCompanion.insert(
+        worldId: drift.Value(worldId),
+        name: 'Hero',
+        heroClass: 'Fighter',
+        level: 1,
+        currentHp: 10,
+        maxHp: 10,
+        gold: 0,
+        location: 'Start',
+      ));
+
+      // Get the character ID
+      final character = await dao.getCharacter(worldId);
+      final characterId = character!.id;
+
       // Setup Controller
       final container = ProviderContainer(
         overrides: [
@@ -118,24 +135,24 @@ void main() {
         ],
       );
       final controller =
-          container.read(gameControllerProvider(worldId).notifier);
+          container.read(gameControllerProvider(worldId, characterId).notifier);
 
       // Wait for initialization to complete
-      await container.read(gameControllerProvider(worldId).future);
+      await container.read(gameControllerProvider(worldId, characterId).future);
 
       // When: controller.submitAction(" ")
       await controller.submitAction("   ");
 
-      // Then: isLoading should be false (it initializes as false)
-      expect(container.read(gameControllerProvider(worldId)).isLoading, false);
+      // Then: isLoading should be false
+      expect(
+          container
+              .read(gameControllerProvider(worldId, characterId))
+              .isLoading,
+          false);
 
-      // And Mock Gemini sendMessage should NEVER be called
-      // Since we didn't train the mock to record calls, checking side effects is hard without a spy.
-      // But if it WAS called, the state would surely update or we'd see logs if we had a real logger.
-      // Better verification: Check if any message was inserted into DB.
-      // If controller ran, it would insert a user message "   ".
-      // If guarded, no message inserted.
-      final messages = await dao.getRecentMessages(worldId, 10);
+      // Check if any message was inserted into DB.
+      // Note: we should use characterId for getRecentMessages now
+      final messages = await dao.getRecentMessages(characterId, 10);
       expect(messages.isEmpty, true);
     });
   });

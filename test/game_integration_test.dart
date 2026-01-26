@@ -42,6 +42,7 @@ class MockGeminiService implements GeminiService {
     Location? location,
     List<PointsOfInterestData> pois = const [],
     List<Npc> npcs = const [],
+    String? worldKnowledge,
   }) async {
     return TurnResult(
       narrative: nextNarrative,
@@ -66,6 +67,7 @@ class MockGeminiService implements GeminiService {
 }
 
 void main() {
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   testWidgets('HP Update Integration Test', (WidgetTester tester) async {
     // 2. Setup In-Memory Database
     final inMemoryExecutor = NativeDatabase.memory();
@@ -99,6 +101,11 @@ void main() {
         worldId: Value(1),
       ),
     );
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    // Seed message to prevent Session Zero auto-trigger
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
 
     // 4. Pump Widget with Overrides
     await tester.pumpWidget(
@@ -110,6 +117,9 @@ void main() {
         child: const MaterialApp(home: GameScreen(worldId: 1, characterId: 1)),
       ),
     );
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
 
     // 5. Initial Load (Wait for "First Run" init)
     await tester.pumpAndSettle();
@@ -184,6 +194,9 @@ void main() {
         worldId: Value(1),
       ),
     );
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
 
     await tester.pumpWidget(
       ProviderScope(
@@ -194,6 +207,9 @@ void main() {
         child: const MaterialApp(home: GameScreen(worldId: 1, characterId: 1)),
       ),
     );
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
 
     await tester.pumpAndSettle(); // Init
 
@@ -258,6 +274,9 @@ void main() {
         worldId: Value(1),
       ),
     );
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
 
     await tester.pumpWidget(
       ProviderScope(
@@ -268,6 +287,9 @@ void main() {
         child: const MaterialApp(home: GameScreen(worldId: 1, characterId: 1)),
       ),
     );
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
 
     await tester.pumpAndSettle();
 
@@ -335,6 +357,9 @@ void main() {
         worldId: Value(1),
       ),
     );
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
 
     // Helper to get seeded char id
     final char = await db.gameDao.getCharacter(worldId);
@@ -349,6 +374,9 @@ void main() {
         child: const MaterialApp(home: GameScreen(worldId: 1, characterId: 1)),
       ),
     );
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
 
     await tester.pumpAndSettle();
 
@@ -456,6 +484,9 @@ void main() {
         worldId: Value(worldId),
       ),
     );
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
 
     final charBefore = await db.gameDao.getCharacter(worldId);
     expect(charBefore, isNotNull);
@@ -498,6 +529,9 @@ void main() {
         worldId: Value(worldId),
       ),
     );
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
+    await db.gameDao.insertMessage('system', 'Welcome', worldId, 1);
 
     // Verify character has no location initially
     final charBefore = await db.gameDao.getCharacter(worldId);

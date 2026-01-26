@@ -557,6 +557,10 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
     return (select(customTraits)..where((t) => t.type.equals(type))).get();
   }
 
+  Stream<List<CustomTrait>> watchCustomTraitsByType(String type) {
+    return (select(customTraits)..where((t) => t.type.equals(type))).watch();
+  }
+
   Future<void> deleteCustomTrait(int id) {
     return (delete(customTraits)..where((t) => t.id.equals(id))).go();
   }

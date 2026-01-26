@@ -146,6 +146,7 @@ class MockThrowingGemini extends MockGeminiService {
     Location? location,
     List<PointsOfInterestData> pois = const [],
     List<Npc> npcs = const [],
+    String? worldKnowledge,
   }) async {
     throw ApiKeyException("Invalid API Key found during check");
   }

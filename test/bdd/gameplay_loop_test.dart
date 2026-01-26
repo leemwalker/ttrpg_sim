@@ -37,6 +37,7 @@ class SmartMockGemini implements GeminiService {
     Location? location,
     List<PointsOfInterestData> pois = const [],
     List<Npc> npcs = const [],
+    String? worldKnowledge,
   }) async {
     if (_index >= responses.length) {
       return TurnResult(
