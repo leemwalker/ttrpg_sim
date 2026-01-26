@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ttrpg_sim/core/database/database.dart';
 import 'package:ttrpg_sim/core/providers.dart';
 import 'package:ttrpg_sim/features/creation/character_creation_screen.dart';
-import 'package:ttrpg_sim/features/game/presentation/game_screen.dart';
+import 'package:ttrpg_sim/features/campaign/character_selection_screen.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:ttrpg_sim/features/settings/settings_screen.dart';
 
@@ -48,7 +48,8 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
                   subtitle: Text("${world.genre} - ${world.description}"),
                   onTap: () {
                     Navigator.of(context).push(MaterialPageRoute(
-                      builder: (context) => GameScreen(worldId: world.id),
+                      builder: (context) =>
+                          CharacterSelectionScreen(worldId: world.id),
                     ));
                   },
                   trailing: IconButton(

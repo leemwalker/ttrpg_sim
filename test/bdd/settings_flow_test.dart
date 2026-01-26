@@ -104,7 +104,7 @@ void main() {
           geminiServiceProvider.overrideWithValue(throwingGemini),
         ],
         child: MaterialApp(
-          home: GameScreen(worldId: worldId),
+          home: GameScreen(worldId: worldId, characterId: 1),
         ),
       ),
     );

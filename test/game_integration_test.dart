@@ -107,7 +107,7 @@ void main() {
           databaseProvider.overrideWithValue(db),
           geminiServiceProvider.overrideWithValue(mockGemini),
         ],
-        child: const MaterialApp(home: GameScreen(worldId: 1)),
+        child: const MaterialApp(home: GameScreen(worldId: 1, characterId: 1)),
       ),
     );
 
@@ -191,7 +191,7 @@ void main() {
           databaseProvider.overrideWithValue(db),
           geminiServiceProvider.overrideWithValue(mockGemini),
         ],
-        child: const MaterialApp(home: GameScreen(worldId: 1)),
+        child: const MaterialApp(home: GameScreen(worldId: 1, characterId: 1)),
       ),
     );
 
@@ -265,7 +265,7 @@ void main() {
           databaseProvider.overrideWithValue(db),
           geminiServiceProvider.overrideWithValue(mockGemini),
         ],
-        child: const MaterialApp(home: GameScreen(worldId: 1)),
+        child: const MaterialApp(home: GameScreen(worldId: 1, characterId: 1)),
       ),
     );
 
@@ -346,7 +346,7 @@ void main() {
           databaseProvider.overrideWithValue(db),
           geminiServiceProvider.overrideWithValue(mockGemini),
         ],
-        child: const MaterialApp(home: GameScreen(worldId: 1)),
+        child: const MaterialApp(home: GameScreen(worldId: 1, characterId: 1)),
       ),
     );
 

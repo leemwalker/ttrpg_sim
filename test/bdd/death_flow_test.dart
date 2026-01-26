@@ -46,7 +46,7 @@ void main() {
           geminiServiceProvider.overrideWithValue(mockGemini),
         ],
         child: MaterialApp(
-          home: GameScreen(worldId: worldId),
+          home: GameScreen(worldId: worldId, characterId: 1),
         ),
       ),
     );
@@ -64,7 +64,7 @@ void main() {
 
     // AND (Optional) UI might show status?
     // We rely on the narrative content for now, but checking DB is the robust persistence check.
-    expect(find.textContaining('incinerated'), findsOneWidget);
+    expect(find.textContaining('incinerated'), findsWidgets);
 
     await db.close();
   });

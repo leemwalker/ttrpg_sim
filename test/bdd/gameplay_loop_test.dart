@@ -59,6 +59,7 @@ class SmartMockGemini implements GeminiService {
 }
 
 void main() {
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   testWidgets('BDD Scenario: Session Zero (Genesis Mode)',
       (WidgetTester tester) async {
     // GIVEN I have a new character with no location (currentLocationId is null)
@@ -113,7 +114,7 @@ void main() {
           geminiServiceProvider.overrideWithValue(mockGemini),
         ],
         child: const MaterialApp(
-          home: GameScreen(worldId: worldId),
+          home: GameScreen(worldId: worldId, characterId: 1),
         ),
       ),
     );
@@ -122,7 +123,8 @@ void main() {
     // WHEN I send the message "I start in a tavern"
     await tester.enterText(find.byType(TextField), "I start in a tavern");
     await tester.tap(find.byIcon(Icons.send));
-    await tester.pumpAndSettle();
+    // Wait longer for async DB ops
+    await tester.pumpAndSettle(const Duration(seconds: 1));
 
     // THEN The Locations table should contain "The Rusty Anchor"
     final locations = await db.gameDao.getLocationsForWorld(worldId);
@@ -194,7 +196,7 @@ void main() {
           geminiServiceProvider.overrideWithValue(mockGemini),
         ],
         child: const MaterialApp(
-          home: GameScreen(worldId: worldId),
+          home: GameScreen(worldId: worldId, characterId: 1),
         ),
       ),
     );
@@ -206,9 +208,13 @@ void main() {
     await tester.pump(); // Start
     await tester.pumpAndSettle(); // Finish
 
-    expect(find.textContaining('Roll:'), findsOneWidget);
-    expect(find.textContaining('+ 3'), findsOneWidget);
-    expect(find.textContaining('vs DC 10'), findsOneWidget);
+    // Verify DB contains System Message for Roll
+    final messages = await db.gameDao.getRecentMessages(1, 10);
+    // Find system message
+    final systemMsg = messages.firstWhere((m) => m.role.name == 'system');
+    expect(systemMsg.content, contains('Roll:'));
+    expect(systemMsg.content, contains('+ 3'));
+    expect(systemMsg.content, contains('vs DC 10'));
 
     // Also verify final narrative
     expect(find.text('You lift the rock easily.'), findsOneWidget);

@@ -213,7 +213,7 @@ class _CharacterCreationScreenState
               const SizedBox(height: 16),
               // INVENTORY SELECTION
               DropdownButtonFormField<String>(
-                value: _selectedInventory,
+                initialValue: _selectedInventory,
                 decoration: const InputDecoration(
                   labelText: "Equipment Pack",
                   border: OutlineInputBorder(),
@@ -335,7 +335,8 @@ class _CharacterCreationScreenState
 
     if (mounted) {
       Navigator.of(context).pushReplacement(MaterialPageRoute(
-        builder: (context) => GameScreen(worldId: widget.worldId),
+        builder: (context) =>
+            GameScreen(worldId: widget.worldId, characterId: _characterId!),
       ));
     }
   }

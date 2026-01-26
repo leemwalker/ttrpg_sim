@@ -7,7 +7,9 @@ import 'package:ttrpg_sim/features/game/presentation/drawer/character_drawer.dar
 
 class GameScreen extends ConsumerStatefulWidget {
   final int worldId;
-  const GameScreen({super.key, required this.worldId});
+  final int characterId;
+  const GameScreen(
+      {super.key, required this.worldId, required this.characterId});
 
   @override
   ConsumerState<GameScreen> createState() => _GameScreenState();
@@ -38,16 +40,19 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     if (text.isEmpty) return;
     _textController.clear();
     ref
-        .read(gameControllerProvider(widget.worldId).notifier)
+        .read(
+            gameControllerProvider(widget.worldId, widget.characterId).notifier)
         .submitAction(text);
   }
 
   @override
   Widget build(BuildContext context) {
-    final gameState = ref.watch(gameControllerProvider(widget.worldId));
+    final gameState =
+        ref.watch(gameControllerProvider(widget.worldId, widget.characterId));
 
     // Auto-scroll when messages change
-    ref.listen(gameControllerProvider(widget.worldId), (previous, next) {
+    ref.listen(gameControllerProvider(widget.worldId, widget.characterId),
+        (previous, next) {
       if (next is AsyncData<GameState> && previous is AsyncData<GameState>) {
         if (next.value.messages.length > previous.value.messages.length) {
           // Slight delay to allow frame to render new item?

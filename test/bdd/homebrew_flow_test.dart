@@ -11,6 +11,7 @@ import 'package:drift/native.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 
 void main() {
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   testWidgets('BDD Scenario: Homebrew Content Flow',
       (WidgetTester tester) async {
     // SETUP

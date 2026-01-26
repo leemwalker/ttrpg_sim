@@ -34,7 +34,7 @@ class SettingsService {
 
   Future<String> getModel() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_kModel) ?? 'gemini-1.5-flash';
+    return prefs.getString(_kModel) ?? 'models/gemini-2.5-flash';
   }
 
   Future<void> setModel(String model) async {

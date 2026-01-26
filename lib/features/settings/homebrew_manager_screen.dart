@@ -43,7 +43,7 @@ class _HomebrewManagerScreenState extends ConsumerState<HomebrewManagerScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
+        children: const [
           _CustomTraitList(type: 'Species'),
           _CustomTraitList(type: 'Class'),
         ],
