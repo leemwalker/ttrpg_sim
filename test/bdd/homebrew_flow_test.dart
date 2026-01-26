@@ -80,6 +80,18 @@ void main() {
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
+    // Verification: Check DB directly
+    final traits = await db.gameDao.getCustomTraitsByType('Species');
+    print("DEBUG: DB Species Count: ${traits.length}");
+    if (traits.isNotEmpty) {
+      print(
+          "DEBUG: Created Trait: ${traits.first.name} (${traits.first.type})");
+    }
+
+    // Explicit pump to handle FutureBuilder timing
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle();
+
     // DEBUG: Dump Widgets
     print("=== HOMEBREW UI DUMP ===");
     find

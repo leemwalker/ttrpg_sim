@@ -8,11 +8,14 @@ import 'package:ttrpg_sim/features/game/presentation/game_screen.dart';
 import 'package:drift/native.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 
+import 'mock_gemini_service.dart';
+
 void main() {
   testWidgets('BDD Scenario: Create Character', (WidgetTester tester) async {
     // GIVEN I am on the Character Creation screen for a new world
     final inMemoryExecutor = NativeDatabase.memory();
     final db = AppDatabase(inMemoryExecutor);
+    final mockGemini = MockGeminiService();
     const worldId = 1;
 
     // Seed World
@@ -41,6 +44,7 @@ void main() {
       ProviderScope(
         overrides: [
           databaseProvider.overrideWithValue(db),
+          geminiServiceProvider.overrideWithValue(mockGemini),
         ],
         child: const MaterialApp(
           home: CharacterCreationScreen(worldId: worldId),

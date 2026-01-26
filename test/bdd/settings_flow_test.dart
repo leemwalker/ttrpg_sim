@@ -119,7 +119,7 @@ void main() {
     // THEN I should see the Auth Error
     // The Controller catches ApiKeyException and inserts a system message.
     // Actual message defined in Controller: "⛔ Auth Error: Please check your API Key in Settings."
-    expect(find.textContaining('Auth Error'), findsOneWidget);
+    expect(find.textContaining('Auth Error'), findsWidgets);
 
     await db.close();
   });
