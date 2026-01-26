@@ -69,9 +69,11 @@ void main() {
     await tester.pumpAndSettle();
 
     // 3. Fill Dialog
-    await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Cyborg');
-    await tester.enterText(find.widgetWithText(TextField, 'Description'),
-        'Part man, part machine');
+    // Find Name field (first TextField)
+    await tester.enterText(find.byType(TextField).at(0), 'Cyborg');
+    // Find Description field (second TextField)
+    await tester.enterText(
+        find.byType(TextField).at(1), 'Part man, part machine');
 
     // 4. Save
     await tester.tap(find.text('Save'));
@@ -87,6 +89,32 @@ void main() {
     print("========================");
 
     // THEN "Cyborg" should be in the list
+    expect(find.text('Cyborg'), findsOneWidget);
+
+    // AND I delete "Cyborg" (Swipe to dismiss)
+    await tester.drag(find.text('Cyborg'), const Offset(-500, 0));
+    await tester.pumpAndSettle();
+
+    // THEN "Cyborg" should be gone from the list
+    expect(find.text('Cyborg'), findsNothing);
+
+    // AND "Cyborg" deleted message should be shown
+    expect(find.text('Cyborg deleted'), findsOneWidget);
+
+    // Re-create it for the next part (Character Creation) or skip?
+    // The test continues to Character Creation expecting "Cyborg".
+    // If we delete it, we can't select it.
+    // So we should re-create it or just remove the deletion part from THIS flow
+    // and make a separate "Manage Homebrew" test vs "Use Homebrew" test.
+    // OR we delete it and verify, then re-add it.
+    // Let's re-add it quickly.
+
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), 'Cyborg');
+    await tester.enterText(find.byType(TextField).at(1), 'Re-added');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
     expect(find.text('Cyborg'), findsOneWidget);
 
     // AND I navigate to "Character Creation" (Simulated by pumping widget directly)

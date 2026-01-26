@@ -8,15 +8,22 @@ import 'package:drift/drift.dart' as drift;
 
 // Mock Gemini Service
 import 'package:ttrpg_sim/core/services/gemini_service.dart';
+import 'package:ttrpg_sim/core/services/gemini_wrapper.dart';
 
 // Mock Gemini Service
 class MockGeminiService implements GeminiService {
+  @override
+  GenerativeModelWrapper createModel(String instruction) {
+    throw UnimplementedError();
+  }
+
   @override
   Future<TurnResult> sendMessage(
     String userMessage,
     GameDao dao,
     int worldId, {
     required String genre,
+    required String tone,
     required String description,
     required CharacterData player,
     required List<String> features,
@@ -95,6 +102,13 @@ void main() {
     });
 
     test('Scenario: Empty Input Guard', () async {
+      // Create dummy world for context
+      final worldId = await dao.createWorld(WorldsCompanion.insert(
+        name: 'Test World',
+        genre: 'Fantasy',
+        description: 'Test Description',
+      ));
+
       // Setup Controller
       final container = ProviderContainer(
         overrides: [
@@ -103,20 +117,17 @@ void main() {
           geminiServiceProvider.overrideWithValue(mockGemini),
         ],
       );
-      final controller = container.read(gameControllerProvider.notifier);
+      final controller =
+          container.read(gameControllerProvider(worldId).notifier);
 
-      // Create dummy world for context
-      final worldId = await dao.createWorld(WorldsCompanion.insert(
-        name: 'Test World',
-        genre: 'Fantasy',
-        description: 'Test Description',
-      ));
+      // Wait for initialization to complete
+      await container.read(gameControllerProvider(worldId).future);
 
       // When: controller.submitAction(" ")
-      await controller.submitAction("   ", worldId);
+      await controller.submitAction("   ");
 
       // Then: isLoading should be false (it initializes as false)
-      expect(container.read(gameControllerProvider).isLoading, false);
+      expect(container.read(gameControllerProvider(worldId)).isLoading, false);
 
       // And Mock Gemini sendMessage should NEVER be called
       // Since we didn't train the mock to record calls, checking side effects is hard without a spy.
@@ -124,7 +135,7 @@ void main() {
       // Better verification: Check if any message was inserted into DB.
       // If controller ran, it would insert a user message "   ".
       // If guarded, no message inserted.
-      final messages = await dao.getRecentMessages(10);
+      final messages = await dao.getRecentMessages(worldId, 10);
       expect(messages.isEmpty, true);
     });
   });

@@ -14,7 +14,7 @@ void main() {
     // 1. Setup In-Memory Database
     final inMemoryExecutor = NativeDatabase.memory();
     final db = AppDatabase(inMemoryExecutor);
-    final worldId = 1;
+    const worldId = 1;
 
     // 2. Seed Database with Placeholder Character (Required by Screen)
     await db.gameDao.createWorld(WorldsCompanion.insert(
@@ -24,14 +24,14 @@ void main() {
       description: 'Test',
     ));
     await db.gameDao.updateCharacterStats(
-      CharacterCompanion(
-        name: const Value('Traveler'), // Placeholder name
-        heroClass: const Value('Fighter'),
-        level: const Value(1),
-        currentHp: const Value(10),
-        maxHp: const Value(10),
-        gold: const Value(0),
-        location: const Value('Unknown'),
+      const CharacterCompanion(
+        name: Value('Traveler'), // Placeholder name
+        heroClass: Value('Fighter'),
+        level: Value(1),
+        currentHp: Value(10),
+        maxHp: Value(10),
+        gold: Value(0),
+        location: Value('Unknown'),
         worldId: Value(worldId),
       ),
     );
@@ -42,7 +42,7 @@ void main() {
         overrides: [
           databaseProvider.overrideWithValue(db),
         ],
-        child: MaterialApp(
+        child: const MaterialApp(
           home: CharacterCreationScreen(worldId: worldId),
         ),
       ),

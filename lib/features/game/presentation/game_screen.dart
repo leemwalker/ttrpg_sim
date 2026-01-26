@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ttrpg_sim/core/providers.dart';
+
 import 'package:ttrpg_sim/features/game/state/game_controller.dart';
 import 'package:ttrpg_sim/features/game/state/game_state.dart';
 import 'package:ttrpg_sim/features/game/presentation/drawer/character_drawer.dart';
@@ -38,16 +38,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     if (text.isEmpty) return;
     _textController.clear();
     ref
-        .read(gameControllerProvider.notifier)
-        .submitAction(text, widget.worldId);
+        .read(gameControllerProvider(widget.worldId).notifier)
+        .submitAction(text);
   }
 
   @override
   Widget build(BuildContext context) {
-    final gameState = ref.watch(gameControllerProvider);
+    final gameState = ref.watch(gameControllerProvider(widget.worldId));
 
     // Auto-scroll when messages change
-    ref.listen(gameControllerProvider, (previous, next) {
+    ref.listen(gameControllerProvider(widget.worldId), (previous, next) {
       if (next is AsyncData<GameState> && previous is AsyncData<GameState>) {
         if (next.value.messages.length > previous.value.messages.length) {
           // Slight delay to allow frame to render new item?
@@ -61,6 +61,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('TTRPG Sim'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.exit_to_app),
+            tooltip: "Exit World",
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
       ),
       drawer: CharacterDrawer(worldId: widget.worldId),
       body: Column(
@@ -79,6 +86,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   itemBuilder: (context, index) {
                     final msg = state.messages[index];
                     final isUser = msg.role.name == 'user';
+                    final colorScheme = Theme.of(context).colorScheme;
+
+                    final backgroundColor = isUser
+                        ? colorScheme.primaryContainer
+                        : colorScheme.surfaceContainerHighest;
+
+                    final textColor = isUser
+                        ? colorScheme.onPrimaryContainer
+                        : colorScheme.onSurfaceVariant;
+
                     return Align(
                       alignment:
                           isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -86,14 +103,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                         margin: const EdgeInsets.symmetric(vertical: 4.0),
                         padding: const EdgeInsets.all(12.0),
                         decoration: BoxDecoration(
-                          color: isUser ? Colors.blue[100] : Colors.grey[200],
+                          color: backgroundColor,
                           borderRadius: BorderRadius.circular(8.0),
                         ),
                         child: ConstrainedBox(
                           constraints: BoxConstraints(
                               maxWidth:
                                   MediaQuery.of(context).size.width * 0.7),
-                          child: Text(msg.content),
+                          child: Text(
+                            msg.content,
+                            style: TextStyle(color: textColor),
+                          ),
                         ),
                       ),
                     );

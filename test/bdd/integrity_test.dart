@@ -10,22 +10,23 @@ void main() {
     final dao = GameDao(db);
 
     // 1. Create Custom Trait
-    final traitId = await dao.createCustomTrait(CustomTraitsCompanion(
-      name: const Value('Hacker'),
-      type: const Value('Class'),
-      description: const Value('A master of digital warfare'),
+    final traitId = await dao.createCustomTrait(const CustomTraitsCompanion(
+      name: Value('Hacker'),
+      type: Value('Class'),
+      description: Value('A master of digital warfare'),
     ));
 
     // 2. Create Character using that trait
     // Matches "Neo", Class: "Hacker"
-    final charId = await dao.updateCharacterStats(CharacterCompanion(
-      name: const Value('Neo'),
-      heroClass: const Value('Hacker'),
-      level: const Value(1),
-      currentHp: const Value(10),
-      maxHp: const Value(10),
-      gold: const Value(0),
-      location: const Value('Matrix'),
+    // final charId =
+    await dao.updateCharacterStats(const CharacterCompanion(
+      name: Value('Neo'),
+      heroClass: Value('Hacker'),
+      level: Value(1),
+      currentHp: Value(10),
+      maxHp: Value(10),
+      gold: Value(0),
+      location: Value('Matrix'),
       // worldId is technically required or nullable depending on schema version,
       // but in V7 it's nullable references Worlds.
       // Since referential integrity is enforced by foreign keys in SQLite *if enabled*,

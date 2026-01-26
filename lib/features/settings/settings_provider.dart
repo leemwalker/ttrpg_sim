@@ -10,7 +10,7 @@ class SettingsState {
   const SettingsState({
     this.theme = ThemeMode.system,
     this.apiKey,
-    this.modelName = 'gemini-1.5-flash',
+    this.modelName = 'models/gemini-2.5-flash',
   });
 
   SettingsState copyWith({

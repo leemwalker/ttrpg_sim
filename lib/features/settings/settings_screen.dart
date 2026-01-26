@@ -92,19 +92,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: settings.modelName,
+            initialValue: settings.modelName,
             decoration: const InputDecoration(
               labelText: 'Model',
               border: OutlineInputBorder(),
             ),
             items: const [
               DropdownMenuItem(
-                value: 'gemini-1.5-flash',
-                child: Text('Gemini 1.5 Flash'),
+                value: 'models/gemini-2.5-flash',
+                child: Text('Gemini 2.5 Flash'),
               ),
               DropdownMenuItem(
-                value: 'gemini-1.5-pro',
-                child: Text('Gemini 1.5 Pro'),
+                value: 'models/gemini-2.5-pro',
+                child: Text('Gemini 2.5 Pro'),
+              ),
+              DropdownMenuItem(
+                value: 'models/gemini-2.0-flash-exp',
+                child: Text('Gemini 2.0 Flash Exp'),
               ),
             ],
             onChanged: (value) {

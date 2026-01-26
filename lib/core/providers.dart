@@ -63,11 +63,11 @@ final geminiServiceProvider = Provider<GeminiService>((ref) {
 final characterDataProvider =
     FutureProvider.family<CharacterData?, int>((ref, worldId) async {
   final dao = ref.watch(gameDaoProvider);
-  final db = ref.watch(databaseProvider);
-  print('🔮 FUTURE using DB Instance: ${db.instanceId} for World: $worldId');
-  print('🔮 FUTURE: Fetching fresh character data...');
+  // final db = ref.watch(databaseProvider);
+  // Log Removed
+  // Log Removed
   final char = await dao.getCharacter(worldId);
-  print('🔮 FUTURE RESULT: HP ${char?.currentHp}');
+  // Log Removed
   return char;
 });
 

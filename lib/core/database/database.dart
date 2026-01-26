@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
@@ -16,6 +17,9 @@ enum MessageRole {
 class ChatMessages extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get role => textEnum<MessageRole>()();
+  IntColumn get worldId => integer()
+      .nullable()
+      .references(Worlds, #id, onDelete: KeyAction.cascade)();
   TextColumn get content => text()();
   DateTimeColumn get timestamp => dateTime().withDefault(currentDateAndTime)();
 }
@@ -24,6 +28,7 @@ class Worlds extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   TextColumn get genre => text()();
+  TextColumn get tone => text().withDefault(const Constant('Standard'))();
   TextColumn get description => text()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -44,6 +49,8 @@ class Character extends Table {
   IntColumn get currentLocationId =>
       integer().nullable()(); // FK added after Locations table exists
   TextColumn get background => text().nullable()();
+  TextColumn get backstory => text().nullable()();
+  TextColumn get inventory => text().withDefault(const Constant('[]'))();
   // D&D 5e Ability Scores (default to 10 = average human)
   IntColumn get strength => integer().withDefault(const Constant(10))();
   IntColumn get dexterity => integer().withDefault(const Constant(10))();
@@ -121,7 +128,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration {
@@ -182,7 +189,20 @@ class AppDatabase extends _$AppDatabase {
           await m.createTable(customTraits);
         }
         if (from < 8) {
-          // v8 adds Cascade constraints, requires table recreation
+          // v8 adds Cascade constraints, requires table recreation usually, but here we just moved on.
+        }
+        if (from < 9) {
+          // Phase 1: Core Integrity
+          // 1. Add worldId to chatMessages
+          await m.addColumn(chatMessages, chatMessages.worldId);
+
+          // 2. Add backstory and inventory to character
+          await m.addColumn(character, character.backstory);
+          await m.addColumn(character, character.inventory);
+        }
+        if (from < 10) {
+          // Phase 2: World Creation Tone
+          await m.addColumn(worlds, worlds.tone);
         }
       },
     );
@@ -210,15 +230,17 @@ LazyDatabase _openConnection() {
 class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
   GameDao(super.db);
 
-  Future<int> insertMessage(String role, String content) {
+  Future<int> insertMessage(String role, String content, int? worldId) {
     return into(chatMessages).insert(ChatMessagesCompanion(
       role: Value(MessageRole.values.firstWhere((e) => e.name == role)),
       content: Value(content),
+      worldId: Value(worldId),
     ));
   }
 
-  Future<List<ChatMessage>> getRecentMessages(int limit) {
+  Future<List<ChatMessage>> getRecentMessages(int worldId, int limit) {
     return (select(chatMessages)
+          ..where((t) => t.worldId.equals(worldId))
           ..orderBy([
             (t) =>
                 OrderingTerm(expression: t.timestamp, mode: OrderingMode.desc)
@@ -358,6 +380,8 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
     required String characterClass,
     required String species,
     required String? background,
+    String? backstory,
+    List<String>? inventory,
     required int level,
     required int maxHp,
     int strength = 10,
@@ -373,6 +397,10 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
         heroClass: Value(characterClass),
         species: Value(species),
         background: Value(background),
+        backstory: Value(backstory),
+        inventory: inventory != null
+            ? Value(jsonEncode(inventory))
+            : const Value.absent(),
         level: Value(level),
         currentHp: Value(maxHp),
         maxHp: Value(maxHp),
@@ -420,14 +448,63 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
     return into(locations).insert(loc);
   }
 
+  /// Create a new location from primitive values
+  Future<int> createLocationFromValues({
+    required int worldId,
+    required String name,
+    required String description,
+    required String type,
+    String? coordinates,
+  }) {
+    return into(locations).insert(LocationsCompanion.insert(
+      worldId: worldId,
+      name: name,
+      description: description,
+      type: type,
+      coordinates: Value(coordinates),
+    ));
+  }
+
   /// Create a new POI
   Future<int> createPoi(PointsOfInterestCompanion poi) {
     return into(pointsOfInterest).insert(poi);
   }
 
+  /// Create a new POI from primitive values
+  Future<int> createPoiFromValues({
+    required int locationId,
+    required String name,
+    required String description,
+    required String type,
+  }) {
+    return into(pointsOfInterest).insert(PointsOfInterestCompanion.insert(
+      locationId: locationId,
+      name: name,
+      description: description,
+      type: type,
+    ));
+  }
+
   /// Create a new NPC
   Future<int> createNpc(NpcsCompanion npc) {
     return into(npcs).insert(npc);
+  }
+
+  /// Create a new NPC from primitive values
+  Future<int> createNpcFromValues({
+    required int worldId,
+    required int locationId,
+    required String name,
+    required String role,
+    required String description,
+  }) {
+    return into(npcs).insert(NpcsCompanion.insert(
+      worldId: worldId,
+      locationId: Value(locationId),
+      name: name,
+      role: role,
+      description: description,
+    ));
   }
 
   /// Update character's current location

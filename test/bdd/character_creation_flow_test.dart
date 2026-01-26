@@ -13,7 +13,7 @@ void main() {
     // GIVEN I am on the Character Creation screen for a new world
     final inMemoryExecutor = NativeDatabase.memory();
     final db = AppDatabase(inMemoryExecutor);
-    final worldId = 1;
+    const worldId = 1;
 
     // Seed World
     await db.gameDao.createWorld(WorldsCompanion.insert(
@@ -24,14 +24,14 @@ void main() {
     ));
     // Seed Placeholder
     await db.gameDao.updateCharacterStats(
-      CharacterCompanion(
-        name: const Value('Traveler'),
-        heroClass: const Value('Fighter'),
-        level: const Value(1),
-        currentHp: const Value(10),
-        maxHp: const Value(10),
-        gold: const Value(0),
-        location: const Value('Unknown'),
+      const CharacterCompanion(
+        name: Value('Traveler'),
+        heroClass: Value('Fighter'),
+        level: Value(1),
+        currentHp: Value(10),
+        maxHp: Value(10),
+        gold: Value(0),
+        location: Value('Unknown'),
         worldId: Value(worldId),
       ),
     );
@@ -42,7 +42,7 @@ void main() {
         overrides: [
           databaseProvider.overrideWithValue(db),
         ],
-        child: MaterialApp(
+        child: const MaterialApp(
           home: CharacterCreationScreen(worldId: worldId),
         ),
       ),

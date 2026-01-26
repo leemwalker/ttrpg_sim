@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drift/drift.dart' hide isNotNull;
 import 'package:drift/native.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:ttrpg_sim/core/database/database.dart';
@@ -48,7 +47,7 @@ void main() {
     // Verify Schema Version (Drift should have updated it to 7)
     // Note: drift doesn't automatically sync PRAGMA user_version to schemaVersion
     // immediately in all cases unless configured, but the migration runs onOpen.
-    final versionResult = sqlite3Db.select('PRAGMA user_version;');
+    // final versionResult = sqlite3Db.select('PRAGMA user_version;');
     // In a real app, Drift updates the user_version after migration.
     // Let's verify via the db structure and data.
 

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ttrpg_sim/core/database/database.dart';
 import 'package:ttrpg_sim/core/providers.dart';
 import 'package:ttrpg_sim/core/services/gemini_service.dart';
+import 'package:ttrpg_sim/core/services/gemini_wrapper.dart';
 import 'package:ttrpg_sim/features/game/presentation/game_screen.dart';
 import 'package:drift/native.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
@@ -11,6 +12,11 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 
 // 1. Mock Gemini Service
 class MockGeminiService implements GeminiService {
+  @override
+  GenerativeModelWrapper createModel(String instruction) {
+    throw UnimplementedError();
+  }
+
   final Map<String, dynamic> nextStateUpdates;
   final String nextNarrative;
   final FunctionCall? nextFunctionCall;
@@ -27,6 +33,7 @@ class MockGeminiService implements GeminiService {
     GameDao dao,
     int worldId, {
     required String genre,
+    required String tone,
     required String description,
     required CharacterData player,
     required List<String> features,
@@ -63,7 +70,7 @@ void main() {
     // 2. Setup In-Memory Database
     final inMemoryExecutor = NativeDatabase.memory();
     final db = AppDatabase(inMemoryExecutor);
-    final worldId = 1;
+    const worldId = 1;
 
     // 3. Setup Mock Gemini to deal 1 damage
     final mockGemini = MockGeminiService(
@@ -148,7 +155,7 @@ void main() {
   testWidgets('Gold Update Integration Test', (WidgetTester tester) async {
     final inMemoryExecutor = NativeDatabase.memory();
     final db = AppDatabase(inMemoryExecutor);
-    final worldId = 1;
+    const worldId = 1;
 
     // Mock Genimi to give 10 gold
     final mockGemini = MockGeminiService(
@@ -221,7 +228,7 @@ void main() {
   testWidgets('Item Addition Integration Test', (WidgetTester tester) async {
     final inMemoryExecutor = NativeDatabase.memory();
     final db = AppDatabase(inMemoryExecutor);
-    final worldId = 1;
+    const worldId = 1;
 
     final mockGemini = MockGeminiService(
       nextStateUpdates: {
@@ -298,7 +305,7 @@ void main() {
   testWidgets('Item Removal Integration Test', (WidgetTester tester) async {
     final inMemoryExecutor = NativeDatabase.memory();
     final db = AppDatabase(inMemoryExecutor);
-    final worldId = 1;
+    const worldId = 1;
 
     final mockGemini = MockGeminiService(
       nextStateUpdates: {

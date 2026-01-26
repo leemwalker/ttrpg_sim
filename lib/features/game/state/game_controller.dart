@@ -1,5 +1,5 @@
-import 'dart:math';
-import 'package:drift/drift.dart';
+import 'package:ttrpg_sim/core/utils/dice_utils.dart';
+import 'package:ttrpg_sim/core/constants/app_constants.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:ttrpg_sim/core/database/database.dart';
 import 'package:ttrpg_sim/core/providers.dart';
@@ -11,10 +11,28 @@ part 'game_controller.g.dart';
 
 @riverpod
 class GameController extends _$GameController {
+  late int _worldId;
+
   @override
-  Future<GameState> build() async {
+  Future<GameState> build(int worldId) async {
+    _worldId = worldId;
     final dao = ref.read(gameDaoProvider);
-    final messages = await dao.getRecentMessages(50);
+    final messages =
+        await dao.getRecentMessages(_worldId, AppConstants.chatHistoryLimit);
+    // Check for Session Zero trigger
+    if (messages.isEmpty) {
+      // Trigger Session Zero asynchronously
+      Future.microtask(() => _startSessionZero());
+
+      // Return loading state initially
+      return GameState(
+        messages: [],
+        character: null,
+        inventory: [],
+        isLoading: true,
+      );
+    }
+
     return GameState(
       messages: messages,
       character: null,
@@ -23,25 +41,26 @@ class GameController extends _$GameController {
     );
   }
 
-  Future<void> submitAction(String text, int worldId) async {
+  Future<void> submitAction(String text) async {
     if (text.trim().isEmpty) return;
 
     state = const AsyncValue.loading();
 
     final dao = ref.read(gameDaoProvider);
     final gemini = ref.read(geminiServiceProvider);
-    final db = ref.read(databaseProvider);
+    // final db = ref.read(databaseProvider);
+    final worldId = _worldId;
 
     try {
-      print(
-          '🎮 CONTROLLER using DB Instance: ${db.instanceId} for World $worldId');
+      // Log Removed
 
       // Save user message (Global chat for now as per schema)
-      await dao.insertMessage('user', text);
+      await dao.insertMessage('user', text, worldId);
 
       // Fetch World Context
       final world = await dao.getWorld(worldId);
       final genre = world?.genre ?? "Fantasy";
+      final tone = world?.tone ?? "Standard";
       final description = world?.description ?? "A standard fantasy world.";
 
       // Fetch Character
@@ -77,6 +96,7 @@ class GameController extends _$GameController {
         dao,
         worldId,
         genre: genre,
+        tone: tone,
         description: description,
         player: character,
         features: features,
@@ -92,7 +112,7 @@ class GameController extends _$GameController {
       if (result.functionCall != null) {
         final fc = result.functionCall!;
         if (fc.name == 'generate_location') {
-          print('✨ GENERATING LOCATION from function call...');
+          // print('✨ GENERATING LOCATION from function call...');
           final args = fc.args;
 
           // Parse arguments
@@ -104,44 +124,44 @@ class GameController extends _$GameController {
           final npcsData = args['npcs'] as List<dynamic>? ?? [];
 
           // Create the location
-          final locationId = await dao.createLocation(LocationsCompanion.insert(
+          final locationId = await dao.createLocationFromValues(
             worldId: worldId,
             name: locName,
             description: locDesc,
             type: locType,
-          ));
-          print('✨ GENERATED LOCATION: $locName (ID: $locationId)');
+          );
+          // print('✨ GENERATED LOCATION: $locName (ID: $locationId)');
 
           // Create POIs
           for (final poi in poisData) {
             if (poi is Map<String, dynamic>) {
-              await dao.createPoi(PointsOfInterestCompanion.insert(
+              await dao.createPoiFromValues(
                 locationId: locationId,
                 name: poi['name'] as String? ?? 'Unknown POI',
                 description: poi['description'] as String? ?? '',
                 type: poi['type'] as String? ?? 'Unknown',
-              ));
-              print('  📍 Created POI: ${poi['name']}');
+              );
+              // print('  📍 Created POI: ${poi['name']}');
             }
           }
 
           // Create NPCs
           for (final npc in npcsData) {
             if (npc is Map<String, dynamic>) {
-              await dao.createNpc(NpcsCompanion.insert(
+              await dao.createNpcFromValues(
                 worldId: worldId,
-                locationId: Value(locationId),
+                locationId: locationId,
                 name: npc['name'] as String? ?? 'Unknown NPC',
                 role: npc['role'] as String? ?? 'Commoner',
                 description: npc['description'] as String? ?? '',
-              ));
-              print('  👤 Created NPC: ${npc['name']}');
+              );
+              // print('  👤 Created NPC: ${npc['name']}');
             }
           }
 
           // Update character's location
           await dao.updateCharacterLocation(character.id, locationId);
-          print('📍 Updated character location to: $locName');
+          // print('📍 Updated character location to: $locName');
 
           // Generate a welcome narrative since the function call had no text
           narrative = 'You arrive at **$locName**. $locDesc';
@@ -151,7 +171,7 @@ class GameController extends _$GameController {
         }
 
         if (fc.name == 'roll_check') {
-          print('🎲 DICE ROLL requested...');
+          // print('🎲 DICE ROLL requested...');
           final args = fc.args;
           final checkName = args['check_name'] as String? ?? 'dexterity';
           final difficulty = args['difficulty'] as int? ?? 10;
@@ -160,18 +180,20 @@ class GameController extends _$GameController {
           final mod = rules.getModifier(character, checkName);
 
           // Roll d20
-          final roll = Random().nextInt(20) + 1;
+          final roll = DiceUtils.rollD20();
           final total = roll + mod;
           final isSuccess = total >= difficulty;
 
+          /*
           print(
               '🎲 $checkName check: rolled $roll + $mod = $total vs DC $difficulty -> ${isSuccess ? "SUCCESS" : "FAILURE"}');
+          */
 
           // Log System Message
           final systemMsg = "🎲 **${args['check_name']} Check**\n"
               "Roll: $roll + $mod = **$total** vs DC $difficulty\n"
               "${isSuccess ? '✅ SUCCESS' : '❌ FAILURE'}";
-          await dao.insertMessage('system', systemMsg);
+          await dao.insertMessage('system', systemMsg, worldId);
 
           // Send result back to Gemini for narrative
           final rollResult = await gemini.sendFunctionResponse('roll_check', {
@@ -189,7 +211,7 @@ class GameController extends _$GameController {
         }
       }
 
-      print('🎮 CONTROLLER: Received updates: ${result.stateUpdates}');
+      // print('🎮 CONTROLLER: Received updates: ${result.stateUpdates}');
 
       // Apply Updates (Additive Math)
       if (result.stateUpdates.isNotEmpty) {
@@ -209,7 +231,7 @@ class GameController extends _$GameController {
                 final newHp = (currentHp + change).clamp(0, freshChar.maxHp);
                 final charId = freshChar.id;
 
-                print('⚡ RAW SQL: Forcing update for ID $charId to HP $newHp');
+                // print('⚡ RAW SQL: Forcing update for ID $charId to HP $newHp');
 
                 // 3. Execute Raw SQL
                 await dao.forceUpdateHp(charId, newHp);
@@ -217,11 +239,9 @@ class GameController extends _$GameController {
                 // 4. Verify immediately
                 final verification = await dao.getCharacter(worldId);
                 if (verification?.currentHp == newHp) {
-                  print(
-                      '✅ VERIFIED: DB now holds HP ${verification?.currentHp}');
+                  // print('✅ VERIFIED: DB now holds HP ${verification?.currentHp}');
                 } else {
-                  print(
-                      '❌ CRITICAL FAILURE: DB still holds HP ${verification?.currentHp}');
+                  // print('❌ CRITICAL FAILURE: DB still holds HP ${verification?.currentHp}');
                 }
 
                 // 5. Refresh UI
@@ -265,24 +285,23 @@ class GameController extends _$GameController {
       }
 
       // FORCE REFRESH: Tell the UI stream to re-fetch data immediately
-      await Future.delayed(const Duration(milliseconds: 50)); // The "Breath"
+      await Future.delayed(const Duration(
+          milliseconds: AppConstants.aiTypingDelayMs)); // The "Breath"
       ref.invalidate(characterDataProvider(worldId));
-      ref.invalidate(inventoryDataProvider(
-          await dao.getCharacter(worldId).then((c) => c?.id ?? -1)));
-      // Note: Invalidating inventory requires charId. We fetch it again or cache it.
-      // Better approach:
+
       final c = await dao.getCharacter(worldId);
       if (c != null) {
         ref.invalidate(inventoryDataProvider(c.id));
       }
 
-      print('🔄 CONTROLLER: Invalidated Streams to force UI update.');
+      // print('🔄 CONTROLLER: Invalidated Streams to force UI update.');
 
       // Save AI message
-      await dao.insertMessage('ai', narrative);
+      await dao.insertMessage('ai', narrative, worldId);
 
       // Reload messages
-      final messages = await dao.getRecentMessages(50);
+      final messages =
+          await dao.getRecentMessages(worldId, AppConstants.chatHistoryLimit);
       state = AsyncValue.data(GameState(
         messages: messages,
         character: null,
@@ -290,7 +309,7 @@ class GameController extends _$GameController {
         isLoading: false,
       ));
     } catch (e) {
-      print('❌ ERROR: $e');
+      // print('❌ ERROR: $e');
 
       String errorMsg;
       if (e is ApiKeyException) {
@@ -304,10 +323,11 @@ class GameController extends _$GameController {
       }
 
       // Persist error system message
-      await dao.insertMessage('system', errorMsg);
+      await dao.insertMessage('system', errorMsg, worldId);
 
       // Reload messages to show the error
-      final messages = await dao.getRecentMessages(50);
+      final messages =
+          await dao.getRecentMessages(worldId, AppConstants.chatHistoryLimit);
 
       // Update state to valid data (not error) so UI updates
       state = AsyncValue.data(GameState(
@@ -316,6 +336,67 @@ class GameController extends _$GameController {
         inventory: [],
         isLoading: false,
       ));
+    }
+  }
+
+  Future<void> _startSessionZero() async {
+    final dao = ref.read(gameDaoProvider);
+    final gemini = ref.read(geminiServiceProvider);
+    final rules = Dnd5eRules();
+
+    try {
+      final world = await dao.getWorld(_worldId);
+      final character = await dao.getCharacter(_worldId);
+
+      if (world == null || character == null) {
+        state = AsyncValue.data(GameState(
+          messages: [],
+          character: null,
+          inventory: [],
+          isLoading: false,
+        ));
+        return;
+      }
+
+      final features =
+          rules.getClassFeatures(character.heroClass, character.level);
+      final slots =
+          rules.getMaxSpellSlots(character.heroClass, character.level);
+      final spells = rules.getKnownSpells(character.heroClass, character.level);
+
+      final result = await gemini.sendMessage(
+        "Begin Session Zero",
+        dao,
+        _worldId,
+        genre: world.genre,
+        tone: world.tone,
+        description: world.description,
+        player: character,
+        features: features,
+        spellSlots: slots,
+        spells: spells,
+        location: null,
+      );
+
+      await dao.insertMessage('ai', result.narrative, _worldId);
+
+      final messages =
+          await dao.getRecentMessages(_worldId, AppConstants.chatHistoryLimit);
+      state = AsyncValue.data(GameState(
+        messages: messages,
+        character: character,
+        inventory: [],
+        isLoading: false,
+      ));
+    } catch (e) {
+      state = AsyncValue.data(GameState(
+        messages: [],
+        character: null,
+        inventory: [],
+        isLoading: false,
+      ));
+      await dao.insertMessage(
+          'system', 'Error starting Session Zero: $e', _worldId);
     }
   }
 }

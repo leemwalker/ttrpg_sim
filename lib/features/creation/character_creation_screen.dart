@@ -23,6 +23,9 @@ class _CharacterCreationScreenState
   String _selectedClass = 'Fighter';
   String _selectedSpecies = 'Human';
   String _selectedBackground = 'Acolyte'; // Default
+  final _customBackgroundNameController = TextEditingController();
+  String _backstory = '';
+  String _selectedInventory = "Explorer's Pack";
   int _level = 1;
 
   // Stats for Point Buy
@@ -71,6 +74,7 @@ class _CharacterCreationScreenState
   @override
   void dispose() {
     _nameController.dispose();
+    _customBackgroundNameController.dispose();
     super.dispose();
   }
 
@@ -111,7 +115,7 @@ class _CharacterCreationScreenState
               const SizedBox(height: 24),
               // CLASS SELECTION
               DropdownButtonFormField<String>(
-                value: _selectedClass,
+                initialValue: _selectedClass,
                 decoration: const InputDecoration(
                   labelText: "Class",
                   border: OutlineInputBorder(),
@@ -126,7 +130,7 @@ class _CharacterCreationScreenState
               const SizedBox(height: 16),
               // SPECIES SELECTION
               DropdownButtonFormField<String>(
-                value: _selectedSpecies,
+                initialValue: _selectedSpecies,
                 decoration: const InputDecoration(
                   labelText: "Species",
                   border: OutlineInputBorder(),
@@ -141,18 +145,28 @@ class _CharacterCreationScreenState
               const SizedBox(height: 16),
               // BACKGROUND SELECTION
               DropdownButtonFormField<String>(
-                value: _selectedBackground,
+                initialValue: _selectedBackground,
                 decoration: const InputDecoration(
                   labelText: "Background",
                   border: OutlineInputBorder(),
                 ),
-                items: _rules.availableBackgrounds
+                items: [..._rules.availableBackgrounds, 'Custom']
                     .map((b) => DropdownMenuItem(value: b, child: Text(b)))
                     .toList(),
                 onChanged: (val) {
                   if (val != null) setState(() => _selectedBackground = val);
                 },
               ),
+              if (_selectedBackground == 'Custom') ...[
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _customBackgroundNameController,
+                  decoration: const InputDecoration(
+                    labelText: "Custom Background Name",
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               // BACKGROUND INFO CARD
               Card(
@@ -182,6 +196,42 @@ class _CharacterCreationScreenState
                     ],
                   ),
                 ),
+              ),
+
+              const SizedBox(height: 16),
+              // BACKSTORY
+              TextField(
+                decoration: const InputDecoration(
+                  labelText: "Character Backstory",
+                  border: OutlineInputBorder(),
+                  alignLabelWithHint: true,
+                ),
+                maxLines: 3,
+                onChanged: (val) => _backstory = val,
+              ),
+
+              const SizedBox(height: 16),
+              // INVENTORY SELECTION
+              DropdownButtonFormField<String>(
+                value: _selectedInventory,
+                decoration: const InputDecoration(
+                  labelText: "Equipment Pack",
+                  border: OutlineInputBorder(),
+                ),
+                items: [
+                  "Explorer's Pack",
+                  "Diplomat's Pack",
+                  "Burglar's Pack",
+                  "Dungeoneer's Pack",
+                  "Entertainer's Pack",
+                  "Priest's Pack",
+                  "Scholar's Pack"
+                ]
+                    .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _selectedInventory = val);
+                },
               ),
 
               const SizedBox(height: 24),
@@ -219,7 +269,9 @@ class _CharacterCreationScreenState
                       ),
                       const Divider(),
                       Text(
-                        "Max HP: ${_rules.calculateMaxHp(_selectedClass, _level)}",
+                        "Max HP: ${_rules.calculateMaxHp(_selectedClass, _level, _stats['Constitution']!, [
+                              backgroundInfo.originFeat
+                            ])} (Base + Mod + Feats)",
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                     ],
@@ -248,7 +300,19 @@ class _CharacterCreationScreenState
       return;
     }
 
-    final maxHp = _rules.calculateMaxHp(_selectedClass, _level);
+    final backgroundName = _selectedBackground == 'Custom'
+        ? _customBackgroundNameController.text.trim()
+        : _selectedBackground;
+
+    // Get origin feat from background
+    final bgInfo = _rules.getBackgroundInfo(backgroundName);
+
+    final maxHp = _rules.calculateMaxHp(
+      _selectedClass,
+      _level,
+      _stats['Constitution']!,
+      [bgInfo.originFeat],
+    );
     final dao = ref.read(gameDaoProvider);
 
     await dao.updateCharacterBio(
@@ -256,7 +320,9 @@ class _CharacterCreationScreenState
       name: name,
       characterClass: _selectedClass,
       species: _selectedSpecies,
-      background: _selectedBackground,
+      background: backgroundName,
+      backstory: _backstory,
+      inventory: [_selectedInventory],
       level: _level,
       maxHp: maxHp,
       strength: _stats['Strength']!,

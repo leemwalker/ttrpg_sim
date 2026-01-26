@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:ttrpg_sim/core/database/database.dart';
 import 'package:ttrpg_sim/core/errors/app_exceptions.dart';
+import 'package:ttrpg_sim/core/services/gemini_wrapper.dart';
 
 // Static instruction removed in favor of dynamic generation
 
@@ -31,7 +32,7 @@ class TurnResult {
 class GeminiService {
   final String _apiKey;
   final String _modelName;
-  ChatSession? _currentSession;
+  ChatSessionWrapper? _currentSession;
   int? _currentWorldId;
   // Track player state to detect changes requiring session refresh
   String? _lastPlayerClass;
@@ -39,6 +40,20 @@ class GeminiService {
 
   GeminiService(this._apiKey, {String modelName = 'gemini-1.5-flash'})
       : _modelName = modelName;
+
+  /// Factory method to create the model (wrapped)
+  GenerativeModelWrapper createModel(String instruction) {
+    final realModel = GenerativeModel(
+      model: _modelName,
+      apiKey: _apiKey,
+      generationConfig: GenerationConfig(
+        responseMimeType: 'application/json',
+      ),
+      systemInstruction: Content.system(instruction),
+      tools: [locationTool, diceTool],
+    );
+    return GoogleGenerativeModelWrapper(realModel);
+  }
 
   /// Tool definition for location generation
   static final Tool locationTool = Tool(
@@ -122,6 +137,7 @@ class GeminiService {
 
   String _buildInstruction(
     String genre,
+    String tone,
     String description,
     CharacterData player, {
     required List<String> features,
@@ -149,10 +165,17 @@ CURRENT STATUS:
 - Location: Unspecified / Session Zero
 
 MISSION:
-You are starting a new $genre campaign.
-1. Welcome the player to the world: "$description".
-2. Ask the player where their story begins or what their character is currently doing.
-3. Do NOT generate a random location yet; let the player define the scene.""";
+The World: $genre setting. Tone: $tone. $description.
+The Player: ${player.name}.
+Background: ${player.background}.
+Backstory: ${player.backstory}.
+
+Goal: Conduct a 'Session Zero'.
+1. Welcome the player to the table using a tone appropriate for a $tone setting.
+2. Briefly summarize how their character might fit into this world based on their backstory.
+3. Ask the player 1 or 2 probing questions to flesh out their connections or motivations (e.g., 'Who is your rival?', 'Why did you leave home?').
+4. Do NOT start the adventure yet. We are establishing the scene. Ask them to confirm if this fits their vision or if they want to adjust anything.
+""";
     } else {
       // Atlas Mode: Describe current location with POIs and NPCs
       final poisStr =
@@ -170,6 +193,7 @@ CURRENT LOCATION:
 
     return """
 You are a Game Master running a $genre tabletop RPG.
+Tone: $tone.
 World Context: $description.
 
 Player Profile:
@@ -212,6 +236,7 @@ Rules:
     GameDao dao,
     int worldId, {
     required String genre,
+    required String tone,
     required String description,
     required CharacterData player,
     required List<String> features,
@@ -231,10 +256,10 @@ Rules:
         _lastPlayerLevel != player.level;
 
     if (needsRefresh) {
-      print(
-          '🧠 GEMINI: Initializing new session for World $worldId (${player.name} the ${player.heroClass})');
+      // Log Removed
       final instruction = _buildInstruction(
         genre,
+        tone,
         description,
         player,
         features: features,
@@ -245,21 +270,13 @@ Rules:
         pois: pois,
         npcs: npcs,
       );
-      final model = GenerativeModel(
-        model: _modelName,
-        apiKey: _apiKey,
-        generationConfig: GenerationConfig(
-          responseMimeType: 'application/json',
-        ),
-        systemInstruction: Content.system(instruction),
-        tools: [locationTool, diceTool],
-      );
+      final model = createModel(instruction);
       _currentSession = model.startChat();
       _currentWorldId = worldId;
       _lastPlayerClass = player.heroClass;
       _lastPlayerLevel = player.level;
     } else {
-      print('🧠 GEMINI: Reusing existing session for World $worldId');
+      // Log Removed
     }
 
     // Format Context
@@ -284,8 +301,7 @@ User Action: $userMessage
 """;
 
     // Send to model
-    print(
-        'DEBUG: Sending request to model: gemini-flash-latest with key starting: ${_apiKey.substring(0, 5)}...');
+    // Log Removed
 
     GenerateContentResponse response;
     try {
@@ -307,7 +323,7 @@ User Action: $userMessage
     final functionCalls = response.functionCalls.toList();
     if (functionCalls.isNotEmpty) {
       final fc = functionCalls.first;
-      print('🔧 GEMINI FUNCTION CALL: ${fc.name} with args: ${fc.args}');
+      // print('🔧 GEMINI FUNCTION CALL: ${fc.name} with args: ${fc.args}');
       // Return a TurnResult with the function call but empty narrative/updates
       // The controller will handle the function call and may re-prompt for narrative
       return TurnResult(
@@ -318,7 +334,7 @@ User Action: $userMessage
       );
     }
 
-    print('🔍 RAW GEMINI RESPONSE: ${response.text}');
+    // print('🔍 RAW GEMINI RESPONSE: ${response.text}');
 
     final text = response.text;
     if (text == null) {
@@ -345,13 +361,13 @@ User Action: $userMessage
       throw Exception('No active session to send function response to');
     }
 
-    print('📤 SENDING FUNCTION RESPONSE: $functionName -> $response');
+    // print('📤 SENDING FUNCTION RESPONSE: $functionName -> $response');
 
     try {
       final functionResponse = Content.functionResponse(functionName, response);
       final result = await _currentSession!.sendMessage(functionResponse);
 
-      print('🔍 RAW GEMINI RESPONSE (Post-Function): ${result.text}');
+      // print('🔍 RAW GEMINI RESPONSE (Post-Function): ${result.text}');
 
       // Parse the text response as JSON
       final text = result.text;

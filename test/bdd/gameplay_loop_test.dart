@@ -8,9 +8,15 @@ import 'package:ttrpg_sim/features/game/presentation/game_screen.dart';
 import 'package:drift/native.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:ttrpg_sim/core/services/gemini_wrapper.dart';
 
 // Smart Mock for Sequencing Responses
 class SmartMockGemini implements GeminiService {
+  @override
+  GenerativeModelWrapper createModel(String instruction) {
+    throw UnimplementedError();
+  }
+
   final List<TurnResult> responses;
   int _index = 0;
 
@@ -22,6 +28,7 @@ class SmartMockGemini implements GeminiService {
     GameDao dao,
     int worldId, {
     required String genre,
+    required String tone,
     required String description,
     required CharacterData player,
     required List<String> features,
@@ -57,7 +64,7 @@ void main() {
     // GIVEN I have a new character with no location (currentLocationId is null)
     final inMemoryExecutor = NativeDatabase.memory();
     final db = AppDatabase(inMemoryExecutor);
-    final worldId = 1;
+    const worldId = 1;
 
     // Seed World & Character
     await db.gameDao.createWorld(WorldsCompanion.insert(
@@ -67,15 +74,15 @@ void main() {
       description: 'Test',
     ));
     await db.gameDao.updateCharacterStats(
-      CharacterCompanion(
-        id: const Value(1),
-        name: const Value('Traveler'),
-        heroClass: const Value('Fighter'),
-        level: const Value(1),
-        currentHp: const Value(10),
-        maxHp: const Value(10),
-        gold: const Value(0),
-        location: const Value('Unknown'),
+      const CharacterCompanion(
+        id: Value(1),
+        name: Value('Traveler'),
+        heroClass: Value('Fighter'),
+        level: Value(1),
+        currentHp: Value(10),
+        maxHp: Value(10),
+        gold: Value(0),
+        location: Value('Unknown'),
         worldId: Value(worldId),
         // currentLocationId is null by default
       ),
@@ -105,7 +112,7 @@ void main() {
           databaseProvider.overrideWithValue(db),
           geminiServiceProvider.overrideWithValue(mockGemini),
         ],
-        child: MaterialApp(
+        child: const MaterialApp(
           home: GameScreen(worldId: worldId),
         ),
       ),
@@ -139,7 +146,7 @@ void main() {
     // GIVEN My character has 16 Strength (+3 Modifier)
     final inMemoryExecutor = NativeDatabase.memory();
     final db = AppDatabase(inMemoryExecutor);
-    final worldId = 1;
+    const worldId = 1;
 
     await db.gameDao.createWorld(WorldsCompanion.insert(
       id: const Value(1),
@@ -148,17 +155,17 @@ void main() {
       description: 'Test',
     ));
     await db.gameDao.updateCharacterStats(
-      CharacterCompanion(
-        id: const Value(1),
-        name: const Value('Strongman'),
-        heroClass: const Value('Fighter'),
-        level: const Value(1),
-        currentHp: const Value(10),
-        maxHp: const Value(10),
-        gold: const Value(0), // Required
-        strength: const Value(16), // +3
+      const CharacterCompanion(
+        id: Value(1),
+        name: Value('Strongman'),
+        heroClass: Value('Fighter'),
+        level: Value(1),
+        currentHp: Value(10),
+        maxHp: Value(10),
+        gold: Value(0), // Required
+        strength: Value(16), // +3
         worldId: Value(worldId),
-        location: const Value('Unknown'),
+        location: Value('Unknown'),
       ),
     );
 
@@ -186,7 +193,7 @@ void main() {
           databaseProvider.overrideWithValue(db),
           geminiServiceProvider.overrideWithValue(mockGemini),
         ],
-        child: MaterialApp(
+        child: const MaterialApp(
           home: GameScreen(worldId: worldId),
         ),
       ),

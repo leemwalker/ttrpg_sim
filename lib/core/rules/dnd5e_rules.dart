@@ -160,14 +160,23 @@ class Dnd5eRules extends RpgSystem {
   }
 
   @override
-  int calculateMaxHp(String characterClass, int level) {
+  int calculateMaxHp(String characterClass, int level,
+      [int conScore = 10, List<String> feats = const []]) {
     final hitDie = _hitDice[characterClass] ?? 8;
+    final conMod = ((conScore - 10) / 2).floor();
+    final toughBonus = feats.contains('Tough') ? 2 * level : 0;
+
     // SRD Formula: Max Hit Die at Level 1 + (Hit Die / 2 + 1) * (Level - 1)
+    // + (CON Modifier * Level) + Feat Bonuses
     if (level == 1) {
-      return hitDie;
+      return hitDie + conMod + toughBonus;
     }
+
     final avgPerLevel = (hitDie ~/ 2) + 1;
-    return hitDie + (avgPerLevel * (level - 1));
+    final baseHp = hitDie + (avgPerLevel * (level - 1));
+    final conHp = conMod * level;
+
+    return baseHp + conHp + toughBonus;
   }
 
   // Class features by class and level (cumulative up to level)

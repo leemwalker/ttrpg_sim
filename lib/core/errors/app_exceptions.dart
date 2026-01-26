@@ -10,17 +10,14 @@ class AppBaseException implements Exception {
 }
 
 class ApiKeyException extends AppBaseException {
-  ApiKeyException([String message = 'Invalid API Key', dynamic originalError])
-      : super(message, originalError);
+  ApiKeyException([super.message = 'Invalid API Key', super.originalError]);
 }
 
 class NetworkException extends AppBaseException {
-  NetworkException([String message = 'Network Error', dynamic originalError])
-      : super(message, originalError);
+  NetworkException([super.message = 'Network Error', super.originalError]);
 }
 
 class AIFormatException extends AppBaseException {
   AIFormatException(
-      [String message = 'AI Response Format Error', dynamic originalError])
-      : super(message, originalError);
+      [super.message = 'AI Response Format Error', super.originalError]);
 }

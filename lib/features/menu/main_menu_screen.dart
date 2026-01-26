@@ -51,6 +51,10 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
                       builder: (context) => GameScreen(worldId: world.id),
                     ));
                   },
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                    onPressed: () => _confirmDeleteWorld(context, world),
+                  ),
                 ),
               );
             },
@@ -69,6 +73,7 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
   void _showCreateWorldDialog(BuildContext context) {
     final nameController = TextEditingController();
     final descriptionController = TextEditingController();
+    final toneController = TextEditingController(); // New Tone Controller
     final customGenreController = TextEditingController();
     String selectedGenre = "Fantasy";
     final genres = ["Fantasy", "Sci-Fi", "Horror", "Cyberpunk", "Custom"];
@@ -112,6 +117,12 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
                     ),
                   const SizedBox(height: 16),
                   TextField(
+                    controller: toneController,
+                    decoration: const InputDecoration(
+                        labelText: "Tone (e.g., Gritty, Whimsical)"),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
                     controller: descriptionController,
                     decoration:
                         const InputDecoration(labelText: "Concept/Description"),
@@ -136,12 +147,17 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
                       : selectedGenre;
 
                   if (name.isNotEmpty && finalGenre.isNotEmpty) {
+                    final tone = toneController.text.isNotEmpty
+                        ? toneController.text
+                        : "Standard"; // Default if empty
+
                     final dao = ref.read(gameDaoProvider);
                     // Create World
                     final worldId =
                         await dao.createWorld(WorldsCompanion.insert(
                       name: name,
                       genre: finalGenre,
+                      tone: drift.Value(tone),
                       description: description,
                     ));
 
@@ -175,6 +191,34 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
             ],
           );
         });
+      },
+    );
+  }
+
+  void _confirmDeleteWorld(BuildContext context, World world) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Delete '${world.name}'?"),
+          content: const Text(
+              "Are you sure you want to delete this world? This action cannot be undone."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              onPressed: () {
+                ref.read(gameDaoProvider).deleteWorld(world.id);
+                ref.invalidate(worldsProvider);
+                Navigator.pop(context);
+              },
+              child: const Text("Delete"),
+            ),
+          ],
+        );
       },
     );
   }

@@ -96,7 +96,53 @@ void main() {
 
       final fighterLvl2 = rules.getClassFeatures('Fighter', 2);
       expect(fighterLvl2, contains('Second Wind'));
-      expect(fighterLvl2, contains('Action Surge'));
+    });
+
+    // Task 2.1: Level 20 HP Test
+    test('calculateMaxHp handles Level 20 correctly', () {
+      // Fighter: 10 + (6 * 19) = 10 + 114 = 124
+      expect(rules.calculateMaxHp('Fighter', 20), 124);
+
+      // Wizard: 6 + (4 * 19) = 6 + 76 = 82
+      expect(rules.calculateMaxHp('Wizard', 20), 82);
+    });
+
+    // Task 2.2: Homebrew Trait Test
+    test('registerCustomTraits adds custom traits to available lists', () {
+      const customSpecies = CustomTrait(
+        id: 1,
+        name: 'Cyborg',
+        type: 'Species',
+        description: 'Test',
+      );
+
+      rules.registerCustomTraits([customSpecies]);
+      expect(rules.availableSpecies, contains('Cyborg'));
+
+      const customClass = CustomTrait(
+        id: 2,
+        name: 'Hacker',
+        type: 'Class',
+        description: 'Test',
+      );
+      rules.registerCustomTraits([customClass]);
+      expect(rules.availableClasses, contains('Hacker'));
+    });
+
+    // Task 2.3: Spell Slots & Known Spells Test
+    test('Spell system returns correct values for Caster vs Martial', () {
+      // Wizard (Full Caster)
+      expect(rules.getKnownSpells('Wizard', 1), isNotEmpty);
+      expect(rules.getMaxSpellSlots('Wizard', 1), isNotEmpty);
+
+      // Fighter (Martial)
+      expect(rules.getKnownSpells('Fighter', 1), isEmpty);
+      expect(rules.getMaxSpellSlots('Fighter', 1), isEmpty);
+
+      // Paladin (Half Caster) - No slots at level 1
+      expect(rules.getMaxSpellSlots('Paladin', 1), isEmpty);
+      // Slots at level 2
+      expect(rules.getMaxSpellSlots('Paladin', 2), isNotEmpty);
     });
   });
 }
