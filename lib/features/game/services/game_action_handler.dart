@@ -2,11 +2,11 @@ import 'package:ttrpg_sim/core/database/database.dart';
 import 'package:ttrpg_sim/core/services/gemini_service.dart';
 import 'package:ttrpg_sim/core/utils/dice_utils.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:ttrpg_sim/core/rules/dnd5e_rules.dart';
+import 'package:ttrpg_sim/core/rules/core_rpg_rules.dart';
 
 class GameActionHandler {
   final GameDao _dao;
-  final Dnd5eRules _rules;
+  final CoreRpgRules _rules;
 
   GameActionHandler(this._dao, this._rules);
 

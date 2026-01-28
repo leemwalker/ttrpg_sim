@@ -1,0 +1,49 @@
+Name,Genre,Type,Prerequisite,Description,Effect
+Ace Pilot,Sci-Fi,Tech,Piloting Skill,Elite vehicle control.,No Disadvantage on difficult maneuvers; +2 AC in vehicle.
+Arcane Initiate,Fantasy,Magic,None,You have studied the arcane.,Unlocks 'Spellcasting' Skill. Learn 2 Cantrips.
+Arcane Student,Fantasy,Magic,None,You learned magic through study and formulas.,Unlock Magic (Pillar: Matter/Energy/Cosmos). Standard Mana Pool (Regens on Rest).
+Armor Training,Universal,Martial,None,Experience with defensive gear.,Proficiency in Light & Medium Armor.
+Battle Mage,Fantasy,Magic,Arcane Student,Combat casting.,Can cast spells while holding weapon/shield.
+Brawler,Universal,Combat,Unarmed Skill,Unarmed mastery.,Unarmed strikes deal 1d6; Grapple as Bonus Action.
+Chrome Jockey,Cyberpunk,Body,None,Heavy modification.,Can install 1 additional Cybernetic Implant beyond CON limit.
+Collateral Control,Superhero,Power,Control Skill,Protecting civilians.,Your Area of Effect powers do not harm allies.
+Deadshot,Universal,Combat,Ranged Skill,Precision shooting.,Ignore Cover penalties; -5 to Hit / +10 Dmg option.
+Deductive Mind,Mystery,Mental,Insight Skill,Connecting the dots.,GM provides a hint when stuck on a puzzle (1/session).
+Divine Devotee,Fantasy,Magic,None,You channel power through prayer and oath.,Unlock Magic (Pillar: Spirit/Mind). Can cast while wearing Heavy Armor.
+Evasion,Universal,Defense,None,Agility.,Take half damage on DEX saves.
+Fan the Hammer,Western,Combat,Ranged Skill,Rapid fire.,Attack 3 times with Revolver at Disadvantage.
+Goggle-Eyed,Steampunk,Perception,None,Enhanced optics.,Advantage on Perception vs Traps; Darkvision 30ft.
+Gumshoe,Mystery,Social,Investigation Skill,Hard-boiled detective.,Advantage on Investigation to find clues.
+Hacker,Sci-Fi,Tech,Computers Skill,Digital mastery.,Bypass Tier 1 security auto; Advantage on Cyber-Warfare.
+Healer,Fantasy,Magic,Divine Devotee,Restorative magic.,Healing spells reroll 1s.
+Heavy Armor Master,Universal,Martial,Armor Training,Mastery of plate/powered armor.,Proficiency in Heavy/Powered Armor; -3 Dmg from non-magical attacks.
+Heavy Lifter,Universal,Combat,Melee (Heavy),Strength mastery.,Use Heavy weapons without movement penalty.
+High Noon,Western,Combat,None,Quick draw.,Advantage on Initiative; First attack in combat deals +1d8.
+Iron Will,Horror,Mental,None,Mental fortitude.,Advantage on Sanity saves; Resistance to Fear.
+Ironclad,Universal,Defense,None,Toughness.,+1 HP per level.
+Jury Rigger,Post-Apocalyptic,Tech,Engineering Skill,Fixing with junk.,Repair items without parts (degrades max durability).
+Leader,Universal,Social,None,Inspiring presence.,Allies within 10ft deal +2 dmg.
+Linguist,Universal,Utility,None,Communication.,Learn 2 extra Languages.
+Lip Reader,Mystery,Social,Perception Skill,Seeing speech.,Understand speech from visual line of sight.
+Occultist,Horror,Knowledge,None,Forbidden knowledge.,Advantage on checks regarding rituals or monsters.
+Power Surge,Superhero,Power,Power Skill,Pushing limits.,Double the range or duration of a Power (1/Long Rest).
+Psion,Sci-Fi,Psionic,None,You have awakened your mind.,Unlocks 'Psionics' Skill. Learn 'Mind Thrust'.
+Psion,Sci-Fi,Psionic,None,You have awakened your mind.,Unlock Psionics (Pillar: Mind). Learn 'Mind Thrust'.
+Pyromancer,Fantasy,Magic,Arcane Student,Fire specialization.,Fire spells deal +1 damage per die.
+Rad-Eater,Post-Apocalyptic,Body,None,Mutation adaptation.,Immune to Radiation sickness; Heal 1 HP in high rad zones.
+Relic Bearer,Fantasy,Magic,None,"You wield an item of power (Staff, AI Gun).","The Item has its own Mana Pool. If it is lost or drained, you cannot cast."
+Rune Carver,Fantasy,Magic,None,You inscribe magic onto objects.,No Mana Pool. You have 'Prepared Slots' (Items). Spells must be prepared in advance.
+Saddleborn,Western,Utility,Animal Handling,Riding mastery.,Cannot be dismounted against will; Mount moves +10ft.
+Scavenger King,Post-Apocalyptic,Utility,Scavenge Skill,Finding loot.,Find 2x resources when looting ruins.
+Secret Identity,Superhero,Social,Deception Skill,Masked life.,Enemies have Disadvantage on checks to discover your true name.
+Shield Master,Fantasy,Combat,Armor Training,Defensive fighting.,Add shield AC bonus to DEX saves.
+Skill Expert,Universal,Utility,None,Broad training.,Gain Proficiency in 1 extra Skill.
+Sneak Attack,Universal,Stealth,Stealth Skill,Exploiting distraction.,Deal extra 1d6 dmg if you have Advantage.
+Sniper,Universal,Combat,Ranged Skill,Long distance.,Double range of Ranged weapons.
+Steam-Powered,Steampunk,Body,Steam Skill,Exoskeleton usage.,Ignore STR requirement for Heavy Armor; +1 Melee Dmg.
+Street Doc,Cyberpunk,Tech,Medicine Skill,Back-alley surgeon.,Can heal Cyberware damage; Medical kits cost 50% less.
+Survivor,Horror,Defense,None,Last one standing.,Gain +2 AC and Advantage on Saves when no allies are visible.
+Telekinetic,Sci-Fi,Psionic,Psion,Moving objects with mind.,Cast 'Mage Hand' (invisible); Shove enemies 10ft with INT.
+Tinkerer,Steampunk,Tech,Invention Skill,Gadgeteer.,"Create temporary gadgets (smoke bomb, grapple gun) during rests."
+Wirehead,Cyberpunk,Tech,Hacking Skill,One with the net.,Initiative bonus equal to INT mod while jacked in.
+Zero-G Combatant,Sci-Fi,Combat,None,Fighting in void.,No Disadvantage on attacks in Zero-G.

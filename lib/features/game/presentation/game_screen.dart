@@ -75,85 +75,91 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         ],
       ),
       drawer: CharacterDrawer(worldId: widget.worldId),
-      body: Column(
-        children: [
-          Expanded(
-            child: gameState.when(
-              data: (state) {
-                if (state.messages.isEmpty) {
-                  return const Center(child: Text("Start your adventure..."));
-                }
-                // Use a ListView.builder
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: state.messages.length,
-                  itemBuilder: (context, index) {
-                    final msg = state.messages[index];
-                    final isUser = msg.role.name == 'user';
-                    final colorScheme = Theme.of(context).colorScheme;
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Column(
+          children: [
+            Expanded(
+              child: gameState.when(
+                data: (state) {
+                  if (state.messages.isEmpty) {
+                    return const Center(child: Text("Start your adventure..."));
+                  }
+                  // Use a ListView.builder
+                  return ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16.0),
+                    itemCount: state.messages.length,
+                    itemBuilder: (context, index) {
+                      final msg = state.messages[index];
+                      final isUser = msg.role.name == 'user';
+                      final colorScheme = Theme.of(context).colorScheme;
 
-                    final backgroundColor = isUser
-                        ? colorScheme.primaryContainer
-                        : colorScheme.surfaceContainerHighest;
+                      final backgroundColor = isUser
+                          ? colorScheme.primaryContainer
+                          : colorScheme.surfaceContainerHighest;
 
-                    final textColor = isUser
-                        ? colorScheme.onPrimaryContainer
-                        : colorScheme.onSurfaceVariant;
+                      final textColor = isUser
+                          ? colorScheme.onPrimaryContainer
+                          : colorScheme.onSurfaceVariant;
 
-                    return Align(
-                      alignment:
-                          isUser ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4.0),
-                        padding: const EdgeInsets.all(12.0),
-                        decoration: BoxDecoration(
-                          color: backgroundColor,
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                              maxWidth:
-                                  MediaQuery.of(context).size.width * 0.7),
-                          child: Text(
-                            msg.content,
-                            style: TextStyle(color: textColor),
+                      return Align(
+                        alignment: isUser
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 4.0),
+                          padding: const EdgeInsets.all(12.0),
+                          decoration: BoxDecoration(
+                            color: backgroundColor,
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                                maxWidth:
+                                    MediaQuery.of(context).size.width * 0.7),
+                            child: Text(
+                              msg.content,
+                              style: TextStyle(color: textColor),
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, st) => Center(child: Text('Error: $e')),
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      decoration: const InputDecoration(
-                        hintText: 'What do you do?',
-                        border: OutlineInputBorder(),
-                      ),
-                      onSubmitted: _handleSubmitted,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: () => _handleSubmitted(_textController.text),
-                    icon: const Icon(Icons.send),
-                  ),
-                ],
+                      );
+                    },
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, st) => Center(child: Text('Error: $e')),
               ),
             ),
-          ),
-        ],
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _textController,
+                        textInputAction: TextInputAction.send,
+                        decoration: const InputDecoration(
+                          hintText: 'What do you do?',
+                          border: OutlineInputBorder(),
+                        ),
+                        onSubmitted: _handleSubmitted,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () => _handleSubmitted(_textController.text),
+                      tooltip: 'Send Message',
+                      icon: const Icon(Icons.send),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

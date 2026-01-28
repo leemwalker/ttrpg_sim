@@ -17,37 +17,28 @@ void main() {
     ));
 
     // 2. Create Character using that trait
-    // Matches "Neo", Class: "Hacker"
-    // final charId =
     await dao.updateCharacterStats(const CharacterCompanion(
       name: Value('Neo'),
-      heroClass: Value('Hacker'),
+      species: Value('Hacker'), // Storing as species for this test (or Origin)
       level: Value(1),
       currentHp: Value(10),
       maxHp: Value(10),
       gold: Value(0),
       location: Value('Matrix'),
-      // worldId is technically required or nullable depending on schema version,
-      // but in V7 it's nullable references Worlds.
-      // Since referential integrity is enforced by foreign keys in SQLite *if enabled*,
-      // and worldId is nullable, this is fine.
-      // However, the test prompt says 'Neo's class should either remain "Hacker" (String)'.
-      // The class is stored as a string in `heroClass` column.
     ));
 
     // 3. Delete the Custom Trait
     await dao.deleteCustomTrait(traitId);
 
     // 4. Fetch Neo
-    // We expect this NOT to fail.
-    // If strict FKs were on `heroClass`, it might fail, but `heroClass` is just text.
     final neo = await (db.select(db.character)
           ..where((t) => t.name.equals('Neo')))
         .getSingle();
 
     // 5. Assert
-    expect(neo.heroClass, 'Hacker',
-        reason: "Character class should persist even if definition is deleted");
+    expect(neo.species, 'Hacker',
+        reason:
+            "Character species should persist even if definition is deleted");
 
     await db.close();
   });

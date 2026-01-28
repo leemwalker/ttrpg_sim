@@ -9,6 +9,8 @@ import 'package:drift/native.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:ttrpg_sim/core/services/gemini_wrapper.dart';
+import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
+import '../shared_test_utils.dart';
 
 // Smart Mock for Sequencing Responses
 class SmartMockGemini implements GeminiService {
@@ -79,7 +81,6 @@ void main() {
       const CharacterCompanion(
         id: Value(1),
         name: Value('Traveler'),
-        heroClass: Value('Fighter'),
         level: Value(1),
         currentHp: Value(10),
         maxHp: Value(10),
@@ -161,7 +162,6 @@ void main() {
       const CharacterCompanion(
         id: Value(1),
         name: Value('Strongman'),
-        heroClass: Value('Fighter'),
         level: Value(1),
         currentHp: Value(10),
         maxHp: Value(10),

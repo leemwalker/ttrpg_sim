@@ -1,0 +1,26 @@
+Name,Genre,Stats,Free Traits
+Bio-Sculpted,Cyberpunk,+2 CHA; +1 DEX,Skill Expert
+Vat-Grown,Cyberpunk,+2 CON; +1 STR,Frail (Reduced lifespan but tough)
+Elf,Fantasy,+2 DEX; +1 INT,Night Eyes
+Dwarf,Fantasy,+2 CON; +1 STR,Poison Resist
+Orc,Fantasy,+2 STR; +1 CON,Brawler
+Halfling,Fantasy,+2 DEX; +1 CHA,Lucky
+Tiefling,Fantasy,+2 CHA; +1 INT,Night Eyes
+Dragonborn,Fantasy,+2 STR; +1 CHA,Natural Armor
+Gnome,Fantasy,+2 INT; +1 CON,Magic Touched
+Sylph,Fantasy,+2 DEX; +1 CHA,Wind-Born (Feather Fall)
+Goblin,Fantasy,+2 DEX; +1 CON,Night Eyes
+Construct,Fantasy,+2 CON; +1 STR,Construct
+Mutant,Post-Apocalyptic,+2 CON; +1 WIS,Free Trait
+Irradiated,Post-Apocalyptic,+2 CON; +1 INT,Rad-Eater
+Uplifted Beast,Post-Apocalyptic,+2 DEX; +1 WIS,Skill Expert (Survival)
+Android,Sci-Fi,+2 INT; +1 STR,Construct
+Grey,Sci-Fi,+2 INT; +1 WIS,Telepathy
+Reptilian,Sci-Fi,+2 STR; +1 CON,Natural Armor
+Spacer,Sci-Fi,+2 DEX; +1 WIS,Zero-G Adapted
+Insectoid,Sci-Fi,+2 CON; +1 DEX,Natural Armor
+Aquan,Sci-Fi,+1 DEX; +1 WIS; +1 STR,Amphibious (Breathe Water)
+Heavy Worlder,Sci-Fi,+2 STR; +1 CON,Heavy Lifter
+Automaton,Steampunk,+2 CON; +1 STR,Construct
+Aether-Touched,Steampunk,+1 INT; +1 CHA; +1 DEX,Magic Touched
+Human,Universal,+1 All Stats,None

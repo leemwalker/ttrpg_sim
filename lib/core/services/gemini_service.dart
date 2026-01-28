@@ -36,7 +36,6 @@ class GeminiService {
   ChatSessionWrapper? _currentSession;
   int? _currentWorldId;
   // Track player state to detect changes requiring session refresh
-  String? _lastPlayerClass;
   int? _lastPlayerLevel;
 
   GeminiService(this._apiKey, {String modelName = 'gemini-1.5-flash'})
@@ -158,7 +157,6 @@ class GeminiService {
     // Check if session needs refresh (world changed OR player class/level changed)
     final needsRefresh = _currentSession == null ||
         _currentWorldId != worldId ||
-        _lastPlayerClass != player.heroClass ||
         _lastPlayerLevel != player.level;
 
     if (needsRefresh) {
@@ -179,7 +177,6 @@ class GeminiService {
       final model = createModel(instruction);
       _currentSession = model.startChat();
       _currentWorldId = worldId;
-      _lastPlayerClass = player.heroClass;
       _lastPlayerLevel = player.level;
     } else {
       // Log Removed

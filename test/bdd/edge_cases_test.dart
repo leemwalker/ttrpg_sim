@@ -9,6 +9,8 @@ import 'package:drift/drift.dart' as drift;
 // Mock Gemini Service
 import 'package:ttrpg_sim/core/services/gemini_service.dart';
 import 'package:ttrpg_sim/core/services/gemini_wrapper.dart';
+import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
+import '../shared_test_utils.dart';
 
 // Mock Gemini Service
 class MockGeminiService implements GeminiService {
@@ -16,6 +18,7 @@ class MockGeminiService implements GeminiService {
   GenerativeModelWrapper createModel(String instruction) {
     throw UnimplementedError();
   }
+// ...
 
   @override
   Future<TurnResult> sendMessage(
@@ -46,12 +49,22 @@ class MockGeminiService implements GeminiService {
   }
 }
 
+// ... class mock gemini ...
+
+String? _mockModelResponse; // Add if needed or assume mock service
+
 void main() {
   late AppDatabase database;
   late GameDao dao;
   late MockGeminiService mockGemini;
 
   setUp(() async {
+    final mockLoader = MockRuleDataLoader();
+    // Cannot set screen size here easily without tester, but Edge Cases usually unit/integration logic
+    // But 'Empty Input Guard' uses Controller which might load rules.
+    mockLoader.setupDefaultRules();
+    await ModularRulesController().loadRules(loader: mockLoader);
+
     database = AppDatabase(NativeDatabase.memory());
     // Ensure FKs are enabled for the test
     await database.customStatement('PRAGMA foreign_keys = ON');
@@ -75,7 +88,6 @@ void main() {
       await dao.updateCharacterStats(CharacterCompanion.insert(
         worldId: drift.Value(worldId),
         name: 'Hero',
-        heroClass: 'Fighter',
         level: 1,
         currentHp: 10,
         maxHp: 10,
@@ -114,7 +126,6 @@ void main() {
       await dao.updateCharacterStats(CharacterCompanion.insert(
         worldId: drift.Value(worldId),
         name: 'Hero',
-        heroClass: 'Fighter',
         level: 1,
         currentHp: 10,
         maxHp: 10,

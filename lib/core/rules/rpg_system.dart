@@ -52,6 +52,6 @@ abstract class RpgSystem {
   List<String> getKnownSpells(String charClass, int level);
 
   /// Get the ability modifier for a skill or ability check.
-  /// For D&D 5e: (attribute_score - 10) ~/ 2
+  /// Formula: (attribute_score - 10) ~/ 2
   int getModifier(CharacterData character, String checkName);
 }

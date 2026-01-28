@@ -1,14 +1,23 @@
+import 'dart:convert';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ttrpg_sim/core/database/database.dart';
 import 'package:ttrpg_sim/core/providers.dart';
-import 'package:ttrpg_sim/core/rules/dnd5e_rules.dart';
-import 'package:ttrpg_sim/features/creation/widgets/point_buy_widget.dart';
-import 'package:ttrpg_sim/features/game/presentation/game_screen.dart';
+import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
+import 'package:ttrpg_sim/features/creation/logic/creation_state.dart';
+import 'package:ttrpg_sim/features/creation/steps/step_attributes.dart';
+import 'package:ttrpg_sim/features/creation/steps/step_origin.dart';
+import 'package:ttrpg_sim/features/creation/steps/step_skills_magic.dart';
+import 'package:ttrpg_sim/features/creation/steps/step_species.dart';
+import 'package:ttrpg_sim/features/creation/steps/step_traits.dart';
 
 class CharacterCreationScreen extends ConsumerStatefulWidget {
   final int worldId;
+  final int? characterId;
 
-  const CharacterCreationScreen({super.key, required this.worldId});
+  const CharacterCreationScreen(
+      {super.key, required this.worldId, this.characterId});
 
   @override
   ConsumerState<CharacterCreationScreen> createState() =>
@@ -17,65 +26,84 @@ class CharacterCreationScreen extends ConsumerStatefulWidget {
 
 class _CharacterCreationScreenState
     extends ConsumerState<CharacterCreationScreen> {
-  final _nameController = TextEditingController();
-  final _rules = Dnd5eRules();
-
-  String _selectedClass = 'Fighter';
-  String _selectedSpecies = 'Human';
-  String _selectedBackground = 'Acolyte'; // Default
-  final _customBackgroundNameController = TextEditingController();
-  String _backstory = '';
-  String _selectedInventory = "Explorer's Pack";
-  int _level = 1;
-
-  // Stats for Point Buy
-  Map<String, int> _stats = {
-    'Strength': 8,
-    'Dexterity': 8,
-    'Constitution': 8,
-    'Intelligence': 8,
-    'Wisdom': 8,
-    'Charisma': 8,
-  };
-
+  int _currentStep = 0;
   bool _isLoading = true;
-  int? _characterId;
+  final TextEditingController _nameController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _loadPlaceholderCharacter();
-  }
-
-  Future<void> _loadPlaceholderCharacter() async {
-    final dao = ref.read(gameDaoProvider);
-
-    // Fetch custom traits first
-    final customSpecies = await dao.getCustomTraitsByType('Species');
-    final customClasses = await dao.getCustomTraitsByType('Class');
-
-    // Register them with the rules engine
-    _rules.registerCustomTraits([...customSpecies, ...customClasses]);
-
-    final character = await dao.getCharacter(widget.worldId);
-
-    if (character != null) {
-      setState(() {
-        _characterId = character.id;
-        _nameController.text =
-            character.name == 'Traveler' ? '' : character.name;
-        _isLoading = false;
-      });
-    } else {
-      setState(() => _isLoading = false);
-    }
+    _initializeCreation();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _customBackgroundNameController.dispose();
     super.dispose();
+  }
+
+  int? _characterId;
+
+  Future<void> _initializeCreation() async {
+    try {
+      print('DEBUG: Init Creation Start');
+      // 1. Load Rules
+      await ModularRulesController().loadRules();
+      print('DEBUG: Rules Loaded');
+
+      // 2. Fetch World Genres and Ensure Character
+      final dao = ref.read(gameDaoProvider);
+      final world = await dao.getWorld(widget.worldId);
+      print('DEBUG: World fetched: ${world?.name}');
+
+      if (world != null) {
+        List<String> genres = [];
+        try {
+          final parsed = jsonDecode(world.genres);
+          if (parsed is List) {
+            genres = parsed.map((e) => e.toString()).toList();
+          }
+        } catch (e) {
+          genres = ['Fantasy'];
+        }
+        ref.read(creationProvider.notifier).setGenres(genres);
+      }
+
+      // Ensure Character exists (Placeholder logic)
+      if (widget.characterId != null) {
+        _characterId = widget.characterId;
+      } else {
+        final existing = await dao.getCharacter(widget.worldId);
+        if (existing != null) {
+          _characterId = existing.id;
+          if (existing.name != 'Traveler' && existing.name.isNotEmpty) {
+            _nameController.text = existing.name;
+          }
+        } else {
+          _characterId = await dao.updateCharacterStats(
+              CharacterCompanion.insert(
+                      name: 'Traveler',
+                      level: 1,
+                      currentHp: 10,
+                      maxHp: 10,
+                      gold: 0,
+                      location: 'Unknown',
+                      species: const Value('Human'),
+                      origin: const Value('Unknown'))
+                  .copyWith(worldId: Value(widget.worldId)));
+        }
+      }
+      print('DEBUG: Character ID: $_characterId');
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        print('DEBUG: Set Loading False');
+      }
+    } catch (e, st) {
+      print('ERROR in _initializeCreation: $e\n$st');
+    }
   }
 
   @override
@@ -86,258 +114,170 @@ class _CharacterCreationScreenState
       );
     }
 
-    if (_characterId == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text("Error")),
-        body: const Center(
-          child: Text("No placeholder character found for this world."),
-        ),
-      );
-    }
-
-    final backgroundInfo = _rules.getBackgroundInfo(_selectedBackground);
+    // Check validation for current step to enable Next button?
+    // Simplified: Allow navigation, validate on Finish or visual cues.
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Create Your Character")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: "Character Name",
-                  border: OutlineInputBorder(),
-                ),
+      appBar: AppBar(
+        title: const Text("Character Creation"),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: "Character Name",
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 24),
-              // CLASS SELECTION
-              DropdownButtonFormField<String>(
-                initialValue: _selectedClass,
-                decoration: const InputDecoration(
-                  labelText: "Class",
-                  border: OutlineInputBorder(),
-                ),
-                items: _rules.availableClasses
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => _selectedClass = val);
-                },
-              ),
-              const SizedBox(height: 16),
-              // SPECIES SELECTION
-              DropdownButtonFormField<String>(
-                initialValue: _selectedSpecies,
-                decoration: const InputDecoration(
-                  labelText: "Species",
-                  border: OutlineInputBorder(),
-                ),
-                items: _rules.availableSpecies
-                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => _selectedSpecies = val);
-                },
-              ),
-              const SizedBox(height: 16),
-              // BACKGROUND SELECTION
-              DropdownButtonFormField<String>(
-                initialValue: _selectedBackground,
-                decoration: const InputDecoration(
-                  labelText: "Background",
-                  border: OutlineInputBorder(),
-                ),
-                items: [..._rules.availableBackgrounds, 'Custom']
-                    .map((b) => DropdownMenuItem(value: b, child: Text(b)))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => _selectedBackground = val);
-                },
-              ),
-              if (_selectedBackground == 'Custom') ...[
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _customBackgroundNameController,
-                  decoration: const InputDecoration(
-                    labelText: "Custom Background Name",
-                    border: OutlineInputBorder(),
+            ),
+          ),
+          Expanded(
+            child: Stepper(
+              type: StepperType.horizontal,
+              currentStep: _currentStep,
+              onStepContinue: () {
+                if (_currentStep < 4) {
+                  setState(() => _currentStep += 1);
+                } else {
+                  _finishCreation();
+                }
+              },
+              onStepCancel: () {
+                if (_currentStep > 0) {
+                  setState(() => _currentStep -= 1);
+                } else {
+                  Navigator.of(context).pop();
+                }
+              },
+              controlsBuilder: (context, details) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: Row(
+                    children: [
+                      FilledButton(
+                        onPressed: details.onStepContinue,
+                        child: Text(_currentStep == 4 ? "Finish" : "Next"),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton(
+                        onPressed: details.onStepCancel,
+                        child: const Text("Back"),
+                      ),
+                    ],
                   ),
+                );
+              },
+              steps: [
+                Step(
+                  title: const Text("Species"),
+                  content: const StepSpecies(),
+                  isActive: _currentStep >= 0,
+                  state:
+                      _currentStep > 0 ? StepState.complete : StepState.editing,
+                ),
+                Step(
+                  title: const Text("Origin"),
+                  content: const StepOrigin(),
+                  isActive: _currentStep >= 1,
+                  state:
+                      _currentStep > 1 ? StepState.complete : StepState.editing,
+                ),
+                Step(
+                  title: const Text("Traits"),
+                  content: const StepTraits(),
+                  isActive: _currentStep >= 2,
+                  state:
+                      _currentStep > 2 ? StepState.complete : StepState.editing,
+                ),
+                Step(
+                  title: const Text("Attributes"),
+                  content: const StepAttributes(),
+                  isActive: _currentStep >= 3,
+                  state:
+                      _currentStep > 3 ? StepState.complete : StepState.editing,
+                ),
+                Step(
+                  title: const Text("Skills/Magic"),
+                  content: const StepSkillsMagic(),
+                  isActive: _currentStep >= 4,
+                  state: _currentStep == 4
+                      ? StepState.editing
+                      : StepState.complete,
                 ),
               ],
-              const SizedBox(height: 8),
-              // BACKGROUND INFO CARD
-              Card(
-                color: Colors.blueGrey[900],
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Background Feature: ${backgroundInfo.featureName}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, color: Colors.amber),
-                      ),
-                      Text(
-                        backgroundInfo.featureDesc,
-                        style: const TextStyle(
-                            fontSize: 12, color: Colors.white70),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Origin Feat: ${backgroundInfo.originFeat}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.lightGreenAccent),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-              // BACKSTORY
-              TextField(
-                decoration: const InputDecoration(
-                  labelText: "Character Backstory",
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
-                ),
-                maxLines: 3,
-                onChanged: (val) => _backstory = val,
-              ),
-
-              const SizedBox(height: 16),
-              // INVENTORY SELECTION
-              DropdownButtonFormField<String>(
-                initialValue: _selectedInventory,
-                decoration: const InputDecoration(
-                  labelText: "Equipment Pack",
-                  border: OutlineInputBorder(),
-                ),
-                items: [
-                  "Explorer's Pack",
-                  "Diplomat's Pack",
-                  "Burglar's Pack",
-                  "Dungeoneer's Pack",
-                  "Entertainer's Pack",
-                  "Priest's Pack",
-                  "Scholar's Pack"
-                ]
-                    .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => _selectedInventory = val);
-                },
-              ),
-
-              const SizedBox(height: 24),
-              Text("Level: $_level",
-                  style: Theme.of(context).textTheme.titleMedium),
-              Slider(
-                value: _level.toDouble(),
-                min: 1,
-                max: 20,
-                divisions: 19,
-                label: _level.toString(),
-                onChanged: (val) => setState(() => _level = val.toInt()),
-              ),
-              const SizedBox(height: 16),
-
-              // POINT BUY WIDGET
-              PointBuyWidget(
-                onStatsChanged: (stats) {
-                  setState(() {
-                    _stats = stats;
-                  });
-                },
-              ),
-
-              const SizedBox(height: 16),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Calculated Stats",
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const Divider(),
-                      Text(
-                        "Max HP: ${_rules.calculateMaxHp(_selectedClass, _level, _stats['Constitution']!, [
-                              backgroundInfo.originFeat
-                            ])} (Base + Mod + Feats)",
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-              FilledButton.icon(
-                onPressed: _createCharacter,
-                icon: const Icon(Icons.check),
-                label: const Text("Create Character"),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Future<void> _createCharacter() async {
-    final name = _nameController.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a character name.")),
-      );
+  Future<void> _finishCreation() async {
+    final state = ref.read(creationProvider);
+    final dao = ref.read(gameDaoProvider);
+
+    if (_nameController.text.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Please enter a name.")));
       return;
     }
 
-    final backgroundName = _selectedBackground == 'Custom'
-        ? _customBackgroundNameController.text.trim()
-        : _selectedBackground;
+    if (state.selectedSpecies == null || state.selectedOrigin == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please select Species and Origin.")));
+      return;
+    }
 
-    // Get origin feat from background
-    final bgInfo = _rules.getBackgroundInfo(backgroundName);
+    // Map to DB
+    final attributesJson = jsonEncode(state.attributes);
+    final skillsJson = jsonEncode(state.skillRanks);
+    final traitsJson =
+        jsonEncode(state.selectedTraits.map((t) => t.name).toList());
+    final featsJson =
+        jsonEncode(state.selectedFeats.map((f) => f.name).toList());
 
-    final maxHp = _rules.calculateMaxHp(
-      _selectedClass,
-      _level,
-      _stats['Constitution']!,
-      [bgInfo.originFeat],
-    );
-    final dao = ref.read(gameDaoProvider);
+    // Magic into Backstory
+    String backstory = "Origin: ${state.selectedOrigin!.name}\n";
+    if (state.magicPillar != null) {
+      backstory += "\nMagic Pillar: ${state.magicPillar}";
+      if (state.magicDescription != null) {
+        backstory += "\n${state.magicDescription}";
+      }
+    }
+
+    // Calculate Max HP (Roughly)
+    // 10 + Con Mod
+    int con = state.attributes['Constitution'] ?? 10;
+    int conMod = ((con - 10) / 2).floor();
+    int maxHp = 10 + conMod;
 
     await dao.updateCharacterBio(
       characterId: _characterId!,
-      name: name,
-      characterClass: _selectedClass,
-      species: _selectedSpecies,
-      background: backgroundName,
-      backstory: _backstory,
-      inventory: [_selectedInventory],
-      level: _level,
+      name: _nameController.text,
+      species: state.selectedSpecies!.name,
+      origin: state.selectedOrigin!.name,
+      attributes: attributesJson,
+      skills: skillsJson,
+      traits: traitsJson,
+      feats: featsJson,
+      background: state.selectedOrigin!.name,
+      backstory: backstory,
+      level: 1,
       maxHp: maxHp,
-      strength: _stats['Strength']!,
-      dexterity: _stats['Dexterity']!,
-      constitution: _stats['Constitution']!,
-      intelligence: _stats['Intelligence']!,
-      wisdom: _stats['Wisdom']!,
-      charisma: _stats['Charisma']!,
+      // Legacy Columns compat
+      strength: state.attributes['Strength'] ?? 10,
+      dexterity: state.attributes['Dexterity'] ?? 10,
+      constitution: state.attributes['Constitution'] ?? 10,
+      intelligence: state.attributes['Intelligence'] ?? 10,
+      wisdom: state.attributes['Wisdom'] ?? 10,
+      charisma: state.attributes['Charisma'] ?? 10,
     );
 
     if (mounted) {
-      Navigator.of(context).pushReplacement(MaterialPageRoute(
-        builder: (context) =>
-            GameScreen(worldId: widget.worldId, characterId: _characterId!),
-      ));
+      Navigator.of(context).pop();
+      // Or navigate to Game
     }
   }
 }

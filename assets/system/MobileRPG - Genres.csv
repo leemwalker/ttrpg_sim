@@ -1,0 +1,11 @@
+Name,Description,Currency,Key Themes
+Fantasy,"Magic, monsters, and medieval adventure.",GP (Gold Pieces),"Magic, Heroism, Destiny"
+Sci-Fi,"Advanced technology, space travel, and aliens.",Cr (Credits),"Exploration, Technology, Void"
+Horror,Survival against terrifying supernatural forces.,None (Survival),"Fear, Madness, Isolation"
+Cyberpunk,"High tech, low life. Dystopian futures.",Ed (Eurodollars),"Rebellion, Cybernetics, Corporate"
+Western,Gunslingers and lawlessness on the frontier.,$ (Dollars),"Justice, Survival, Outlaws"
+Post-Apocalyptic,Surviving in a ruined world after the fall.,Caps (Bottle Caps),"Scarcity, Ruins, Mutation"
+Mystery,Solving crimes and uncovering conspiracies.,$ (Dollars),"Secrets, Deduction, Intrigue"
+Superhero,Extraordinary individuals saving (or ruling) the world.,USD (Dollars),"Power, Responsibility, Fame"
+Steampunk,Victorian era aesthetics with steam technology.,£ (Pounds),"Invention, Industry, Exploration"
+Universal,The core rules applicable to all worlds.,Gold,"Adventure, Growth"

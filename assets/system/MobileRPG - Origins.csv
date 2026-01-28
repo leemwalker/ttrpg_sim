@@ -1,0 +1,23 @@
+Name,Genre,Skills,Feat,Starting Items,Description
+Acolyte,Fantasy,"Insight, Arcana",Healer,"Holy Symbol, Robes, Healer's Kit, 10 GP",Raised in a temple to serve the gods.
+Squire,Fantasy,"Athletics, Melee (Heavy)",Armor Training,"Chainmail, Longsword, Shield, 10 GP",Trained in the martial arts under a knight.
+Apprentice,Fantasy,"Arcana, Nature",Arcane Initiate,"Spellbook, Robes, Ink/Pen, Component Pouch",Studied magic in a tower or academy.
+Thief,Fantasy,"Stealth, Melee (Light)",Sneak Attack,"Leather Armor, Dagger, Thieves' Tools, 15 GP",Survived by taking what wasn't yours.
+Ranger,Fantasy,"Survival, Ranged",Sniper,"Longbow, Leather Armor, Bedroll, Hunting Trap","Lived in the wilds, hunting beasts."
+Corporate Drone,Sci-Fi,"Computers, Persuasion",Hacker,"Datapad, Smart Suit, ID Card, 100 Cr",A low-level employee in a mega-corp.
+Smuggler,Sci-Fi,"Piloting, Deception",Ace Pilot,"Flight Jacket, Blaster Pistol, Fake ID, 50 Cr",Moves goods across star systems illegally.
+Space Marine,Sci-Fi,"Athletics, Ranged",Weapon Training,"Plasteel Armor, Laser Rifle, Rations, 0 Cr",Trained for void combat and boarding actions.
+Xeno-Biologist,Sci-Fi,"Xenology, Medicine",Skill Expert (Medicine),"Med-Scanner, Field Kit, Sample Vials, 50 Cr",Researches alien life forms.
+Investigator,Horror/Mystery,"Investigation, Insight",Gumshoe,"Trenchcoat, Notebook, Flashlight, Revolver",Obsessed with finding the truth.
+Survivor,Horror,"Stealth, Athletics",Iron Will,"Crowbar, Bandages, Lighter, Canned Food",Escaped something terrible and kept going.
+Occultist,Horror,"Arcana, Investigation",Occultist,"Old Tome, Chalk, Ritual Dagger, Candles",Dabbles in forbidden knowledge.
+Street Samurai,Cyberpunk,"Melee (Light), Streetwise",Chrome Jockey,"Katana, Kevlar Vest, Cheap Sunglasses, 20 Ed",Mercenary for hire with an code of honor.
+Netrunner,Cyberpunk,"Hacking, Computers",Wirehead,"Cyberdeck, Interface Cables, Energy Drink",Lives in the digital world more than the real one.
+Gunslinger,Western,"Ranged, Intimidation",High Noon,"Revolver, Holster, Duster, Horse",Fastest hand in the territory.
+Outlaw,Western,"Stealth, Survival",Fan the Hammer,"Repeater Rifle, Bedroll, Whiskey, Bounty Poster","Wanted by the law, loved by no one."
+Scavenger,Post-Apocalyptic,"Scavenge, Survival",Scavenger King,"Backpack, Crowbar, Gas Mask, Geiger Counter",Digs through ruins for scraps of the old world.
+Road Warrior,Post-Apocalyptic,"Driving, Melee (Heavy)",Heavy Lifter,"Tire Iron, Leather Jacket, Goggles, Jerry Can",Roams the wastes in a cobbled-together vehicle.
+Detective,Noir/Mystery,"Investigation, Intimidation",Deductive Mind,"Badge, Service Pistol, Cigarettes, Notepad",A cynical cop or PI working the beat.
+Grifter,Universal,"Deception, Persuasion",Linguist,"Fine Clothes, Marked Cards, Fake Jewelry",Makes a living convincing people of lies.
+Doctor,Universal,"Medicine, Insight",Healer,"Medical Bag, Scalpel, Clean Clothes",Sworn to do no harm.
+Brawler,Universal,"Unarmed, Athletics",Brawler,"Knuckle Wraps, flask of strong drink",Fights in pits or taverns for coin.

@@ -10,10 +10,17 @@ import 'package:ttrpg_sim/features/settings/settings_screen.dart';
 import 'package:drift/native.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 
+import '../shared_test_utils.dart';
+import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
+
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   testWidgets('BDD Scenario: Homebrew Content Flow',
       (WidgetTester tester) async {
+    final mockLoader = MockRuleDataLoader();
+    mockLoader.setTestScreenSize(tester);
+    mockLoader.setupDefaultRules();
+    await ModularRulesController().loadRules(loader: mockLoader);
     // SETUP
     final inMemoryExecutor = NativeDatabase.memory();
     final db = AppDatabase(inMemoryExecutor);
@@ -28,7 +35,6 @@ void main() {
     await db.gameDao.updateCharacterStats(
       CharacterCompanion(
         name: const Value('Traveler'),
-        heroClass: const Value('Fighter'),
         level: const Value(1),
         currentHp: const Value(10),
         maxHp: const Value(10),
@@ -105,7 +111,7 @@ void main() {
     expect(find.text('Cyborg'), findsOneWidget);
 
     // AND I delete "Cyborg" (Swipe to dismiss)
-    await tester.drag(find.text('Cyborg'), const Offset(-500, 0));
+    await tester.drag(find.text('Cyborg'), const Offset(-1000, 0));
     await tester.pumpAndSettle();
 
     // THEN "Cyborg" should be gone from the list
@@ -114,14 +120,7 @@ void main() {
     // AND "Cyborg" deleted message should be shown
     expect(find.text('Cyborg deleted'), findsOneWidget);
 
-    // Re-create it for the next part (Character Creation) or skip?
-    // The test continues to Character Creation expecting "Cyborg".
-    // If we delete it, we can't select it.
-    // So we should re-create it or just remove the deletion part from THIS flow
-    // and make a separate "Manage Homebrew" test vs "Use Homebrew" test.
-    // OR we delete it and verify, then re-add it.
-    // Let's re-add it quickly.
-
+    // Re-create it for the next part (Character Creation)
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).at(0), 'Cyborg');
@@ -130,10 +129,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Cyborg'), findsOneWidget);
 
-    // AND I navigate to "Character Creation" (Simulated by pumping widget directly)
-    // We skip manual navigation from MainMenu as it typically goes to GameScreen for existing worlds.
-    // We assume the user creates a new world or somehow enters creation mode.
-    // Clear the tree to ensure HomebrewManagerScreen is disposed
+    // AND I navigate to "Character Creation"
     await tester.pumpWidget(const SizedBox());
 
     await tester.pumpWidget(
@@ -146,23 +142,55 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle(); // Loads placeholder
-
-    // THEN "Cyborg" should be available in the Species dropdown
-    // Open Species dropdown (default is Human)
-    // DEBUG: Dump Widgets before failing tap
-    // Select Cyborg
-    await tester
-        .tap(find.widgetWithText(DropdownButtonFormField<String>, 'Human'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Cyborg').last);
+    // THEN "Cyborg" should be available in the Species Step (Step 1)
+    // Verify it exists
+    expect(find.text('Cyborg'), findsOneWidget);
+
+    // Tap it
+    await tester.tap(find.text('Cyborg'));
     await tester.pumpAndSettle();
 
+    // Verify selection (Checkmark)
+    // Finding ListTile with text Cyborg, then finding Icon inside it
+    final cyborgTile = find.widgetWithText(ListTile, 'Cyborg');
+    expect(
+        find.descendant(
+            of: cyborgTile, matching: find.byIcon(Icons.check_circle)),
+        findsOneWidget);
+
+    // Next (to Origin)
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+
+    // Origin Step (Select something default or first?)
+    // Default might be selected if testing creation logic usually has defaults.
+    // If we need to select:
+    await tester.tap(find.text('Refugee')); // Assuming default
+    await tester.pumpAndSettle();
+
+    // Next (to Traits)
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+
+    // Next (to Attributes)
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+
+    // Next (to Skills)
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+
+    // Fill Name (It's on top, accessible always or in a step?)
+    // In CharacterCreationScreen (Step 258):
+    // standard TextField inside Column, above Expanded Stepper.
+    // So Name is always visible.
     await tester.enterText(
         find.widgetWithText(TextField, 'Character Name'), 'RoboCop');
 
-    final createBtn = find.text('Create Character');
+    // Finish
+    final createBtn = find.text('Finish');
     await tester.ensureVisible(createBtn);
     await tester.tap(createBtn);
     await tester.pumpAndSettle();

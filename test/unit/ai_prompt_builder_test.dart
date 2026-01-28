@@ -9,7 +9,6 @@ void main() {
     final testPlayer = CharacterData(
       id: 1,
       name: 'Tester',
-      heroClass: 'Wizard',
       level: 1,
       currentHp: 10,
       maxHp: 10,
@@ -26,6 +25,14 @@ void main() {
       inventory: '[]', // JSON string in DB
       background: 'Sage',
       backstory: 'A long story',
+      origin: 'Unknown',
+      attributes: '{}',
+      skills: '{}',
+      traits: '[]',
+      feats: '[]',
+      spells: '[]',
+      currentMana: 0,
+      maxMana: 10,
     );
 
     test('buildContextPrompt formats status and inventory correctly', () {

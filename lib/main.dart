@@ -3,7 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ttrpg_sim/features/menu/main_menu_screen.dart';
 import 'package:ttrpg_sim/features/settings/settings_provider.dart';
 
-void main() {
+import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ModularRulesController().loadRules();
   runApp(const ProviderScope(child: TtrpgSimApp()));
 }
 

@@ -33,14 +33,24 @@ class Worlds extends Table {
   TextColumn get genre => text()();
   TextColumn get tone => text().withDefault(const Constant('Standard'))();
   TextColumn get description => text()();
+  TextColumn get genres => text().withDefault(const Constant('["Fantasy"]'))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
 class Character extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
-  TextColumn get heroClass => text()();
+  // heroClass removed in v15
   TextColumn get species => text().withDefault(const Constant('Human'))();
+  TextColumn get origin => text().withDefault(const Constant('Unknown'))();
+  TextColumn get attributes =>
+      text().withDefault(const Constant('{}'))(); // JSON Map
+  TextColumn get skills =>
+      text().withDefault(const Constant('{}'))(); // JSON Map
+  TextColumn get traits =>
+      text().withDefault(const Constant('[]'))(); // JSON List
+  TextColumn get feats =>
+      text().withDefault(const Constant('[]'))(); // JSON List
   IntColumn get level => integer()();
   IntColumn get currentHp => integer()();
   IntColumn get maxHp => integer()();
@@ -54,18 +64,25 @@ class Character extends Table {
   TextColumn get background => text().nullable()();
   TextColumn get backstory => text().nullable()();
   TextColumn get inventory => text().withDefault(const Constant('[]'))();
-  // D&D 5e Ability Scores (default to 10 = average human)
+  // Ability Scores (default to 10 = average)
   IntColumn get strength => integer().withDefault(const Constant(10))();
   IntColumn get dexterity => integer().withDefault(const Constant(10))();
   IntColumn get constitution => integer().withDefault(const Constant(10))();
   IntColumn get intelligence => integer().withDefault(const Constant(10))();
   IntColumn get wisdom => integer().withDefault(const Constant(10))();
   IntColumn get charisma => integer().withDefault(const Constant(10))();
+
+  // Magic System (v14)
+  TextColumn get spells =>
+      text().withDefault(const Constant('[]'))(); // JSON List<SpellDef>
+  IntColumn get currentMana => integer().withDefault(const Constant(0))();
+  IntColumn get maxMana => integer().withDefault(const Constant(10))();
 }
 
 class Inventory extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get characterId => integer().references(Character, #id)();
+  IntColumn get characterId =>
+      integer().references(Character, #id, onDelete: KeyAction.cascade)();
   TextColumn get itemName => text()();
   IntColumn get quantity => integer()();
 }
@@ -131,7 +148,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration {
@@ -222,6 +239,179 @@ class AppDatabase extends _$AppDatabase {
             WHERE character_id IS NULL AND world_id IS NOT NULL
           ''');
         }
+        if (from < 12) {
+          // Fix: Add ON DELETE CASCADE to Inventory table
+          // Robust Migration: check if inventory_old exists first (in case of partial run)
+
+          // 1. Rename existing 'inventory' to 'inventory_old' manually if it exists
+          // We use customStatement to avoid Drift wrapper confusion
+          try {
+            await customStatement(
+                'ALTER TABLE inventory RENAME TO inventory_old');
+          } catch (e) {
+            // Provide a way to recover if inventory_old already exists (e.g. partial migration)
+            // If valid inventory_old exists, we might proceed. If inventory doesn't exist, ignore.
+            print(
+                'Migration v12: ALTER TABLE error (expected if partial run): $e');
+          }
+
+          // 2. Create new table 'inventory'
+          // We use createTable, which CREATE TABLE IF NOT EXISTS usually? No, standard CREATE.
+          // Since we renamed the old one, this should work.
+          await m.createTable(inventory);
+
+          // 3. Copy data
+          // Check if data is already copied? No, just copy.
+          // If inventory_old doesn't exist here, this will fail.
+          // But if step 1 failed because inventory didn't exist (because it was already renamed), then inventory_old should exist.
+          try {
+            await customStatement(
+                'INSERT INTO inventory (id, character_id, item_name, quantity) SELECT id, character_id, item_name, quantity FROM inventory_old');
+          } catch (e) {
+            print(
+                'Migration v12: Data copy error (maybe empty or already done): $e');
+          }
+
+          // 4. Drop old table
+          try {
+            await customStatement('DROP TABLE inventory_old');
+          } catch (e) {
+            print('Migration v12: Drop table error: $e');
+          }
+        }
+        if (from < 13) {
+          // Fix for v13: Recreate tables to enforce ON DELETE CASCADE
+          // Temporarily disable FK checks to avoid violations during migration table shuffling
+          await customStatement('PRAGMA foreign_keys = OFF');
+
+          // 1. CHARACTER TABLE
+          try {
+            await customStatement(
+                'ALTER TABLE character RENAME TO character_old');
+            await m.createTable(character);
+            await customStatement(
+                'INSERT INTO character (id, name, hero_class, species, level, current_hp, max_hp, gold, location, world_id, current_location_id, background, backstory, inventory, strength, dexterity, constitution, intelligence, wisdom, charisma) SELECT id, name, hero_class, species, level, current_hp, max_hp, gold, location, world_id, current_location_id, background, backstory, inventory, strength, dexterity, constitution, intelligence, wisdom, charisma FROM character_old');
+            await customStatement('DROP TABLE character_old');
+          } catch (e) {
+            print('Migration v13 Character Error: $e');
+          }
+
+          // 2. LOCATIONS TABLE
+          try {
+            await customStatement(
+                'ALTER TABLE locations RENAME TO locations_old');
+            await m.createTable(locations);
+            await customStatement(
+                'INSERT INTO locations (id, world_id, name, description, type, coordinates) SELECT id, world_id, name, description, type, coordinates FROM locations_old');
+            await customStatement('DROP TABLE locations_old');
+          } catch (e) {
+            print('Migration v13 Locations Error: $e');
+          }
+
+          // 3. POINTS OF INTEREST TABLE
+          try {
+            await customStatement(
+                'ALTER TABLE points_of_interest RENAME TO points_of_interest_old');
+            await m.createTable(pointsOfInterest);
+            await customStatement(
+                'INSERT INTO points_of_interest (id, location_id, name, description, type) SELECT id, location_id, name, description, type FROM points_of_interest_old');
+            await customStatement('DROP TABLE points_of_interest_old');
+          } catch (e) {
+            print('Migration v13 POI Error: $e');
+          }
+
+          // 4. NPCS TABLE
+          try {
+            await customStatement('ALTER TABLE npcs RENAME TO npcs_old');
+            await m.createTable(npcs);
+            await customStatement(
+                'INSERT INTO npcs (id, world_id, location_id, poi_id, name, role, description, stats, relationship_score) SELECT id, world_id, location_id, poi_id, name, role, description, stats, relationship_score FROM npcs_old');
+            await customStatement('DROP TABLE npcs_old');
+          } catch (e) {
+            print('Migration v13 Npcs Error: $e');
+          }
+
+          // Re-enable FK checks
+          await customStatement('PRAGMA foreign_keys = ON');
+        }
+
+        // Fix for v14: Recreate ChatMessages table to enforce ON DELETE CASCADE
+        if (from < 14) {
+          await customStatement('PRAGMA foreign_keys = OFF');
+
+          // CHAT MESSAGES TABLE
+          try {
+            await customStatement(
+                'ALTER TABLE chat_messages RENAME TO chat_messages_old');
+            await m.createTable(chatMessages);
+            await customStatement(
+                'INSERT INTO chat_messages (id, role, content, timestamp, world_id, character_id) SELECT id, role, content, timestamp, world_id, character_id FROM chat_messages_old');
+            await customStatement('DROP TABLE chat_messages_old');
+          } catch (e) {
+            print('Migration v14 ChatMessages Error: $e');
+          }
+
+          await customStatement('PRAGMA foreign_keys = ON');
+        }
+
+        if (from < 15) {
+          // Migration v15: Modular d20 System
+          // 1. Update Worlds table (Safe add)
+          await m.addColumn(worlds, worlds.genres);
+
+          // 2. Update Character table (Destructive: Remove heroClass, Add new fields)
+          await customStatement('PRAGMA foreign_keys = OFF');
+          try {
+            await customStatement(
+                'ALTER TABLE character RENAME TO character_old');
+            await m.createTable(character);
+
+            // Copy compatible data. New columns will get defaults (empty/unknown).
+            // We lose 'heroClass'.
+            await customStatement('''
+              INSERT INTO character (
+                id, name, species, level, current_hp, max_hp, gold, location, world_id, 
+                current_location_id, background, backstory, inventory, 
+                strength, dexterity, constitution, intelligence, wisdom, charisma,
+                origin, attributes, skills, traits, feats
+              )
+              SELECT 
+                id, name, species, level, current_hp, max_hp, gold, location, world_id, 
+                current_location_id, background, backstory, inventory, 
+                strength, dexterity, constitution, intelligence, wisdom, charisma,
+                'Refugee', '{}', '{}', '[]', '[]' -- Defaults for new columns
+              FROM character_old
+            ''');
+
+            await customStatement('DROP TABLE character_old');
+          } catch (e) {
+            print('Migration v15 Character Error: $e');
+          }
+        }
+        if (from < 16) {
+          // Migration v16: Magic System
+          // We check if columns exist before adding? Drift usually handles this or errors if exists.
+          // Since v15 recreates the table using current definition (which HAS spells),
+          // users migrating from <15 might already have these columns created by the table creation in v15 block.
+          // BUT, addColumn is safe-ish. However, avoiding duplicate column error is better.
+          // If from < 15, the table was recreated with the new schema (including spells).
+          // So this block should only run if from >= 15? No.
+          // If from = 14. `from < 15` runs. Table recreated with spells.
+          // Then `from < 16` runs. `addColumn` tries to add spells -> Error?
+          // We should guard this.
+          // Actually, standard Drill pattern: if multiple migrations run, subsequent ones might affect schema.
+          // But here v15 creates the *final* table structure as of v15.
+          // Since I updated the Table definition, v15 creation includes spells.
+          // So `addColumn` is only needed if `from == 15`.
+          // If `from < 15`, we already have them.
+          // So: if (from >= 15 && from < 16) ?
+
+          if (from == 15) {
+            await m.addColumn(character, character.spells);
+            await m.addColumn(character, character.currentMana);
+            await m.addColumn(character, character.maxMana);
+          }
+        }
       },
     );
   }
@@ -274,7 +464,7 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
         .write(CharacterCompanion(currentHp: Value(newHp)));
   }
 
-  Future<void> updateCharacterStats(CharacterCompanion stats) {
+  Future<int> updateCharacterStats(CharacterCompanion stats) {
     // Assuming we are updating a single character or creating if not exists.
     // Use insertOnConflictUpdate for robustness if id is set.
     return into(character).insertOnConflictUpdate(stats);
@@ -406,8 +596,13 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
   Future<void> updateCharacterBio({
     required int characterId,
     required String name,
-    required String characterClass,
+    // required String characterClass, // Removed in v15
     required String species,
+    required String origin,
+    required String attributes, // JSON
+    required String skills, // JSON
+    required String traits, // JSON
+    required String feats, // JSON
     required String? background,
     String? backstory,
     List<String>? inventory,
@@ -419,12 +614,20 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
     int intelligence = 10,
     int wisdom = 10,
     int charisma = 10,
+    String spells = '[]',
+    int currentMana = 10,
+    int maxMana = 10,
   }) async {
     await (update(character)..where((t) => t.id.equals(characterId))).write(
       CharacterCompanion(
         name: Value(name),
-        heroClass: Value(characterClass),
+        // heroClass: Value(characterClass), // Removed
         species: Value(species),
+        origin: Value(origin),
+        attributes: Value(attributes),
+        skills: Value(skills),
+        traits: Value(traits),
+        feats: Value(feats),
         background: Value(background),
         backstory: Value(backstory),
         inventory: inventory != null
@@ -439,6 +642,9 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
         intelligence: Value(intelligence),
         wisdom: Value(wisdom),
         charisma: Value(charisma),
+        spells: Value(spells),
+        currentMana: Value(currentMana),
+        maxMana: Value(maxMana),
       ),
     );
   }
@@ -539,6 +745,11 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
       role: role,
       description: description,
     ));
+  }
+
+  /// Delete a character
+  Future<void> deleteCharacter(int id) {
+    return (delete(character)..where((t) => t.id.equals(id))).go();
   }
 
   /// Update character's current location

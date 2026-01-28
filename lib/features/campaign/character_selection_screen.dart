@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ttrpg_sim/core/database/database.dart';
@@ -85,7 +86,7 @@ class _CharacterSelectionScreenState
                   ),
                   title: Text(character.name),
                   subtitle: Text(
-                      'Level ${character.level} ${character.species} ${character.heroClass}'),
+                      'Level ${character.level} ${character.species} - ${character.origin}'),
                   onTap: () {
                     Navigator.of(context).push(MaterialPageRoute(
                       builder: (context) => GameScreen(
@@ -94,7 +95,11 @@ class _CharacterSelectionScreenState
                       ),
                     ));
                   },
-                  trailing: const Icon(Icons.arrow_forward_ios),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                    onPressed: () =>
+                        _confirmDeleteCharacter(context, character),
+                  ),
                 ),
               );
             },
@@ -108,14 +113,60 @@ class _CharacterSelectionScreenState
     );
   }
 
-  void _navigateToCreation(BuildContext context) {
-    Navigator.of(context)
-        .push(MaterialPageRoute(
-      builder: (context) => CharacterCreationScreen(worldId: widget.worldId),
-    ))
-        .then((_) {
-      // Refresh list when returning from creation
-      _refreshCharacters();
-    });
+  void _navigateToCreation(BuildContext context) async {
+    // Create a new placeholder character to ensure we are editing a distinct entity
+    final dao = ref.read(gameDaoProvider);
+    final newCharId = await dao.updateCharacterStats(CharacterCompanion.insert(
+      name: "Traveler",
+      species: const drift.Value("Human"),
+      level: 1,
+      currentHp: 10,
+      maxHp: 10,
+      gold: 0,
+      location: "Start",
+      worldId: drift.Value(widget.worldId),
+    ));
+
+    if (context.mounted) {
+      Navigator.of(context)
+          .push(MaterialPageRoute(
+        builder: (context) => CharacterCreationScreen(
+            worldId: widget.worldId, characterId: newCharId),
+      ))
+          .then((_) {
+        // Refresh list when returning from creation
+        _refreshCharacters();
+      });
+    }
+  }
+
+  void _confirmDeleteCharacter(BuildContext context, CharacterData character) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Delete '${character.name}'?"),
+          content: const Text(
+              "Are you sure you want to delete this character? This will delete their inventory and chat history but NOT the world."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              onPressed: () async {
+                await ref.read(gameDaoProvider).deleteCharacter(character.id);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  _refreshCharacters();
+                }
+              },
+              child: const Text("Delete"),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

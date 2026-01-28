@@ -6,11 +6,18 @@ import 'package:ttrpg_sim/core/providers.dart';
 import 'package:ttrpg_sim/features/creation/character_creation_screen.dart';
 import 'package:drift/native.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
+import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
+import '../shared_test_utils.dart';
 
 void main() {
   testWidgets('BDD Scenario: Change Mind (Cancel Creation)',
       (WidgetTester tester) async {
     // SETUP
+    final mockLoader = MockRuleDataLoader();
+    mockLoader.setTestScreenSize(tester);
+    mockLoader.setupDefaultRules();
+    await ModularRulesController().loadRules(loader: mockLoader);
+
     final inMemoryExecutor = NativeDatabase.memory();
     final db = AppDatabase(inMemoryExecutor);
 
@@ -23,7 +30,6 @@ void main() {
     await db.gameDao.updateCharacterStats(CharacterCompanion(
       worldId: Value(worldId),
       name: const Value('Draft'),
-      heroClass: const Value('Warrior'),
       level: const Value(1),
       currentHp: const Value(10),
       maxHp: const Value(10),
@@ -45,7 +51,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Create Character'), findsOneWidget);
+    expect(find.text('Character Creation'), findsOneWidget);
 
     // WHEN I press the "Back" button (AppBar back arrow)
     // Implicitly provided by Scaffold AppBar if canPop, OR we force a pop if it's the root.

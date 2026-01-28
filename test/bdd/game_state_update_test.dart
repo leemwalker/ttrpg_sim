@@ -26,7 +26,6 @@ void main() {
     await db.gameDao.updateCharacterStats(
       const CharacterCompanion(
         name: Value('Hero'),
-        heroClass: Value('Fighter'),
         level: Value(1),
         currentHp: Value(10),
         maxHp: Value(10),

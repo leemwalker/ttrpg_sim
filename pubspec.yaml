@@ -20,6 +20,8 @@ dependencies:
   json_annotation: ^4.8.1
   uuid: ^4.3.3
   shared_preferences: ^2.5.4
+  flutter_secure_storage: ^10.0.0
+  csv: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -32,6 +34,7 @@ dev_dependencies:
   drift_dev: ^2.14.0
   freezed: ^2.4.6
   json_serializable: ^6.7.1
+  mockito: ^5.4.6
 
 # Configuration Block 1: App Icons
 flutter_launcher_icons:

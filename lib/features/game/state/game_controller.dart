@@ -1,10 +1,11 @@
+import 'dart:convert';
 import 'package:ttrpg_sim/features/game/services/game_action_handler.dart';
 
 import 'package:ttrpg_sim/core/constants/app_constants.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:ttrpg_sim/core/database/database.dart';
 import 'package:ttrpg_sim/core/providers.dart';
-import 'package:ttrpg_sim/core/rules/dnd5e_rules.dart';
+import 'package:ttrpg_sim/core/rules/core_rpg_rules.dart';
 import 'package:ttrpg_sim/core/errors/app_exceptions.dart';
 import 'package:ttrpg_sim/core/services/gemini_service.dart';
 import 'package:ttrpg_sim/features/game/state/game_state.dart';
@@ -72,12 +73,27 @@ class GameController extends _$GameController {
       }
 
       // Fetch Rules Context
-      final rules = Dnd5eRules();
-      final features =
-          rules.getClassFeatures(character.heroClass, character.level);
-      final slots =
-          rules.getMaxSpellSlots(character.heroClass, character.level);
-      final spells = rules.getKnownSpells(character.heroClass, character.level);
+      final rules =
+          CoreRpgRules(); // Legacy logic kept for dice/checks, but features loaded from JSON
+
+      // Parse Features
+      List<String> features = [];
+      try {
+        final traits = (jsonDecode(character.traits) as List)
+            .map((e) => e.toString())
+            .toList();
+        final feats = (jsonDecode(character.feats) as List)
+            .map((e) => e.toString())
+            .toList();
+        features.addAll(traits);
+        features.addAll(feats);
+      } catch (e) {
+        // ignore error
+      }
+
+      // Magic columns not yet fully implemented, passing empty for now or checking skills
+      final slots = <String, int>{};
+      final spells = <String>[];
 
       // Fetch Atlas Data (Location, POIs, NPCs) if character has a location
       Location? location;
@@ -151,11 +167,21 @@ NPCs: ${knownNpcs.map((n) => "${n.name}: ${n.role}").join('; ')}
         return;
       }
 
-      final features =
-          rules.getClassFeatures(character.heroClass, character.level);
-      final slots =
-          rules.getMaxSpellSlots(character.heroClass, character.level);
-      final spells = rules.getKnownSpells(character.heroClass, character.level);
+      List<String> features = [];
+      try {
+        final traits = (jsonDecode(character.traits) as List)
+            .map((e) => e.toString())
+            .toList();
+        final feats = (jsonDecode(character.feats) as List)
+            .map((e) => e.toString())
+            .toList();
+        features.addAll(traits);
+        features.addAll(feats);
+      } catch (e) {
+        // ignore
+      }
+      final slots = <String, int>{};
+      final spells = <String>[];
 
       final result = await gemini.sendMessage(
         "Begin Session Zero",
@@ -181,7 +207,7 @@ NPCs: ${knownNpcs.map((n) => "${n.name}: ${n.role}").join('; ')}
     TurnResult result,
     GameDao dao,
     GeminiService gemini,
-    Dnd5eRules rules,
+    CoreRpgRules rules,
     int worldId,
   ) async {
     var currentResult = result;

@@ -28,7 +28,7 @@ class AIPromptBuilder {
       // Genesis Mode: Session Zero - ask player where to start
       locationContext = """
 CURRENT STATUS:
-- Player: ${player.name} (${player.heroClass} Level ${player.level})
+- Player: ${player.name} (Level ${player.level} ${player.species} ${player.origin})
 - Location: Unspecified / Session Zero
 
 MISSION:
@@ -60,26 +60,11 @@ CURRENT LOCATION:
 
     return """
 You are a Game Master running a $genre tabletop RPG.
-Tone: $tone.
-World Context: $description.
 
-Player Profile:
-- Name: ${player.name}
-- Class: ${player.heroClass} (Level ${player.level})
-- Species: ${player.species}
-- Background: ${player.background ?? 'Unknown'}
-- Max HP: ${player.maxHp}
+// ...
 
-ABILITIES & LIMITS:
-- Class Features: $featuresStr
-- Max Spell Slots: $slotsStr
-- Known Spells/Cantrips: $spellsStr
-- Inventory: $itemsStr
-
-$locationContext
-
-Rules:
-1. Adhere strictly to the D&D 5.1 SRD.
+    Rules:
+1. Adhere to the Custom Modular D20 System logic (Standard D20 formatting).
 2. If the player attempts to cast a spell NOT in their Known Spells, or of a level higher than they have slots for, reject the action and narrate the failure gracefully.
 3. If the player tries to use a class feature NOT in their Class Features, narrate why they cannot do that yet.
 4. Output Format: You must ALWAYS return valid JSON.

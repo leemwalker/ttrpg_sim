@@ -19,11 +19,11 @@ class GameState {
   });
 
   Map<String, dynamic> toJson() => {
-    'character': character.toJson(),
-    'currentLocation': currentLocation.toJson(),
-    'inventory': inventory.map((e) => e.toJson()).toList(),
-    'recentHistory': recentHistory,
-  };
+        'character': character.toJson(),
+        'currentLocation': currentLocation.toJson(),
+        'inventory': inventory.map((e) => e.toJson()).toList(),
+        'recentHistory': recentHistory,
+      };
 }
 
 /// Response from the AI containing both narrative and state updates.
@@ -40,12 +40,13 @@ class AiService {
   AiService({required String apiKey})
       : _model = GenerativeModel(model: 'gemini-pro', apiKey: apiKey);
 
-  Future<AiResponse> sendMessage(String userText, GameState currentState) async {
+  Future<AiResponse> sendMessage(
+      String userText, GameState currentState) async {
     final stateJson = jsonEncode(currentState.toJson());
-    
+
     final prompt = '''
-You are a Dungeon Master for a TTRPG based on the D&D 5.1 SRD.
-Do not use any Product Identity (e.g., Beholders, Mind Flayers).
+You are a Dungeon Master for a Tabletop RPG using a custom D20 system.
+Do not use specific D&D Product Identity (e.g., Beholders, Mind Flayers) unless generic.
 
 Current Game State:
 $stateJson
@@ -86,7 +87,7 @@ Return your response in a JSON block like this (no markdown code fences around t
       String jsonString = responseText;
       final jsonBlockRegex = RegExp(r'```json\s*(\{.*?\})\s*```', dotAll: true);
       final match = jsonBlockRegex.firstMatch(responseText);
-      
+
       if (match != null) {
         jsonString = match.group(1)!;
       }

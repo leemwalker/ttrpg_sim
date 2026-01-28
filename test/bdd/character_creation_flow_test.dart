@@ -8,11 +8,18 @@ import 'package:ttrpg_sim/features/game/presentation/game_screen.dart';
 import 'package:drift/native.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 
+import '../shared_test_utils.dart';
+import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
 import 'mock_gemini_service.dart';
 
 void main() {
   testWidgets('BDD Scenario: Create Character', (WidgetTester tester) async {
     // GIVEN I am on the Character Creation screen for a new world
+    final mockLoader = MockRuleDataLoader();
+    mockLoader.setTestScreenSize(tester);
+    mockLoader.setupDefaultRules();
+    await ModularRulesController().loadRules(loader: mockLoader);
+
     final inMemoryExecutor = NativeDatabase.memory();
     final db = AppDatabase(inMemoryExecutor);
     final mockGemini = MockGeminiService();
@@ -29,7 +36,7 @@ void main() {
     await db.gameDao.updateCharacterStats(
       const CharacterCompanion(
         name: Value('Traveler'),
-        heroClass: Value('Fighter'),
+        species: Value('Human'), // Default
         level: Value(1),
         currentHp: Value(10),
         maxHp: Value(10),
@@ -57,14 +64,12 @@ void main() {
     await tester.enterText(find.byType(TextField).first, 'Sir Testalot');
     await tester.pumpAndSettle();
 
-    // AND I select "Fighter" class (Default) and "Human" species (Default)
+    // AND I select "Human" species (Default) - Class selection removed
     // (We verify defaults are present to confirm "selection")
-    expect(find.text('Fighter'), findsWidgets);
     expect(find.text('Human'), findsWidgets);
 
-    // AND I tap "Create Character"
-    // Requires scrolling to bottom
-    final createButton = find.text('Create Character');
+    // AND I tap "Finish" (was Create Character)
+    final createButton = find.text('Finish');
     await tester.ensureVisible(createButton);
     await tester.tap(createButton);
 
@@ -75,7 +80,6 @@ void main() {
     final char = await db.gameDao.getCharacter(worldId);
     expect(char, isNotNull);
     expect(char!.name, 'Sir Testalot');
-    expect(char.heroClass, 'Fighter');
     expect(char.species, 'Human');
 
     // AND I should be navigated to the Game Screen

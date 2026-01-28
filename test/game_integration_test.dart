@@ -9,6 +9,8 @@ import 'package:ttrpg_sim/features/game/presentation/game_screen.dart';
 import 'package:drift/native.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
+import 'shared_test_utils.dart';
 
 // 1. Mock Gemini Service
 class MockGeminiService implements GeminiService {
@@ -68,6 +70,13 @@ class MockGeminiService implements GeminiService {
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
+  setUpAll(() async {
+    final mockLoader = MockRuleDataLoader();
+    mockLoader.setupDefaultRules();
+    await ModularRulesController().loadRules(loader: mockLoader);
+  });
+
   testWidgets('HP Update Integration Test', (WidgetTester tester) async {
     // 2. Setup In-Memory Database
     final inMemoryExecutor = NativeDatabase.memory();
@@ -92,7 +101,6 @@ void main() {
     await db.gameDao.updateCharacterStats(
       const CharacterCompanion(
         name: Value('Traveler'),
-        heroClass: Value('Adventurer'),
         level: Value(1),
         currentHp: Value(10),
         maxHp: Value(10),
@@ -185,7 +193,6 @@ void main() {
     await db.gameDao.updateCharacterStats(
       const CharacterCompanion(
         name: Value('Traveler'),
-        heroClass: Value('Adventurer'),
         level: Value(1),
         currentHp: Value(10),
         maxHp: Value(10),
@@ -265,7 +272,6 @@ void main() {
     await db.gameDao.updateCharacterStats(
       const CharacterCompanion(
         name: Value('Traveler'),
-        heroClass: Value('Adventurer'),
         level: Value(1),
         currentHp: Value(10),
         maxHp: Value(10),
@@ -295,10 +301,19 @@ void main() {
 
     // Verify Inventory Empty
     await tester.dragFrom(
-        tester.getTopLeft(find.byType(MaterialApp)), const Offset(300, 0));
+        tester.getTopLeft(find.byType(MaterialApp)), const Offset(600, 0));
     await tester.pumpAndSettle();
+    expect(find.byType(Drawer), findsOneWidget);
+
+    // Tap Inv Tab
+    await tester.tap(find.text('Inv'));
+    await tester.pumpAndSettle();
+
     expect(find.text('Sword (x1)'), findsNothing);
-    await tester.tapAt(const Offset(400, 300));
+
+    // Close Drawer
+    await tester.dragFrom(
+        tester.getTopRight(find.byType(MaterialApp)), const Offset(-300, 0));
     await tester.pumpAndSettle();
 
     // Perform Action
@@ -306,9 +321,13 @@ void main() {
     await tester.tap(find.byIcon(Icons.send));
     await tester.pumpAndSettle();
 
-    // Verify Inventory
+    // Verify Inventory (Re-open drawer)
     await tester.dragFrom(
-        tester.getTopLeft(find.byType(MaterialApp)), const Offset(300, 0));
+        tester.getTopLeft(find.byType(MaterialApp)), const Offset(600, 0));
+    await tester.pumpAndSettle();
+
+    // Tap Inv Tab
+    await tester.tap(find.text('Inv'));
     await tester.pumpAndSettle();
 
     // Check for UI update
@@ -348,7 +367,6 @@ void main() {
     await db.gameDao.updateCharacterStats(
       const CharacterCompanion(
         name: Value('Traveler'),
-        heroClass: Value('Adventurer'),
         level: Value(1),
         currentHp: Value(10),
         maxHp: Value(10),
@@ -384,9 +402,21 @@ void main() {
     await tester.dragFrom(
         tester.getTopLeft(find.byType(MaterialApp)), const Offset(300, 0));
     await tester.pumpAndSettle();
+
+    // Tap Inventory Tab
+    await tester.tap(find.text('Inv'));
+    await tester.pumpAndSettle();
+
     expect(find.text('Potion'), findsOneWidget);
     expect(find.text('x1'), findsOneWidget);
-    await tester.tapAt(const Offset(400, 300));
+    await tester.tapAt(const Offset(400, 300)); // Tap to close drawer/interact?
+    // Wait, drawer covers screen. Tapping X/Y might hit something.
+    // If I want to close drawer I should tap outside or drag back.
+    // But the test continues to "Perform Action".
+    // I need to close drawer to type in main screen.
+    await tester.dragFrom(tester.getTopRight(find.byType(MaterialApp)),
+        const Offset(-300, 0)); // Close drawer?
+    // Or just tap outside.
     await tester.pumpAndSettle();
 
     // Perform Action
@@ -394,9 +424,13 @@ void main() {
     await tester.tap(find.byIcon(Icons.send));
     await tester.pumpAndSettle();
 
-    // Verify Inventory Empty
+    // Verify Inventory Empty (Re-open drawer)
     await tester.dragFrom(
         tester.getTopLeft(find.byType(MaterialApp)), const Offset(300, 0));
+    await tester.pumpAndSettle();
+
+    // Tap Inventory Tab again (state might reset if drawer rebuilt, but usually controller persists or defaults)
+    await tester.tap(find.text('Inv'));
     await tester.pumpAndSettle();
 
     expect(find.text('Potion'), findsNothing);
@@ -475,7 +509,6 @@ void main() {
       CharacterCompanion(
         id: const Value(1),
         name: const Value('TestHero'),
-        heroClass: const Value('Fighter'),
         level: const Value(1),
         currentHp: const Value(10),
         maxHp: const Value(10),
@@ -520,7 +553,6 @@ void main() {
       CharacterCompanion(
         id: const Value(1),
         name: const Value('TestHero'),
-        heroClass: const Value('Fighter'),
         level: const Value(1),
         currentHp: const Value(10),
         maxHp: const Value(10),

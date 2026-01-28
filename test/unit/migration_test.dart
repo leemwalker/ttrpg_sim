@@ -26,7 +26,6 @@ void main() {
     // Create a character linked to the world
     await db.into(db.character).insert(CharacterCompanion.insert(
           name: 'Test Hero',
-          heroClass: 'Fighter',
           level: 1,
           currentHp: 10,
           maxHp: 10,

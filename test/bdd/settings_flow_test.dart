@@ -63,7 +63,6 @@ void main() {
     await db.gameDao.updateCharacterStats(CharacterCompanion.insert(
       worldId: Value(worldId),
       name: 'Test Hero',
-      heroClass: 'Fighter',
       level: 1,
       currentHp: 10,
       maxHp: 10,

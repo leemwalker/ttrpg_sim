@@ -7,10 +7,17 @@ import 'package:ttrpg_sim/features/game/presentation/game_screen.dart';
 import 'package:drift/native.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'mock_gemini_service.dart';
+import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
+import '../shared_test_utils.dart';
 
 void main() {
   testWidgets('BDD Scenario: Hero Dies', (WidgetTester tester) async {
     // SETUP
+    final mockLoader = MockRuleDataLoader();
+    mockLoader.setTestScreenSize(tester);
+    mockLoader.setupDefaultRules();
+    await ModularRulesController().loadRules(loader: mockLoader);
+
     final inMemoryExecutor = NativeDatabase.memory();
     final db = AppDatabase(inMemoryExecutor);
 
@@ -22,7 +29,6 @@ void main() {
     await db.gameDao.updateCharacterStats(CharacterCompanion.insert(
       worldId: Value(worldId),
       name: 'Victim',
-      heroClass: 'Peasant',
       level: 1,
       currentHp: 5, // Weak
       maxHp: 10,
