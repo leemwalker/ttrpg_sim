@@ -77,7 +77,7 @@ class GameController extends _$GameController {
           CoreRpgRules(); // Legacy logic kept for dice/checks, but features loaded from JSON
 
       // Parse Features
-      List<String> features = [];
+      final List<String> features = [];
       try {
         final traits = (jsonDecode(character.traits) as List)
             .map((e) => e.toString())
@@ -167,7 +167,7 @@ NPCs: ${knownNpcs.map((n) => "${n.name}: ${n.role}").join('; ')}
         return;
       }
 
-      List<String> features = [];
+      final List<String> features = [];
       try {
         final traits = (jsonDecode(character.traits) as List)
             .map((e) => e.toString())

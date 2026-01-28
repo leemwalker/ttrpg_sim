@@ -39,7 +39,7 @@ class StepSkillsMagic extends ConsumerWidget {
     state.skillRanks.forEach((skillName, rank) {
       if (rank == 0) return;
 
-      bool isOrigin = originSkills.contains(skillName);
+      final bool isOrigin = originSkills.contains(skillName);
 
       if (isOrigin) {
         // Origin gives free Rank 1.
@@ -91,9 +91,9 @@ class StepSkillsMagic extends ConsumerWidget {
             // Cost to upgrade?
             // If Rank 0 -> 1: Cost 1
             // If Rank 1 -> 2: Cost 1
-            int upgradeCost = 1;
+            final int upgradeCost = 1;
 
-            bool canUpgrade = currentRank < 2 && remainingPoints >= upgradeCost;
+            final bool canUpgrade = currentRank < 2 && remainingPoints >= upgradeCost;
             bool canDowngrade = currentRank > 0;
 
             // Prevent downgrading below Origin free rank?

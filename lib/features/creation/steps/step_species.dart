@@ -27,7 +27,7 @@ class StepSpecies extends ConsumerWidget {
           // We could parse JSON here if implemented, for now use safe defaults/parsing
           // t.stats and t.abilities are nullable Strings
 
-          Map<String, int> stats = {};
+          final Map<String, int> stats = {};
           // TODO: Parse t.stats if JSON
 
           List<String> freeTraits = [];

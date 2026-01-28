@@ -249,9 +249,9 @@ class _CharacterCreationScreenState
 
     // Calculate Max HP (Roughly)
     // 10 + Con Mod
-    int con = state.attributes['Constitution'] ?? 10;
-    int conMod = ((con - 10) / 2).floor();
-    int maxHp = 10 + conMod;
+    final int con = state.attributes['Constitution'] ?? 10;
+    final int conMod = ((con - 10) / 2).floor();
+    final int maxHp = 10 + conMod;
 
     await dao.updateCharacterBio(
       characterId: _characterId!,

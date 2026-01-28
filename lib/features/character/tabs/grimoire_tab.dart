@@ -131,12 +131,12 @@ class _GrimoireTabState extends ConsumerState<GrimoireTab> {
     if (spell.damageDice.isNotEmpty && spell.damageDice.contains('d')) {
       try {
         final parts = spell.damageDice.split('d');
-        int count = int.tryParse(parts[0]) ?? 1;
-        int size = int.tryParse(parts[1]) ?? 6;
+        final int count = int.tryParse(parts[0]) ?? 1;
+        final int size = int.tryParse(parts[1]) ?? 6;
         final rng = Random();
-        List<int> rolls = [];
+        final List<int> rolls = [];
         for (int i = 0; i < count; i++) {
-          int r = rng.nextInt(size) + 1;
+          final int r = rng.nextInt(size) + 1;
           rolls.add(r);
           total += r;
         }
