@@ -33,3 +33,25 @@ doc/api/
 # Generated files
 *.freezed.dart
 *.g.dart
+
+# Private Configuration
+android/key.properties
+ios/.xcode.env.local
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+
+# CocoaPods
+Pods/
+ios/Pods/
+macos/Pods/
+**/Pods/
+
+# Flutter Ephemeral
+ios/Flutter/ephemeral/
+macos/Flutter/ephemeral/
+.flutter-plugins
+.flutter-plugins-dependencies

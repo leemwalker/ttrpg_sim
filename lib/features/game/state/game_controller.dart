@@ -150,7 +150,7 @@ NPCs: ${knownNpcs.map((n) => "${n.name}: ${n.role}").join('; ')}
 
   Future<void> _startSessionZero() async {
     final dao = ref.read(gameDaoProvider);
-    final rules = Dnd5eRules();
+    final rules = CoreRpgRules();
 
     try {
       final gemini = ref.read(geminiServiceProvider);
