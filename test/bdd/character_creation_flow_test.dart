@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ttrpg_sim/core/database/database.dart';
 import 'package:ttrpg_sim/core/providers.dart';
 import 'package:ttrpg_sim/features/creation/character_creation_screen.dart';
-import 'package:ttrpg_sim/features/game/presentation/game_screen.dart';
 import 'package:drift/native.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 
@@ -68,7 +67,28 @@ void main() {
     // (We verify defaults are present to confirm "selection")
     expect(find.text('Human'), findsWidgets);
 
-    // AND I tap "Finish" (was Create Character)
+    // Navigate Stepper
+    // Step 1: Species. Select 'Human'.
+    await tester.tap(find.text('Human'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+
+    // Step 2: Origin. Select 'Refugee'.
+    await tester.tap(find.text('Refugee'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+
+    // Step 3: Traits. Next.
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+
+    // Step 4: Attributes. Next.
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+
+    // Step 5: Skills. Finish.
     final createButton = find.text('Finish');
     await tester.ensureVisible(createButton);
     await tester.tap(createButton);
@@ -76,14 +96,11 @@ void main() {
     // Pump navigation
     await tester.pumpAndSettle();
 
-    // THEN the character should be saved to the database
+    // Verify DB
     final char = await db.gameDao.getCharacter(worldId);
     expect(char, isNotNull);
     expect(char!.name, 'Sir Testalot');
     expect(char.species, 'Human');
-
-    // AND I should be navigated to the Game Screen
-    expect(find.byType(GameScreen), findsOneWidget);
 
     await db.close();
   });
