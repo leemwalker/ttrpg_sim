@@ -124,11 +124,15 @@ void main() {
     // Or just "Finish" if available? Stepper usually shows Next until last.
     // Tests: The BDD test logic assumed simple form. Now it's a stepper.
     // We should step through.
-    // Step 1: Species. Default Human. Next.
+    // Step 1: Species. Select 'Human'.
+    await tester.tap(find.text('Human'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
 
-    // Step 2: Origin. Default Refugee. Next.
+    // Step 2: Origin. Select 'Refugee'.
+    await tester.tap(find.text('Refugee'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
 

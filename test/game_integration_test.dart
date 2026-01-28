@@ -312,8 +312,8 @@ void main() {
     expect(find.text('Sword (x1)'), findsNothing);
 
     // Close Drawer
-    await tester.dragFrom(
-        tester.getTopRight(find.byType(MaterialApp)), const Offset(-300, 0));
+    await tester.tapAt(const Offset(400, 300));
+
     await tester.pumpAndSettle();
 
     // Perform Action
