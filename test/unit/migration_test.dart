@@ -33,6 +33,8 @@ void main() {
           gold: 0,
           location: 'Town',
           worldId: Value(worldId),
+          species: const Value('Human'),
+          origin: const Value('Unknown'),
         ));
 
     // Verify character was created with all current columns
@@ -169,6 +171,8 @@ void main() {
     expect(char.species, 'Human', reason: 'Should default/keep species');
 
     // Verify properties added in v15 are present with defaults
+    // Note: In v15 migration validation, we check the JSON strings directly or their absence depending on what getCharacterById returns.
+    // Ensure we are checking the properties that exist on the data class.
     expect(jsonDecode(char.attributes), equals({}));
     expect(jsonDecode(char.skills), equals({}));
 

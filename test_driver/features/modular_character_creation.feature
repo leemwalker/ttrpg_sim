@@ -10,3 +10,9 @@ Feature: Modular Character Creation
     Then I should see "Elf" species option
     And I should see "Dwarf" species option
     And I should NOT see "Android" species option
+
+  Scenario: Functioning Origin Filter
+    Given I have selected "Star Wars" (Sci-Fi)
+    When I reach the Origin selection step
+    Then I should see "Smuggler" origin option
+    And I should NOT see "Wizard" origin option

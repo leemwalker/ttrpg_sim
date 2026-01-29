@@ -112,5 +112,36 @@ void main() {
       final weak = traits.firstWhere((t) => t.name == 'Weak');
       expect(weak.cost, equals(-2));
     });
+    test('getOrigins() filters by Genre', () async {
+      await controller.loadRules(loader: mockLoader);
+
+      final fantasyOrigins = controller.getOrigins(['Fantasy']);
+      expect(fantasyOrigins.any((o) => o.name == 'Scholar'), isTrue);
+
+      final sciFiOrigins = controller.getOrigins(['Sci-Fi']);
+      expect(sciFiOrigins.any((o) => o.name == 'Scholar'), isFalse);
+    });
+
+    test('getFeats() filters by Genre', () async {
+      await controller.loadRules(loader: mockLoader);
+
+      final fantasyFeats = controller.getFeats(['Fantasy']);
+      expect(fantasyFeats.any((f) => f.name == 'Arcane Initiate'), isTrue);
+
+      final sciFiFeats = controller.getFeats(['Sci-Fi']);
+      expect(sciFiFeats.any((f) => f.name == 'Arcane Initiate'), isFalse);
+    });
+
+    test('getItems() filters by Genre', () async {
+      await controller.loadRules(loader: mockLoader);
+
+      final fantasyItems = controller.getItems(['Fantasy']);
+      expect(fantasyItems.any((i) => i.name == 'Sword'), isTrue);
+      expect(fantasyItems.any((i) => i.name == 'Laser Pistol'), isFalse);
+
+      final sciFiItems = controller.getItems(['Sci-Fi']);
+      expect(sciFiItems.any((i) => i.name == 'Laser Pistol'), isTrue);
+      expect(sciFiItems.any((i) => i.name == 'Sword'), isFalse);
+    });
   });
 }
