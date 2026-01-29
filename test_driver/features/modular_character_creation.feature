@@ -7,5 +7,6 @@ Feature: Modular Character Creation
     Given I am on the World Select screen
     And I select a world with tag "Fantasy"
     When I tap "Create Character"
-    Then I should see "Elf" and "Dwarf" in the Species dropdown
-    And I should NOT see "Android"
+    Then I should see "Elf" species option
+    And I should see "Dwarf" species option
+    And I should NOT see "Android" species option

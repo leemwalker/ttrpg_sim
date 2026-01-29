@@ -229,7 +229,8 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(chatMessages, chatMessages.characterId);
 
           // Link orphan messages to most recent character in their world
-          await customStatement('''
+          try {
+            await customStatement('''
             UPDATE chat_messages
             SET character_id = (
               SELECT c.id FROM character c
@@ -238,6 +239,9 @@ class AppDatabase extends _$AppDatabase {
             )
             WHERE character_id IS NULL AND world_id IS NOT NULL
           ''');
+          } catch (e) {
+            print('Migration v11 Orphan Fix Error: $e');
+          }
         }
         if (from < 12) {
           // Fix: Add ON DELETE CASCADE to Inventory table

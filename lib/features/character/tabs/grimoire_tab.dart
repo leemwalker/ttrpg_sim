@@ -5,7 +5,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:ttrpg_sim/core/database/database.dart';
 import 'package:ttrpg_sim/core/models/rules/spell_model.dart';
 import 'package:ttrpg_sim/core/providers.dart';
-import 'dart:math';
+import 'package:ttrpg_sim/core/utils/dice_utils.dart';
 
 class GrimoireTab extends ConsumerStatefulWidget {
   final CharacterData character;
@@ -18,6 +18,34 @@ class GrimoireTab extends ConsumerStatefulWidget {
 
 class _GrimoireTabState extends ConsumerState<GrimoireTab> {
   final _targetController = TextEditingController();
+  List<SpellDef> _spells = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSpells();
+  }
+
+  @override
+  void didUpdateWidget(covariant GrimoireTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.character.spells != oldWidget.character.spells) {
+      _loadSpells();
+    }
+  }
+
+  void _loadSpells() {
+    try {
+      final jsonList = jsonDecode(widget.character.spells) as List;
+      setState(() {
+        _spells = jsonList.map((e) => SpellDef.fromJson(e)).toList();
+      });
+    } catch (e) {
+      setState(() {
+        _spells = [];
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -123,30 +151,20 @@ class _GrimoireTabState extends ConsumerState<GrimoireTab> {
     // 1. Deduct Mana
     await _updateMana(widget.character.currentMana - spell.cost);
 
-    // 2. Roll Damage (Simulated)
-    // Parse '3d8' -> counts = 3, size = 8
+    // 2. Roll Damage using DiceUtils
+
+    // Check if we need to roll
     int total = 0;
     String rollDetails = '';
 
+    // We only roll if there is a 'd' in the dice string. e.g. "3d8"
+    // DiceUtils.roll now handles modifiers too.
     if (spell.damageDice.isNotEmpty && spell.damageDice.contains('d')) {
-      try {
-        final parts = spell.damageDice.split('d');
-        final int count = int.tryParse(parts[0]) ?? 1;
-        final int size = int.tryParse(parts[1]) ?? 6;
-        final rng = Random();
-        final List<int> rolls = [];
-        for (int i = 0; i < count; i++) {
-          final int r = rng.nextInt(size) + 1;
-          rolls.add(r);
-          total += r;
-        }
-        rollDetails = '(${rolls.join('+')})';
-      } catch (e) {
-        total = 0;
-      }
-    } else {
-      // No damage or malformed
-      total = 0;
+      final result = DiceUtils.roll(spell.damageDice);
+      total = result.total;
+      rollDetails = result
+          .details; // e.g. "Result: 15 ([3, 5, 7])" - Wait, details is just "[3, 5, 7]"
+      // The RollResult.details is what we want.
     }
 
     // 3. Inject Chat Message
@@ -173,13 +191,7 @@ class _GrimoireTabState extends ConsumerState<GrimoireTab> {
 
   @override
   Widget build(BuildContext context) {
-    List<SpellDef> spells = [];
-    try {
-      final jsonList = jsonDecode(widget.character.spells) as List;
-      spells = jsonList.map((e) => SpellDef.fromJson(e)).toList();
-    } catch (e) {
-      // Ignore
-    }
+    // _spells is now populated in initState/_loadSpells
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -190,7 +202,7 @@ class _GrimoireTabState extends ConsumerState<GrimoireTab> {
           const SizedBox(height: 16),
           // Content: Spell Grid
           Expanded(
-            child: spells.isEmpty
+            child: _spells.isEmpty
                 ? const Center(child: Text('Grimoire is empty.'))
                 : GridView.builder(
                     gridDelegate:
@@ -200,9 +212,9 @@ class _GrimoireTabState extends ConsumerState<GrimoireTab> {
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
                     ),
-                    itemCount: spells.length,
+                    itemCount: _spells.length,
                     itemBuilder: (context, index) {
-                      final spell = spells[index];
+                      final spell = _spells[index];
                       final canCast =
                           widget.character.currentMana >= spell.cost;
                       return GestureDetector(

@@ -15,23 +15,26 @@ class MockRuleDataLoader extends Mock implements RuleDataLoader {
   @override
   Future<String> load(String path) {
     if (path.contains('Species')) {
-      return Future.value('''Name,Genre,Stats,Free Traits
-Human,Universal,+1 All Stats,None
-Elf,Fantasy,+2 DEX; +1 INT,Keen Senses''');
+      return Future.value(
+          'Name,Genre,Stats,Free Traits\r\nHuman,Universal,+1 All Stats,None\r\nElf,Fantasy,+2 DEX; +1 INT,Keen Senses');
     }
     if (path.contains('Origins')) {
-      return Future.value('''Name,Genre,Skills,Feat,Starting Items,Description
-Warrior,Fantasy,Athletics,Tough,Sword,A fighter.
-Explorer,Universal,Survival,Keen,Map,A traveler.''');
+      return Future.value(
+          'Name,Genre,Skills,Feat,Starting Items,Description\r\nWarrior,Fantasy,Athletics,Tough,Sword,A fighter.\r\nExplorer,Universal,Survival,Keen,Map,A traveler.');
     }
     if (path.contains('Genres')) {
-      return Future.value('''Name,Description,Currency,Themes
-Fantasy,Generic Fantasy,Gold,Magic,Monsters
-Sci-Fi,Future stuff,Credits,Tech,Space''');
+      return Future.value(
+          'Name,Description,Currency,Themes\r\nFantasy,Generic Fantasy,Gold,Magic,Monsters\r\nSci-Fi,Future stuff,Credits,Tech,Space');
     }
-    // Default empty for others
-    return Future.value(
-        'Name,Genre,Type,Description\nTest,Universal,Test,Test');
+    if (path.contains('Skills')) {
+      // Name,Genre,Attribute,Locked?,Description
+      return Future.value(
+          'Name,Genre,Attribute,Locked?,Description\r\nAthletics,Universal,Strength,FALSE,Run fast\r\nSurvival,Universal,Wisdom,FALSE,Survive');
+    }
+    // Default empty for others (Items, Feats, Attributes, Traits) to avoid parsing errors
+    // We should return valid headers for them or empty with matching header length?
+    // Failing to parse default is fine as long as Species works.
+    return Future.value('');
   }
 }
 
@@ -76,27 +79,27 @@ void main() {
       ),
     );
 
-    await tester.pumpAndSettle();
+    // Wait for loading to complete
+    // pumpAndSettle times out because CircularProgressIndicator is indeterminate and always "animating"
+    int pumps = 0;
+    while (find.byType(CircularProgressIndicator).evaluate().isNotEmpty) {
+      await tester.pump(const Duration(milliseconds: 100)); // Advance time
+      pumps++;
+      if (pumps > 100) {
+        // fail early if it takes too long (10 seconds)
+        fail("Timed out waiting for CharacterCreationScreen to load");
+      }
+    }
 
     // Check for Text
     expect(find.text('Character Creation'), findsOneWidget);
 
-    // Verify Species are present (If logic works)
-    // Note: If the bug exists "No species available", this might fail or we see empty list.
-    // The UI likely shows a dropdown or list.
-    // Let's assume we want to see "Human".
-    // If fail: "No species available" might be on screen.
-    if (find.text('No species available').evaluate().isNotEmpty) {
-      print("Confirmed: No species available is displayed.");
-    }
+    // Verify Species are present
+    // Based on the mock loader, we expect "Human".
+    expect(find.text('Human'), findsOneWidget);
 
-    // Check for overflow exception in the logs (tester.takeException() is for unhandled, strictly rendering errors log to console)
-    // But we can check generic "RenderFlex overflowed" by looking at the error output usually.
-    // However, tester.pumpWidget throws if there is an exception during build in some configs.
-    // Let's try to verify if "Human" exists to confirm loading works or fails.
-
-    // Note: The bug report says "No species available".
-    // So expect(find.text('Human'), findsOneWidget) should fail.
+    // Cleanup to prevent !timersPending
+    await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
   });
 }

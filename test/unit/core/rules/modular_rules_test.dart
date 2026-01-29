@@ -30,35 +30,35 @@ void main() {
       // Seed Dummy Data
       // Genres
       mockLoader.setResponse('assets/system/MobileRPG - Genres.csv',
-          'Name,Description,Currency,Key Themes\nFantasy,Magic worlds,GP,Magic\nSci-Fi,Tech worlds,Credits,Tech');
+          'Name,Description,Currency,Key Themes\r\nFantasy,Magic worlds,GP,Magic\r\nSci-Fi,Tech worlds,Credits,Tech');
 
       // Attributes
       mockLoader.setResponse('assets/system/MobileRPG - Attributes.csv',
-          'Name,Genre,Type,Description\nStrength,Universal,Physical,Power\nLogic,Sci-Fi,Mental,Thinking');
+          'Name,Genre,Type,Description\r\nStrength,Universal,Physical,Power\r\nLogic,Sci-Fi,Mental,Thinking');
 
       // Skills
       mockLoader.setResponse('assets/system/MobileRPG - Skills.csv',
-          'Name,Genre,Attribute,Locked?,Description\nArcana,Fantasy,INT,FALSE,Magic info\nComputers,Sci-Fi,INT,FALSE,Hacking\nAthletics,Universal,STR,FALSE,Running');
+          'Name,Genre,Attribute,Locked?,Description\r\nArcana,Fantasy,INT,FALSE,Magic info\r\nComputers,Sci-Fi,INT,FALSE,Hacking\r\nAthletics,Universal,STR,FALSE,Running');
 
       // Species
       mockLoader.setResponse('assets/system/MobileRPG - Species.csv',
-          'Name,Genre,Stats,Free Traits\nElf,Fantasy,+2 DEX,Keen Senses\nAndroid,Sci-Fi,+2 INT,Constructed\nHuman,Universal,+1 All Stats,None');
+          'Name,Genre,Stats,Free Traits\r\nElf,Fantasy,+2 DEX,Keen Senses\r\nAndroid,Sci-Fi,+2 INT,Constructed\r\nHuman,Universal,+1 All Stats,None');
 
       // Traits
       mockLoader.setResponse('assets/system/MobileRPG - Traits.csv',
-          'Name,Type,Cost,Genre,Description,Effect\nStrong,Physical,2,Universal,Strong stuff,None\nMagic Touched,Magical,3,Fantasy,Cast spells,Unlock Magic\nWeak,Physical,-2,Universal,Weak stuff,Refund points');
+          'Name,Type,Cost,Genre,Description,Effect\r\nStrong,Physical,2,Universal,Strong stuff,None\r\nMagic Touched,Magical,3,Fantasy,Cast spells,Unlock Magic\r\nWeak,Physical,-2,Universal,Weak stuff,Refund points');
 
       // Origins
       mockLoader.setResponse('assets/system/MobileRPG - Origins.csv',
-          'Name,Genre,Skills,Feat,Starting Items,Description\nScholar,Fantasy,Arcana,Arcane Initiate,Book,Studious');
+          'Name,Genre,Skills,Feat,Starting Items,Description\r\nScholar,Fantasy,Arcana,Arcane Initiate,Book,Studious');
 
       // Feats
       mockLoader.setResponse('assets/system/MobileRPG - Feats.csv',
-          'Name,Genre,Type,Prerequisite,Description,Effect\nArcane Initiate,Fantasy,Magic,None,Learn magic,Unlock spells');
+          'Name,Genre,Type,Prerequisite,Description,Effect\r\nArcane Initiate,Fantasy,Magic,None,Learn magic,Unlock spells');
 
       // Items
       mockLoader.setResponse('assets/system/MobileRPG - Items.csv',
-          'Name,Genre,Type,DamageDice,DamageType,Properties,Cost,Description\nSword,Fantasy,Weapon,1d8,Slashing,None,10,Sharp\nLaser Pistol,Sci-Fi,Weapon,1d6,Energy,Range,50,Pew pew');
+          'Name,Genre,Type,DamageDice,DamageType,Properties,Cost,Description\r\nSword,Fantasy,Weapon,1d8,Slashing,None,10,Sharp\r\nLaser Pistol,Sci-Fi,Weapon,1d6,Energy,Range,50,Pew pew');
     });
 
     test('Loads rules correctly from CSV', () async {

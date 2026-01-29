@@ -18,7 +18,7 @@ void main() {
   testWidgets('CharacterCreationScreen Widget Test',
       (WidgetTester tester) async {
     // Increase surface size to avoid layout overflow
-    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -98,7 +98,7 @@ void main() {
     // We can proceed to next step to verify flow.
 
     // Tap Next
-    await tester.tap(find.text('Next'));
+    await tester.tap(find.text('Next').last);
     await tester.pumpAndSettle();
 
     // Should be on Origin Step

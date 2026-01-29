@@ -14,15 +14,15 @@ void main() {
     test('roll returns correct range for custom sides', () {
       // d6
       for (int i = 0; i < 50; i++) {
-        final result = DiceUtils.roll(6);
+        final result = DiceUtils.rollDie(6);
         expect(result, greaterThanOrEqualTo(1));
         expect(result, lessThanOrEqualTo(6));
       }
     });
 
-    test('roll handles invalid sides gracefully', () {
-      expect(DiceUtils.roll(0), 0);
-      expect(DiceUtils.roll(-5), 0);
+    test('rollDie handles invalid sides gracefully', () {
+      expect(DiceUtils.rollDie(0), 0);
+      expect(DiceUtils.rollDie(-5), 0);
     });
   });
 }
