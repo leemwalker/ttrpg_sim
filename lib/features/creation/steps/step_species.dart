@@ -45,7 +45,14 @@ class StepSpecies extends ConsumerWidget {
           );
         }).toList();
 
-        final allSpecies = [...speciesList, ...customSpecies];
+        final Map<String, SpeciesDef> uniqueSpecies = {};
+        for (var s in speciesList) {
+          uniqueSpecies[s.name] = s;
+        }
+        for (var s in customSpecies) {
+          uniqueSpecies[s.name] = s;
+        }
+        final allSpecies = uniqueSpecies.values.toList();
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -81,6 +88,7 @@ class StepSpecies extends ConsumerWidget {
                           )
                         : null,
                     child: ListTile(
+                      key: ValueKey('species_option_${species.name}'),
                       title: Text(species.name),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

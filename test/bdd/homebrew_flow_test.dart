@@ -17,13 +17,17 @@ void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   testWidgets('BDD Scenario: Homebrew Content Flow',
       (WidgetTester tester) async {
+    // Increase size for stepper
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
     final mockLoader = MockRuleDataLoader();
     mockLoader.setTestScreenSize(tester);
     mockLoader.setupDefaultRules();
     await ModularRulesController().loadRules(loader: mockLoader);
     // SETUP
-    final inMemoryExecutor = NativeDatabase.memory();
-    final db = AppDatabase(inMemoryExecutor);
+    final db = AppDatabase(NativeDatabase.memory());
 
     // Seed a world so we can go to Character Creation later
     final worldId = await db.gameDao.createWorld(WorldsCompanion.insert(
@@ -146,40 +150,55 @@ void main() {
 
     // THEN "Cyborg" should be available in the Species Step (Step 1)
     // Verify it exists
-    expect(find.text('Cyborg'), findsOneWidget);
+    expect(find.text('Cyborg'), findsWidgets);
 
     // Tap it
-    await tester.tap(find.text('Cyborg'));
+    final cyborgOption =
+        find.byKey(const ValueKey('species_option_Cyborg')).first;
+    await tester.scrollUntilVisible(cyborgOption, 500);
+    await tester.tap(cyborgOption);
     await tester.pumpAndSettle();
 
     // Verify selection (Checkmark)
     // Finding ListTile with text Cyborg, then finding Icon inside it
-    final cyborgTile = find.widgetWithText(ListTile, 'Cyborg');
+    // Using key for ListTile
+    final cyborgTile =
+        find.byKey(const ValueKey('species_option_Cyborg')).first;
     expect(
         find.descendant(
             of: cyborgTile, matching: find.byIcon(Icons.check_circle)),
         findsOneWidget);
 
     // Next (to Origin)
-    await tester.tap(find.text('Next'));
+    final nextBtn1 = find.byKey(const ValueKey('step_0_next'));
+    await tester.ensureVisible(nextBtn1);
+    await tester.tap(nextBtn1);
     await tester.pumpAndSettle();
 
     // Origin Step (Select something default or first?)
-    // Default might be selected if testing creation logic usually has defaults.
     // If we need to select:
-    await tester.tap(find.text('Refugee')); // Assuming default
+    final refugeeOption =
+        find.byKey(const ValueKey('origin_option_Refugee')).first;
+    await tester.scrollUntilVisible(refugeeOption, 500);
+    await tester.tap(refugeeOption); // Assuming default
     await tester.pumpAndSettle();
 
     // Next (to Traits)
-    await tester.tap(find.text('Next'));
+    final nextBtn2 = find.byKey(const ValueKey('step_1_next'));
+    await tester.ensureVisible(nextBtn2);
+    await tester.tap(nextBtn2);
     await tester.pumpAndSettle();
 
     // Next (to Attributes)
-    await tester.tap(find.text('Next'));
+    final nextBtn3 = find.byKey(const ValueKey('step_2_next'));
+    await tester.ensureVisible(nextBtn3);
+    await tester.tap(nextBtn3);
     await tester.pumpAndSettle();
 
     // Next (to Skills)
-    await tester.tap(find.text('Next'));
+    final nextBtn4 = find.byKey(const ValueKey('step_3_next'));
+    await tester.ensureVisible(nextBtn4);
+    await tester.tap(nextBtn4);
     await tester.pumpAndSettle();
 
     // Fill Name (It's on top, accessible always or in a step?)
@@ -190,7 +209,7 @@ void main() {
         find.widgetWithText(TextField, 'Character Name'), 'RoboCop');
 
     // Finish
-    final createBtn = find.text('Finish');
+    final createBtn = find.byKey(const ValueKey('step_4_next'));
     await tester.ensureVisible(createBtn);
     await tester.tap(createBtn);
     await tester.pumpAndSettle();

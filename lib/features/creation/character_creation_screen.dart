@@ -157,11 +157,13 @@ class _CharacterCreationScreenState
                   child: Row(
                     children: [
                       FilledButton(
+                        key: ValueKey('step_${_currentStep}_next'),
                         onPressed: details.onStepContinue,
                         child: Text(_currentStep == 4 ? "Finish" : "Next"),
                       ),
                       const SizedBox(width: 8),
                       TextButton(
+                        key: ValueKey('step_${_currentStep}_back'),
                         onPressed: details.onStepCancel,
                         child: const Text("Back"),
                       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
+import 'package:ttrpg_sim/core/models/rules/rule_models.dart';
 import 'package:ttrpg_sim/features/creation/logic/creation_state.dart';
 
 class StepOrigin extends ConsumerWidget {
@@ -9,7 +10,12 @@ class StepOrigin extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(creationProvider);
-    final origins = ModularRulesController().getOrigins(state.activeGenres);
+    final rawOrigins = ModularRulesController().getOrigins(state.activeGenres);
+    final uniqueOrigins = <String, OriginDef>{};
+    for (var o in rawOrigins) {
+      uniqueOrigins[o.name] = o;
+    }
+    final origins = uniqueOrigins.values.toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -46,6 +52,7 @@ class StepOrigin extends ConsumerWidget {
                       )
                     : null,
                 child: InkWell(
+                  key: ValueKey('origin_option_${origin.name}'),
                   onTap: () {
                     // Logic: Get Feat definition to pass to provider
                     // We need to find the FeatDef from the rule controller

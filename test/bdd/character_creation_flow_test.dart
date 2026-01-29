@@ -69,29 +69,46 @@ void main() {
 
     // Navigate Stepper
     // Step 1: Species. Select 'Human'.
-    await tester.tap(find.text('Human'));
+    final humanOption =
+        find.byKey(const ValueKey('species_option_Human')).first;
+    await tester.scrollUntilVisible(humanOption, 500);
+    await tester.tap(humanOption);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Next'));
+
+    final nextBtn1 = find.byKey(const ValueKey('step_0_next')).first;
+    await tester.ensureVisible(nextBtn1);
+    await tester.tap(nextBtn1);
     await tester.pumpAndSettle();
 
     // Step 2: Origin. Select 'Refugee'.
-    await tester.tap(find.text('Refugee'));
+    final refugeeOption =
+        find.byKey(const ValueKey('origin_option_Refugee')).first;
+    await tester.scrollUntilVisible(refugeeOption, 500);
+    await tester.tap(refugeeOption);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Next'));
+
+    final nextBtn2 = find.byKey(const ValueKey('step_1_next')).first;
+    await tester.ensureVisible(nextBtn2);
+    await tester.tap(nextBtn2);
     await tester.pumpAndSettle();
 
     // Step 3: Traits. Next.
-    await tester.tap(find.text('Next'));
+    final nextBtn3 = find.byKey(const ValueKey('step_2_next'));
+    await tester.ensureVisible(nextBtn3);
+    await tester.tap(nextBtn3);
     await tester.pumpAndSettle();
 
     // Step 4: Attributes. Next.
-    await tester.tap(find.text('Next'));
+    final nextBtn4 = find.byKey(const ValueKey('step_3_next'));
+    await tester.ensureVisible(nextBtn4);
+    await tester.tap(nextBtn4);
     await tester.pumpAndSettle();
 
-    // Step 5: Skills. Finish.
-    final createButton = find.text('Finish');
-    await tester.ensureVisible(createButton);
-    await tester.tap(createButton);
+    // Step 5: Skills (Finish).
+    // Verify Finish button
+    final finishBtn = find.byKey(const ValueKey('step_4_next'));
+    await tester.ensureVisible(finishBtn);
+    await tester.tap(finishBtn);
 
     // Pump navigation
     await tester.pumpAndSettle();
