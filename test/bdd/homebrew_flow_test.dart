@@ -12,6 +12,7 @@ import 'package:drift/drift.dart' hide isNull, isNotNull;
 
 import '../shared_test_utils.dart';
 import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
+import 'package:ttrpg_sim/features/creation/steps/step_species.dart';
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -155,7 +156,9 @@ void main() {
     // Tap it
     final cyborgOption =
         find.byKey(const ValueKey('species_option_Cyborg')).first;
-    await tester.scrollUntilVisible(cyborgOption, 500);
+    await tester.scrollUntilVisible(cyborgOption, 500,
+        scrollable: find.descendant(
+            of: find.byType(StepSpecies), matching: find.byType(Scrollable)));
     await tester.tap(cyborgOption);
     await tester.pumpAndSettle();
 

@@ -8,6 +8,8 @@ import 'package:ttrpg_sim/core/providers.dart';
 import 'package:ttrpg_sim/features/campaign/character_selection_screen.dart';
 import '../shared_test_utils.dart';
 import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
+import 'package:ttrpg_sim/features/creation/steps/step_species.dart';
+import 'package:ttrpg_sim/features/creation/steps/step_origin.dart';
 
 void main() {
   testWidgets('Character Deletion (Partial Cascade)',
@@ -133,7 +135,9 @@ void main() {
     // Use specific finder for ListTile content to avoid duplicates
     final humanOption =
         find.byKey(const ValueKey('species_option_Human')).first;
-    await tester.scrollUntilVisible(humanOption, 500);
+    await tester.scrollUntilVisible(humanOption, 500,
+        scrollable: find.descendant(
+            of: find.byType(StepSpecies), matching: find.byType(Scrollable)));
     await tester.tap(humanOption);
     await tester.pumpAndSettle();
 
@@ -147,7 +151,9 @@ void main() {
     // Step 2: Origin. Select 'Refugee'.
     final refugeeOption =
         find.byKey(const ValueKey('origin_option_Refugee')).first;
-    await tester.scrollUntilVisible(refugeeOption, 500);
+    await tester.scrollUntilVisible(refugeeOption, 500,
+        scrollable: find.descendant(
+            of: find.byType(StepOrigin), matching: find.byType(Scrollable)));
     await tester.tap(refugeeOption);
     await tester.pumpAndSettle();
 

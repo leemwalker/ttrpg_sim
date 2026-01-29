@@ -9,7 +9,7 @@
 .history
 .svn/
 .env
-flutter/
+test_output.txt
 
 # IntelliJ related
 *.iml
