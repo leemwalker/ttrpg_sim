@@ -148,7 +148,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration {
@@ -249,7 +249,7 @@ class AppDatabase extends _$AppDatabase {
             await customStatement(
                 'ALTER TABLE inventory RENAME TO inventory_old');
           } catch (e) {
-            // Provide a way to recover if inventory_old already exists (e.g. partial migration)
+            // Provide a way to recover if inventory_old already exists (e.g. partial run)
             // If valid inventory_old exists, we might proceed. If inventory doesn't exist, ignore.
             print(
                 'Migration v12: ALTER TABLE error (expected if partial run): $e');
@@ -411,6 +411,64 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(character, character.currentMana);
             await m.addColumn(character, character.maxMana);
           }
+        }
+        if (from < 17) {
+          // Migration v17: Fix "Zombie Triggers" from v15/v16
+          // Check for triggers that reference 'character_old' (which was dropped)
+          // These might cause "no such table: main.character_old" on DELETE.
+          try {
+            final result = await customSelect(
+              'SELECT name FROM sqlite_master WHERE type = ? AND sql LIKE ?',
+              variables: [
+                Variable.withString('trigger'),
+                Variable.withString('%character_old%')
+              ],
+              readsFrom: {},
+            ).get();
+
+            for (final row in result) {
+              final triggerName = row.data['name'] as String;
+              print('🛠️ Removing corrupted trigger: $triggerName');
+              await customStatement('DROP TRIGGER IF EXISTS $triggerName');
+            }
+          } catch (e) {
+            print('Migration v17 Error cleaning triggers: $e');
+          }
+        }
+        if (from < 18) {
+          // Migration v18: Fix Foreign Keys pointing to 'character_old'
+          // Since v15 renamed character -> character_old, all FKs were automatically updated to point to character_old.
+          // When we dropped character_old, these FKs became broken.
+          // Tables affected: chat_messages, inventory.
+          await customStatement('PRAGMA foreign_keys = OFF');
+
+          // 1. Recreate CHAT MESSAGES
+          try {
+            print('🛠️ v18: Recreating ChatMessages to fix FKs...');
+            await customStatement(
+                'ALTER TABLE chat_messages RENAME TO chat_messages_old_v18');
+            await m.createTable(chatMessages);
+            await customStatement(
+                'INSERT INTO chat_messages (id, role, content, timestamp, world_id, character_id) SELECT id, role, content, timestamp, world_id, character_id FROM chat_messages_old_v18');
+            await customStatement('DROP TABLE chat_messages_old_v18');
+          } catch (e) {
+            print('Migration v18 ChatMessages Error: $e');
+          }
+
+          // 2. Recreate INVENTORY
+          try {
+            print('🛠️ v18: Recreating Inventory to fix FKs...');
+            await customStatement(
+                'ALTER TABLE inventory RENAME TO inventory_old_v18');
+            await m.createTable(inventory);
+            await customStatement(
+                'INSERT INTO inventory (id, character_id, item_name, quantity) SELECT id, character_id, item_name, quantity FROM inventory_old_v18');
+            await customStatement('DROP TABLE inventory_old_v18');
+          } catch (e) {
+            print('Migration v18 Inventory Error: $e');
+          }
+
+          await customStatement('PRAGMA foreign_keys = ON');
         }
       },
     );

@@ -158,8 +158,18 @@ NPCs: ${knownNpcs.map((n) => "${n.name}: ${n.role}").join('; ')}
       final character = await dao.getCharacterById(_characterId);
 
       if (world == null || character == null) {
-        state = const AsyncValue.data(GameState(
-          messages: [],
+        state = AsyncValue.data(GameState(
+          messages: [
+            ChatMessage(
+                id: 0,
+                role: MessageRole.system,
+                content:
+                    "Error: World or Character not found (W:$_worldId, C:$_characterId).",
+                timestamp:
+                    DateTime.now(), // Fixed: Use DateTime.now() vs arbitrary
+                worldId: _worldId,
+                characterId: _characterId)
+          ],
           character: null,
           inventory: [],
           isLoading: false,

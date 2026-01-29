@@ -48,7 +48,7 @@ Gravity Boots,Sci-Fi,Gear,,,Walk on walls/ceilings in Zero-G,200,Magnetic plated
 Portable Scanner,Sci-Fi,Tool,,,Detects lifeforms/energy (60ft),100,Handheld tricorder device.,,,
 Monofilament Whip,Cyberpunk,Weapon,1d6,Slashing,"Finesse, Reach",250,Molecularly thin wire,dangerous to wield.,,
 Optical Camo,Cyberpunk,Gear,,,Advantage on Stealth (1 min/charge),500,Active camouflage suit overlay.,,,
-Smart Glasses,Cyberpunk,Gear,,,HUD,Recording,Zoom,100,Eyewear with data overlay.,
+Smart Glasses,Cyberpunk,Gear,,,"HUD,Recording,Zoom",100,Eyewear with data overlay.,
 Stim-Pack (Reflex),Cyberpunk,Consumable,,,"Advantage on Dex checks (1 hr), Crash later",50,Chemical adrenaline booster.,,,
 Bowie Knife,Western,Weapon,1d6,Piercing,"Finesse, Thrown (20/60)",10,Large fighting knife.,,,
 Lasso,Western,Weapon,,,Restrains target (Range 30),2,Rope loop for capturing.,,,
@@ -60,7 +60,7 @@ Lantern,Horror/Western,Gear,,,Bright 30ft/Dim 30ft (6 hrs),5,Oil burning light s
 Camera,Modern/Mystery,Tool,,,Captures images,50,Essential for gathering evidence.,,,
 Taser,Modern,Weapon,1d4,Lightning,"Range 15, Non-lethal, Stun save",100,Police issue compliance weapon.,,,
 Brass Knuckles,Modern/Noir,Weapon,1d4,Bludgeoning,Light,5,Metal punch reinforcement.,,,
-Smartphone,Modern,Tool,,,Comms,Map,Camera,Light,500,All-in-one device.
+Smartphone,Modern,Tool,,,"Comms,Map,Camera,Light",500,All-in-one device.
 Switchblade,Modern/Noir,Weapon,1d4,Piercing,"Finesse, Light, Concealable",15,Spring-loaded knife.,,,
 Machete,Post-Apoc,Weapon,1d6,Slashing,Light,10,Broad blade for brush or zombies.,,,
 Crossbow (Scrap),Post-Apoc,Weapon,1d8,Piercing,"Range (60/200), Loading, Silent",15,Made from car springs.,,,
@@ -68,7 +68,7 @@ Rad-Away,Post-Apoc,Consumable,,,Removes 1 level of Radiation,50,IV bag of cleans
 Water Purifier,Post-Apoc,Gear,,,Cleans 1 gallon of water,25,Essential for survival.,,,
 Giant Wrench,Steampunk,Weapon,1d6,Bludgeoning,"Versatile (1d8), Tool",15,Oversized spanner.,,,
 Steam Musket,Steampunk,Weapon,1d10,Piercing,"Range (40/120), Loading, Loud",75,Rifle powered by compressed steam.,,,
-Clockwork Beetle,Steampunk,Gear,,,Scout drone (AC 10,1 HP),50,Wind-up mechanical bug.,,
+Clockwork Beetle,Steampunk,Gear,,,"Scout drone (AC 10,1 HP)",50,Wind-up mechanical bug.,,
 Aether Goggles,Steampunk,Gear,,,See magical auras/Darkvision,100,Brass goggles with multiple lenses.,,,
 Top Hat,Steampunk,Gear,,,Advantage on Style,5,Essential fashion.,,,
 Spyglass,Universal,Gear,,,Magnifies view x4,100,Telescope.,,,

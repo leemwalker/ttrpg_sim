@@ -169,7 +169,7 @@ class TraitDef {
     return TraitDef(
       name: row[0].toString(),
       type: row[1].toString(),
-      cost: int.tryParse(row[2].toString()) ?? 0,
+      cost: int.parse(row[2].toString()),
       genre: row[3].toString(),
       description: row[4].toString(),
       effect: row[5].toString(),
@@ -275,7 +275,7 @@ class ItemDef {
       damageDice: row[3].toString(),
       damageType: row[4].toString(),
       properties: row[5].toString(),
-      cost: int.tryParse(row[6].toString()) ?? 0,
+      cost: int.parse(row[6].toString()),
       description: row[7].toString(),
     );
   }

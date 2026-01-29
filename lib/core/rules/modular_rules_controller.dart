@@ -77,8 +77,7 @@ class ModularRulesController {
       // Use CsvToListConverter with allowInvalid: false to prevent errors on bad lines if possible,
       // but default is usually fine. detecting eol.
       List<List<dynamic>> rows =
-          const CsvToListConverter(eol: '\n', shouldParseNumbers: false)
-              .convert(data);
+          const CsvToListConverter(shouldParseNumbers: false).convert(data);
 
       // Skip header row
       if (rows.isNotEmpty) {
@@ -88,6 +87,8 @@ class ModularRulesController {
       return rows
           .map((row) {
             try {
+              if (row.isEmpty) return null;
+              // Basic validation relying on fromCsv throwing RangeError if missing columns
               return fromCsv(row);
             } catch (e) {
               print('⚠️ Error parsing row in $path: $row. Error: $e');

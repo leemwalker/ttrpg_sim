@@ -83,6 +83,18 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               child: gameState.when(
                 data: (state) {
                   if (state.messages.isEmpty) {
+                    if (state.isLoading) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 16),
+                            Text("Summoning the Game Master..."),
+                          ],
+                        ),
+                      );
+                    }
                     return const Center(child: Text("Start your adventure..."));
                   }
                   // Use a ListView.builder

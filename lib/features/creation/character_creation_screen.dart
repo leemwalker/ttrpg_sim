@@ -135,7 +135,7 @@ class _CharacterCreationScreenState
           ),
           Expanded(
             child: Stepper(
-              type: StepperType.horizontal,
+              type: StepperType.vertical,
               currentStep: _currentStep,
               onStepContinue: () {
                 if (_currentStep < 4) {
