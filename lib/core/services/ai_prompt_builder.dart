@@ -1,5 +1,4 @@
 import 'package:ttrpg_sim/core/database/database.dart';
-import 'package:ttrpg_sim/features/campaign/data/models/character.dart';
 
 class AIPromptBuilder {
   static String buildInstruction(

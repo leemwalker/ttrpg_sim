@@ -32,7 +32,7 @@ class DiceUtils {
   /// Parses and rolls a dice formula (e.g., "3d8+5", "2d6-1", "1d8+1d6")
   static RollResult roll(String formula) {
     int total = 0;
-    List<String> detailsParts = [];
+    final List<String> detailsParts = [];
 
     // Normalize string: remove spaces, handle double signs if any
     String clean = formula.replaceAll(' ', '');
@@ -41,7 +41,7 @@ class DiceUtils {
     clean = clean.replaceAll('-', '+-');
 
     // Split by '+'
-    List<String> parts = clean.split('+');
+    final List<String> parts = clean.split('+');
 
     for (String part in parts) {
       if (part.isEmpty) continue;
@@ -64,15 +64,15 @@ class DiceUtils {
             p = p.substring(1);
           }
 
-          List<String> dParts = p.split('d');
-          int count = dParts[0].isEmpty ? 1 : int.parse(dParts[0]);
-          int sides = int.parse(dParts[1]);
+          final List<String> dParts = p.split('d');
+          final int count = dParts[0].isEmpty ? 1 : int.parse(dParts[0]);
+          final int sides = int.parse(dParts[1]);
 
           int subTotal = 0;
-          List<int> rolls = [];
+          final List<int> rolls = [];
 
           for (int i = 0; i < count; i++) {
-            int r = _random.nextInt(sides) + 1;
+            final int r = _random.nextInt(sides) + 1;
             rolls.add(r);
             subTotal += r;
           }
@@ -95,7 +95,7 @@ class DiceUtils {
       } else {
         // It's a modifier (e.g., "5", "-3")
         try {
-          int val = int.parse(p);
+          final int val = int.parse(p);
           total += val;
           detailsParts.add(((val >= 0)
               ? "+ $val"
@@ -106,9 +106,9 @@ class DiceUtils {
       }
     }
 
-    StringBuffer sb = StringBuffer();
+    final StringBuffer sb = StringBuffer();
     for (int i = 0; i < detailsParts.length; i++) {
-      String s = detailsParts[i];
+      final String s = detailsParts[i];
       if (i > 0) {
         if (!s.startsWith('+') && !s.startsWith('-')) {
           sb.write(' + '); // implicit add between dice groups if distinct?

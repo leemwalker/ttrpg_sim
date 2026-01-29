@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:csv/csv.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ttrpg_sim/core/models/rules/rule_models.dart';
 
 void main() {
   group('Content Integrity', () {

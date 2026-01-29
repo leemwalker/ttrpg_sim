@@ -6,7 +6,7 @@ import 'package:ttrpg_sim/features/campaign/data/models/character.dart';
 
 void main() {
   group('AIPromptBuilder', () {
-    final testPlayer = CharacterData(
+    const testPlayer = CharacterData(
       id: 1,
       name: 'Tester',
       level: 1,
@@ -40,7 +40,7 @@ void main() {
         "Hello World",
         testPlayer,
         [
-          InventoryData(
+          const InventoryData(
             id: 1,
             characterId: 1,
             itemName: "Wand",
@@ -91,7 +91,7 @@ void main() {
 
     test('buildInstruction generates correct Atlas prompt (Atlas Mode)', () {
       // Mock Location
-      final location = Location(
+      const location = Location(
         id: 1,
         worldId: 1,
         name: "Town",

@@ -73,8 +73,8 @@ void main() {
         overrides: [
           gameDaoProvider.overrideWithValue(dao),
         ],
-        child: MaterialApp(
-          home: const CharacterCreationScreen(worldId: 1),
+        child: const MaterialApp(
+          home: CharacterCreationScreen(worldId: 1),
         ),
       ),
     );

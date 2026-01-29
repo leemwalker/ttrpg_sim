@@ -61,7 +61,7 @@ void main() {
 
   test('generateStartingSpells returns parsed spells', () async {
     // GIVEN
-    final char = CharacterData(
+    const char = CharacterData(
         id: 1,
         name: 'Merlin',
         species: 'Human',
@@ -131,7 +131,7 @@ void main() {
 
   test('generateStartingSpells handles generic trait matching', () async {
     // GIVEN - Has "Arcane" in traits
-    final char = CharacterData(
+    const char = CharacterData(
         id: 1,
         name: 'Merlin',
         species: 'Human',

@@ -9,8 +9,6 @@ import 'package:drift/native.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:ttrpg_sim/core/services/gemini_wrapper.dart';
-import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
-import '../shared_test_utils.dart';
 
 // Smart Mock for Sequencing Responses
 class SmartMockGemini implements GeminiService {
@@ -86,7 +84,10 @@ void main() {
         maxHp: Value(10),
         gold: Value(0),
         location: Value('Unknown'),
+
         worldId: Value(worldId),
+        species: Value('Human'),
+        origin: Value('Unknown'),
         // currentLocationId is null by default
       ),
     );
@@ -168,7 +169,10 @@ void main() {
         gold: Value(0), // Required
         strength: Value(16), // +3
         worldId: Value(worldId),
+
         location: Value('Unknown'),
+        species: Value('Human'),
+        origin: Value('Unknown'),
       ),
     );
 

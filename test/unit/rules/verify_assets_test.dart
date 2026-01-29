@@ -38,9 +38,9 @@ void main() {
           if (row.isEmpty) continue; // Skip empty rows
 
           try {
-            if (path.contains('Genres'))
+            if (path.contains('Genres')) {
               GenreDef.fromCsv(row);
-            else if (path.contains('Attributes'))
+            } else if (path.contains('Attributes'))
               AttributeDef.fromCsv(row);
             else if (path.contains('Skills'))
               SkillDef.fromCsv(row);

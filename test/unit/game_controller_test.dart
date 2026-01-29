@@ -25,7 +25,7 @@ void main() {
   const worldId = 1;
   const characterId = 1;
 
-  final dummyChar = CharacterData(
+  const dummyChar = CharacterData(
     id: characterId,
     worldId: worldId,
     location: 'Start',

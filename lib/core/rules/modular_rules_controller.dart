@@ -108,8 +108,9 @@ class ModularRulesController {
   bool _matchesGenre(String ruleGenre, List<String> worldGenres) {
     if (ruleGenre == 'Universal') return true;
     for (var g in worldGenres) {
-      if (ruleGenre.contains(g))
+      if (ruleGenre.contains(g)) {
         return true; // Handling "Sci-Fi/Cyber" or exact matches
+      }
     }
     return false;
   }

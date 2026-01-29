@@ -91,7 +91,7 @@ class StepSkillsMagic extends ConsumerWidget {
             // Cost to upgrade?
             // If Rank 0 -> 1: Cost 1
             // If Rank 1 -> 2: Cost 1
-            final int upgradeCost = 1;
+            const int upgradeCost = 1;
 
             final bool canUpgrade = currentRank < 2 && remainingPoints >= upgradeCost;
             bool canDowngrade = currentRank > 0;
@@ -139,7 +139,7 @@ class StepSkillsMagic extends ConsumerWidget {
                     ?.copyWith(color: Colors.purpleAccent)),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: state.magicPillar,
+              initialValue: state.magicPillar,
               decoration: const InputDecoration(
                 labelText: "Magic Pillar",
                 border: OutlineInputBorder(),

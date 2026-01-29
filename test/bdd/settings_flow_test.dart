@@ -68,6 +68,8 @@ void main() {
       maxHp: 10,
       gold: 0,
       location: 'Start',
+      species: const Value('Human'),
+      origin: const Value('Unknown'),
     ));
 
     // Navigate to Chat (GameScreen) requires rebuilding the widget tree or using a navigator.

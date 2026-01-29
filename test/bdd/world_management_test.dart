@@ -36,6 +36,7 @@ void main() {
           gold: 0,
           location: 'Tavern',
           worldId: drift.Value(worldId),
+          origin: const drift.Value('Unknown'),
         ));
 
     // Add Inventory
