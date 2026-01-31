@@ -7,14 +7,14 @@ void main() {
   group('System Assets Integrity', () {
     test('All CSVs should parse without error', () async {
       final files = [
-        'assets/system/MobileRPG - Genres.csv',
-        'assets/system/MobileRPG - Attributes.csv',
-        'assets/system/MobileRPG - Skills.csv',
-        'assets/system/MobileRPG - Species.csv',
-        'assets/system/MobileRPG - Traits.csv',
-        'assets/system/MobileRPG - Origins.csv',
-        'assets/system/MobileRPG - Feats.csv',
-        'assets/system/MobileRPG - Items.csv',
+        'assets/system/Genres.csv',
+        'assets/system/Attributes.csv',
+        'assets/system/Skills.csv',
+        'assets/system/Species.csv',
+        'assets/system/Traits.csv',
+        'assets/system/Origins.csv',
+        'assets/system/Feats.csv',
+        'assets/system/Items.csv',
       ];
 
       for (final path in files) {

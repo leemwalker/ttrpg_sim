@@ -1,0 +1,53 @@
+Name,Genre,Attribute,Locked?,Description
+Acrobatics,Universal,DEX,FALSE,"Balancing, tumbling, dodging, and escaping restraints."
+Aeronautics,Steampunk,INT,FALSE,Piloting dirigibles ornithopters and airships.
+Alchemy,Fantasy,INT,FALSE,Brewing potions identifying poisons and transmuting substances.
+Archery,Universal,DEX,FALSE,Usage of bows and their relatives.
+Artifice,Fantasy,INT,FALSE,Crafting items identifying enchantments and working with magical materials.
+Astrogation,Sci-Fi,INT,FALSE,Navigating hyperspace routes and star charts.
+Athletics,Universal,STR,FALSE,"Feats of strength, lifting, swimming, and forcing open doors."
+Awareness,Universal,WIS,FALSE,"Spotting danger, hearing faint noises, and noticing details."
+Animal Husbandry,Universal,WIS,FALSE,"Taming, riding, and caring for animals."
+Clockwork,Steampunk,DEX,FALSE,Fine manipulation of tiny gears and locks.
+Computing,Sci-Fi,INT,FALSE,Hacking systems programming and data retrieval.
+Corporate Speak,Cyberpunk,INT,FALSE,Navigating bureaucracy legal loopholes and high-society etiquette.
+Cryptography,Mystery,INT,FALSE,Breaking codes ciphers and puzzles.
+Diplomacy,Universal,CHA,FALSE,"Convincing others, diplomatic negotiation, and inspiring confidence."
+Driving,Universal,DEX,FALSE,Operating distinct land vehicles in rough terrain.
+Exorcism,Horror,CHA,TRUE,Requires 'Priest' Origin or Feat. Banishing spirits and cleansing areas.
+Firearms,Universal,DEX,FALSE,Useage of guns in their various forms.
+Engineering,Universal,INT,FALSE,"Using, maintaining, and building items made up of multiple parts."
+Gunsmithing,Western,INT,FALSE,"Repairing, modifying, and crafting ammunition for firearms."
+Hacking,Cyberpunk,INT,TRUE,Requires 'Cyberdeck'. Active intrusion into secure systems.
+Heavy Armor,Universal,STR,FALSE,The equipping of and movement in heavy weight armors
+Heavy Weapons,Universal,STR,FALSE,"Usage of axes, hammers, and massive two-handed weapons."
+Intimidation,Universal,CHA,FALSE,Using fear or physical presence to force compliance.
+Intuition,Universal,WIS,FALSE,"Reading body language, detecting lies, and sensing motives."
+Investigation,Universal,INT,FALSE,Searching scenes for clues and connecting evidence.
+Jury-Rigging,Post-Apocalyptic,INT,FALSE,Making temporary repairs with scrap and duct tape.
+Knowledge: <Custom>,Universal,INT,FALSE,Knowledge through either education or practical experience in a particular field.
+Law,Mystery,INT,FALSE,Knowledge of legal rights procedures and precedents.
+Light Armor,Universal,DEX,FALSE,The equiping of and movement in lightweight armors.
+Light Weapons,Universal,DEX,FALSE,"Usage of daggers, shortswords, and precision melee weapons."
+Medical,Universal,INT,FALSE,"Stabilizing the dying, treating wounds, and diagnosing ailments."
+Medium Armor,Universal,STR,FALSE,The equiping of and movement in medium weight armors.
+Mysticism,Fantasy,INT,FALSE,Knowledge of magic theory runes and planar entities.
+Nature,Fantasy,INT,FALSE,Knowledge of flora fauna and natural cycles.
+Occultism,Horror,INT,FALSE,Knowledge of cults rituals and eldritch entities.
+Parapsychology,Horror,INT,FALSE,Using equipment to detect spirits or psychic phenomena.
+Piloting,Sci-Fi,DEX,FALSE,Operating starships hover-vehicles and mechs.
+Power Control,Superhero,WIS,FALSE,Finesse and precision when using super-abilities.
+Riding,Western,DEX,FALSE,Controlling horses during chases or combat.
+Scavenging,Post-Apocalyptic,WIS,FALSE,Finding resources food or salvage in ruins.
+Spellcasting,Fantasy,INT,TRUE,Requires 'Arcane Initiate' or Trait. Channeling magical energy.
+Stealth,Universal,DEX,FALSE,"Hiding, moving silently, and blending into shadows."
+Steam-Tech,Steampunk,INT,FALSE,Operating and repairing steam-powered engines and gears.
+Streetwise,Cyberpunk,WIS,FALSE,Navigating urban underworlds finding fixers and avoiding gangs.
+Subterfuge,Universal,CHA,FALSE,"Lying, creating disguises, and passing off forgeries."
+Survival,Universal,WIS,FALSE,"Tracking, finding food, navigating wilderness, and enduring elements."
+Tactics,Universal,INT,FALSE,Coordinating team maneuvers and analyzing villain weaknesses.
+Thanatology,Horror,INT,FALSE,Study of death decay and undead physiology.
+Thrown Weapons,Universal,DEX,FALSE,"Useage of throwing knives, shurikens, javelins, and other throwing weapons."
+Unarmed Combat,Universal,STR,FALSE,"Unarmed combat, grappling, and martial arts."
+Xeno-Studies,Sci-Fi,INT,FALSE,Knowledge of alien species biology and cultures.
+Zero-G Ops,Sci-Fi,DEX,FALSE,Moving and fighting effectively in low or zero gravity.

@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:math';
 import 'package:ttrpg_sim/core/database/database.dart';
 import 'package:ttrpg_sim/core/services/gemini_service.dart';
 import 'package:ttrpg_sim/core/utils/dice_utils.dart';
@@ -86,12 +88,37 @@ class GameActionHandler {
     final char = await _dao.getCharacterById(characterId);
     final mod = char != null ? _rules.getModifier(char, checkName) : 0;
 
-    final roll = DiceUtils.rollD20();
+    // Check for "Large" trait => Advantage on Strength and Athletics
+    bool advantage = false;
+    if (char != null) {
+      try {
+        final traitsList = jsonDecode(char.traits);
+        if (traitsList is List && traitsList.contains('Large')) {
+          final cName = checkName.toLowerCase();
+          if (cName == 'strength' || cName == 'athletics') {
+            advantage = true;
+          }
+        }
+      } catch (e) {
+        // Ignore parse error
+      }
+    }
+
+    int roll = DiceUtils.rollD20();
+    int roll2 = 0;
+    if (advantage) {
+      roll2 = DiceUtils.rollD20();
+      roll = max(roll, roll2);
+    }
+
     final total = roll + mod;
     final isSuccess = total >= difficulty;
 
-    final systemMsg = "🎲 **${args['check_name']} Check**\n"
-        "Roll: $roll + $mod = **$total** vs DC $difficulty\n"
+    String systemMsg = "🎲 **${args['check_name']} Check**\n";
+    if (advantage) {
+      systemMsg += "(Advantage: rolled $roll and $roll2)\n";
+    }
+    systemMsg += "Roll: $roll + $mod = **$total** vs DC $difficulty\n"
         "${isSuccess ? '✅ SUCCESS' : '❌ FAILURE'}";
 
     await _dao.insertMessage('system', systemMsg, worldId, characterId);
@@ -103,6 +130,7 @@ class GameActionHandler {
       'success': isSuccess,
       'check_name': checkName,
       'difficulty': difficulty,
+      'advantage': advantage, // Inform AI
     });
   }
 

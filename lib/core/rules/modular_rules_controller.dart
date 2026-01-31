@@ -30,6 +30,7 @@ class ModularRulesController {
   List<OriginDef> _origins = [];
   List<FeatDef> _feats = [];
   List<ItemDef> _items = [];
+  List<PillarDef> _pillars = [];
 
   bool _isLoaded = false;
   bool get isLoaded => _isLoaded;
@@ -42,32 +43,28 @@ class ModularRulesController {
 
     final dataLoader = loader ?? AssetRuleDataLoader();
 
-    _genres = await _loadCsv(dataLoader, 'assets/system/MobileRPG - Genres.csv',
-        (row) => GenreDef.fromCsv(row));
-    _attributes = await _loadCsv(
-        dataLoader,
-        'assets/system/MobileRPG - Attributes.csv',
+    _genres = await _loadCsv(
+        dataLoader, 'assets/system/Genres.csv', (row) => GenreDef.fromCsv(row));
+    _attributes = await _loadCsv(dataLoader, 'assets/system/Attributes.csv',
         (row) => AttributeDef.fromCsv(row));
-    _skills = await _loadCsv(dataLoader, 'assets/system/MobileRPG - Skills.csv',
-        (row) => SkillDef.fromCsv(row));
-    _species = await _loadCsv(
-        dataLoader,
-        'assets/system/MobileRPG - Species.csv',
+    _skills = await _loadCsv(
+        dataLoader, 'assets/system/Skills.csv', (row) => SkillDef.fromCsv(row));
+    _species = await _loadCsv(dataLoader, 'assets/system/Species.csv',
         (row) => SpeciesDef.fromCsv(row));
-    _traits = await _loadCsv(dataLoader, 'assets/system/MobileRPG - Traits.csv',
-        (row) => TraitDef.fromCsv(row));
-    _origins = await _loadCsv(
-        dataLoader,
-        'assets/system/MobileRPG - Origins.csv',
+    _traits = await _loadCsv(
+        dataLoader, 'assets/system/Traits.csv', (row) => TraitDef.fromCsv(row));
+    _origins = await _loadCsv(dataLoader, 'assets/system/Origins.csv',
         (row) => OriginDef.fromCsv(row));
-    _feats = await _loadCsv(dataLoader, 'assets/system/MobileRPG - Feats.csv',
-        (row) => FeatDef.fromCsv(row));
-    _items = await _loadCsv(dataLoader, 'assets/system/MobileRPG - Items.csv',
-        (row) => ItemDef.fromCsv(row));
+    _feats = await _loadCsv(
+        dataLoader, 'assets/system/Feats.csv', (row) => FeatDef.fromCsv(row));
+    _items = await _loadCsv(
+        dataLoader, 'assets/system/Items.csv', (row) => ItemDef.fromCsv(row));
+    _pillars = await _loadCsv(dataLoader, 'assets/system/MagicPillars.csv',
+        (row) => PillarDef.fromCsv(row));
 
     _isLoaded = true;
     print(
-        '✅ Modular Rules Loaded: ${_species.length} Species, ${_skills.length} Skills, ${_items.length} Items');
+        '✅ Modular Rules Loaded: ${_species.length} Species, ${_skills.length} Skills, ${_pillars.length} Pillars');
   }
 
   Future<List<T>> _loadCsv<T>(RuleDataLoader loader, String path,
@@ -154,5 +151,7 @@ class ModularRulesController {
   // Helper to get ALL for editors/debugging
   List<SpeciesDef> get allSpecies => _species;
   List<SkillDef> get allSkills => _skills;
-  // ... etc can be added if needed
+  List<TraitDef> get allTraits => _traits;
+  List<FeatDef> get allFeats => _feats;
+  List<PillarDef> get allPillars => _pillars;
 }

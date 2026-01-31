@@ -125,12 +125,10 @@ class SkillList extends StatelessWidget {
             }
 
             final int mod = _getMod(attrScore);
-            // Assuming Proficiency Bonus scales with Level. PB = 2 + (Level-1)/4
-            final int pb = 2 + ((char.level - 1) ~/ 4);
 
-            int skillBonus = mod;
-            if (rank == 1) skillBonus += pb;
-            if (rank == 2) skillBonus += (pb * 2);
+            // Per requirement: "Skill Rank + Attribute Modifier"
+            // We interpret "Rank" as the direct bonus value (0, 1, 2).
+            final int skillBonus = rank + mod;
 
             final bonusSign = skillBonus >= 0 ? "+" : "";
 

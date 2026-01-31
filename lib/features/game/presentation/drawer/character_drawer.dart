@@ -24,8 +24,57 @@ class CharacterDrawer extends ConsumerWidget {
                 children: const [ListTile(title: Text("No Character Data"))]);
           }
 
+          final bool showMagic = (char.maxMana > 0) ||
+              (char.spells.isNotEmpty && char.spells != '[]');
+
+          final List<Widget> tabs = [
+            const Tab(icon: Icon(Icons.bar_chart), text: "Stats"),
+            if (showMagic)
+              const Tab(icon: Icon(Icons.auto_fix_high), text: "Magic"),
+            const Tab(icon: Icon(Icons.star), text: "Feats"),
+            const Tab(icon: Icon(Icons.backpack), text: "Inv"),
+          ];
+
+          final List<Widget> tabViews = [
+            // Stats
+            SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("HP: ${char.currentHp}/${char.maxHp}",
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
+                        Text("Gold: ${char.gold}",
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.amber)),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: AttributeGrid(char: char),
+                  ),
+                  const Divider(),
+                  SkillList(char: char),
+                ],
+              ),
+            ),
+            // Magic
+            if (showMagic) GrimoireTab(character: char),
+            // Features
+            FeaturesList(char: char),
+            // Inventory
+            InventorySection(charId: char.id),
+          ];
+
           return DefaultTabController(
-            length: 4,
+            length: tabs.length,
             child: Column(
               children: [
                 UserAccountsDrawerHeader(
@@ -46,61 +95,13 @@ class CharacterDrawer extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const TabBar(
+                TabBar(
                   labelColor: Colors.deepPurple,
                   unselectedLabelColor: Colors.grey,
-                  tabs: [
-                    Tab(icon: Icon(Icons.bar_chart), text: "Stats"),
-                    Tab(icon: Icon(Icons.auto_fix_high), text: "Magic"),
-                    Tab(icon: Icon(Icons.star), text: "Feats"),
-                    Tab(icon: Icon(Icons.backpack), text: "Inv"),
-                  ],
+                  tabs: tabs,
                 ),
                 Expanded(
-                  child: TabBarView(
-                    children: [
-                      // Stats Tab
-                      SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text("HP: ${char.currentHp}/${char.maxHp}",
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold)),
-                                  Text("Gold: ${char.gold}",
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.amber)),
-                                ],
-                              ),
-                            ),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16.0),
-                              child: AttributeGrid(char: char),
-                            ),
-                            const Divider(),
-                            SkillList(char: char),
-                          ],
-                        ),
-                      ),
-
-                      // Grimoire Tab
-                      GrimoireTab(character: char),
-
-                      // Features Tab
-                      FeaturesList(char: char),
-
-                      // Inventory Tab
-                      InventorySection(charId: char.id),
-                    ],
-                  ),
+                  child: TabBarView(children: tabViews),
                 )
               ],
             ),

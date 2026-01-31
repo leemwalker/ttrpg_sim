@@ -91,8 +91,8 @@ void main() {
       }
     }
 
-    // Check for Text
-    expect(find.text('Character Creation'), findsOneWidget);
+    // Check for Text (AppBar and Header)
+    expect(find.text('Select Species'), findsWidgets);
 
     // Verify Species are present
     // Based on the mock loader, we expect "Human".

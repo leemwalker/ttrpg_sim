@@ -5,10 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('Content Integrity', () {
     test('Attributes.csv should load all Core and Genre attributes', () async {
-      final rows = await _loadCsv('assets/system/MobileRPG - Attributes.csv');
-      // Should have 6 Core + ~25 Genre attributes = ~31 rows.
-      // Definitively more than 2.
-      expect(rows.length, greaterThan(20),
+      final rows = await _loadCsv('assets/system/Attributes.csv');
+      // Should have 6 Core + 4 Genre attributes = 10 rows.
+      expect(rows.length, greaterThanOrEqualTo(10),
           reason:
               'Attributes CSV parsed too few rows, likely header/quote swallow bug.');
 
@@ -19,7 +18,7 @@ void main() {
     });
 
     test('Traits.csv should load all initial traits', () async {
-      final rows = await _loadCsv('assets/system/MobileRPG - Traits.csv');
+      final rows = await _loadCsv('assets/system/Traits.csv');
       expect(rows.length, greaterThan(15),
           reason: 'Traits CSV parsed too few rows');
 
@@ -29,7 +28,7 @@ void main() {
     });
 
     test('Skills.csv should load all skills', () async {
-      final rows = await _loadCsv('assets/system/MobileRPG - Skills.csv');
+      final rows = await _loadCsv('assets/system/Skills.csv');
       expect(rows.length, greaterThan(50),
           reason: 'Skills CSV parsed too few rows');
     });

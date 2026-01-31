@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:ttrpg_sim/core/database/database.dart';
 import 'rpg_system.dart';
 
@@ -112,6 +113,21 @@ class CoreRpgRules extends RpgSystem {
     }
 
     // Standard d20 formula: (score - 10) / 2 (round down)
-    return ((score - 10) / 2).floor();
+    int attrMod = ((score - 10) / 2).floor();
+
+    // Add Skill Rank if applicable
+    int skillRank = 0;
+    try {
+      if (character.skills.isNotEmpty) {
+        final Map<String, dynamic> skillsMap = jsonDecode(character.skills);
+        if (skillsMap.containsKey(checkName)) {
+          skillRank = skillsMap[checkName] as int? ?? 0;
+        }
+      }
+    } catch (e) {
+      print('Error parsing skills for modifier: $e');
+    }
+
+    return attrMod + skillRank;
   }
 }

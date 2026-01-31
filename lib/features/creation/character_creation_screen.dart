@@ -30,15 +30,19 @@ class _CharacterCreationScreenState
   bool _isLoading = true;
   final TextEditingController _nameController = TextEditingController();
 
+  late PageController _pageController;
+
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
     _initializeCreation();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -49,12 +53,10 @@ class _CharacterCreationScreenState
       print('DEBUG: Init Creation Start');
       // 1. Load Rules
       await ModularRulesController().loadRules();
-      print('DEBUG: Rules Loaded');
 
       // 2. Fetch World Genres and Ensure Character
       final dao = ref.read(gameDaoProvider);
       final world = await dao.getWorld(widget.worldId);
-      print('DEBUG: World fetched: ${world?.name}');
 
       if (world != null) {
         List<String> genres = [];
@@ -67,6 +69,9 @@ class _CharacterCreationScreenState
           genres = ['Fantasy'];
         }
         ref.read(creationProvider.notifier).setGenres(genres);
+        ref
+            .read(creationProvider.notifier)
+            .setMagicEnabled(world.isMagicEnabled);
       }
 
       // Ensure Character exists (Placeholder logic)
@@ -93,16 +98,34 @@ class _CharacterCreationScreenState
                   .copyWith(worldId: Value(widget.worldId)));
         }
       }
-      print('DEBUG: Character ID: $_characterId');
 
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
-        print('DEBUG: Set Loading False');
       }
-    } catch (e, st) {
-      print('ERROR in _initializeCreation: $e\n$st');
+    } catch (e) {
+      print('ERROR in _initializeCreation: $e');
+    }
+  }
+
+  void _nextPage() {
+    if (_currentStep < 4) {
+      setState(() => _currentStep++);
+      _pageController.animateToPage(_currentStep,
+          duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+    } else {
+      _finishCreation();
+    }
+  }
+
+  void _prevPage() {
+    if (_currentStep > 0) {
+      setState(() => _currentStep--);
+      _pageController.animateToPage(_currentStep,
+          duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+    } else {
+      Navigator.of(context).pop();
     }
   }
 
@@ -114,15 +137,49 @@ class _CharacterCreationScreenState
       );
     }
 
-    // Check validation for current step to enable Next button?
-    // Simplified: Allow navigation, validate on Finish or visual cues.
+    final steps = [
+      const StepSpecies(),
+      const StepOrigin(),
+      const StepTraits(),
+      const StepAttributes(),
+      const StepSkillsMagic(),
+    ];
+
+    final titles = [
+      "Select Species",
+      "Select Origin",
+      "Choose Traits",
+      "Assign Attributes",
+      "Skills & Magic"
+    ];
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Character Creation"),
+        title: Text(titles[_currentStep]),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: _prevPage,
+        ),
       ),
       body: Column(
         children: [
+          // Step Indicator (LinearProgressIndicator or Dots)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: List.generate(5, (index) {
+                return Expanded(
+                  child: Container(
+                    height: 4,
+                    margin: const EdgeInsets.symmetric(horizontal: 2.0),
+                    color: index <= _currentStep
+                        ? Theme.of(context).primaryColor
+                        : Colors.grey[300],
+                  ),
+                );
+              }),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: TextField(
@@ -134,84 +191,41 @@ class _CharacterCreationScreenState
             ),
           ),
           Expanded(
-            child: Stepper(
-              type: StepperType.vertical,
-              currentStep: _currentStep,
-              onStepContinue: () {
-                if (_currentStep < 4) {
-                  setState(() => _currentStep += 1);
-                } else {
-                  _finishCreation();
-                }
-              },
-              onStepCancel: () {
-                if (_currentStep > 0) {
-                  setState(() => _currentStep -= 1);
-                } else {
-                  Navigator.of(context).pop();
-                }
-              },
-              controlsBuilder: (context, details) {
-                return Padding(
-                  padding: const EdgeInsets.only(top: 16.0),
-                  child: Row(
-                    children: [
-                      FilledButton(
-                        key: ValueKey('step_${_currentStep}_next'),
-                        onPressed: details.onStepContinue,
-                        child: Text(_currentStep == 4 ? "Finish" : "Next"),
-                      ),
-                      const SizedBox(width: 8),
-                      TextButton(
-                        key: ValueKey('step_${_currentStep}_back'),
-                        onPressed: details.onStepCancel,
-                        child: const Text("Back"),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              steps: [
-                Step(
-                  title: const Text("Species"),
-                  content: const StepSpecies(),
-                  isActive: _currentStep >= 0,
-                  state:
-                      _currentStep > 0 ? StepState.complete : StepState.editing,
-                ),
-                Step(
-                  title: const Text("Origin"),
-                  content: const StepOrigin(),
-                  isActive: _currentStep >= 1,
-                  state:
-                      _currentStep > 1 ? StepState.complete : StepState.editing,
-                ),
-                Step(
-                  title: const Text("Traits"),
-                  content: const StepTraits(),
-                  isActive: _currentStep >= 2,
-                  state:
-                      _currentStep > 2 ? StepState.complete : StepState.editing,
-                ),
-                Step(
-                  title: const Text("Attributes"),
-                  content: const StepAttributes(),
-                  isActive: _currentStep >= 3,
-                  state:
-                      _currentStep > 3 ? StepState.complete : StepState.editing,
-                ),
-                Step(
-                  title: const Text("Skills/Magic"),
-                  content: const StepSkillsMagic(),
-                  isActive: _currentStep >= 4,
-                  state: _currentStep == 4
-                      ? StepState.editing
-                      : StepState.complete,
-                ),
-              ],
+            child: PageView(
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(), // Disable swipe
+              children: steps
+                  .map((step) => SingleChildScrollView(
+                        padding: const EdgeInsets.all(16.0),
+                        child: step,
+                      ))
+                  .toList(),
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (_currentStep > 0)
+                OutlinedButton(
+                  key: const ValueKey('nav_back_button'),
+                  onPressed: _prevPage,
+                  child: const Text("Back"),
+                )
+              else
+                const SizedBox.shrink(),
+              FilledButton(
+                key: const ValueKey('nav_next_button'),
+                onPressed: _nextPage,
+                child: Text(_currentStep == 4 ? "Finish" : "Next"),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -233,7 +247,9 @@ class _CharacterCreationScreenState
     }
 
     // Map to DB
-    final attributesJson = jsonEncode(state.attributes);
+    // Use totalAttributes to include species bonuses
+    final finalAttributes = ref.read(creationProvider.notifier).totalAttributes;
+    final attributesJson = jsonEncode(finalAttributes);
     final skillsJson = jsonEncode(state.skillRanks);
     final traitsJson =
         jsonEncode(state.selectedTraits.map((t) => t.name).toList());
@@ -251,7 +267,7 @@ class _CharacterCreationScreenState
 
     // Calculate Max HP (Roughly)
     // 10 + Con Mod
-    final int con = state.attributes['Constitution'] ?? 10;
+    final int con = finalAttributes['Constitution'] ?? 10;
     final int conMod = ((con - 10) / 2).floor();
     final int maxHp = 10 + conMod;
 
@@ -269,12 +285,12 @@ class _CharacterCreationScreenState
       level: 1,
       maxHp: maxHp,
       // Legacy Columns compat
-      strength: state.attributes['Strength'] ?? 10,
-      dexterity: state.attributes['Dexterity'] ?? 10,
-      constitution: state.attributes['Constitution'] ?? 10,
-      intelligence: state.attributes['Intelligence'] ?? 10,
-      wisdom: state.attributes['Wisdom'] ?? 10,
-      charisma: state.attributes['Charisma'] ?? 10,
+      strength: finalAttributes['Strength'] ?? 10,
+      dexterity: finalAttributes['Dexterity'] ?? 10,
+      constitution: finalAttributes['Constitution'] ?? 10,
+      intelligence: finalAttributes['Intelligence'] ?? 10,
+      wisdom: finalAttributes['Wisdom'] ?? 10,
+      charisma: finalAttributes['Charisma'] ?? 10,
     );
 
     if (mounted) {

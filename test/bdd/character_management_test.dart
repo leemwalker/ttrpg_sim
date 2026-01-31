@@ -8,8 +8,6 @@ import 'package:ttrpg_sim/core/providers.dart';
 import 'package:ttrpg_sim/features/campaign/character_selection_screen.dart';
 import '../shared_test_utils.dart';
 import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
-import 'package:ttrpg_sim/features/creation/steps/step_species.dart';
-import 'package:ttrpg_sim/features/creation/steps/step_origin.dart';
 
 void main() {
   testWidgets('Character Deletion (Partial Cascade)',
@@ -118,7 +116,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify we are on creation screen
-    expect(find.text('Character Creation'), findsOneWidget);
+    expect(find.text('Select Species'), findsWidgets);
 
     // 4. Fill form (Name is first TextField)
     await tester.enterText(find.byType(TextField).first, 'First Born');
@@ -132,56 +130,40 @@ void main() {
     // Tests: The BDD test logic assumed simple form. Now it's a stepper.
     // We should step through.
     // Step 1: Species. Select 'Human'.
-    // Use specific finder for ListTile content to avoid duplicates
     final humanOption =
         find.byKey(const ValueKey('species_option_Human')).first;
-    await tester.scrollUntilVisible(humanOption, 500,
-        scrollable: find.descendant(
-            of: find.byType(StepSpecies), matching: find.byType(Scrollable)));
+    // Use the scrollable inside the PageView
+    final scrollable = find.byType(Scrollable).first;
+
+    await tester.scrollUntilVisible(humanOption, 500, scrollable: scrollable);
     await tester.tap(humanOption);
     await tester.pumpAndSettle();
 
-    // Find the Next button specifically in the active controls
-    // Using find.widgetWithText(FilledButton, 'Next') often works better than find.text('Next').last
-    final nextBtn1 = find.byKey(const ValueKey('step_0_next')).first;
-    await tester.ensureVisible(nextBtn1);
-    await tester.tap(nextBtn1);
+    // Next
+    await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
 
     // Step 2: Origin. Select 'Refugee'.
     final refugeeOption =
         find.byKey(const ValueKey('origin_option_Refugee')).first;
-    await tester.scrollUntilVisible(refugeeOption, 500,
-        scrollable: find.descendant(
-            of: find.byType(StepOrigin), matching: find.byType(Scrollable)));
+    await tester.scrollUntilVisible(refugeeOption, 500, scrollable: scrollable);
     await tester.tap(refugeeOption);
     await tester.pumpAndSettle();
 
-    final nextBtn2 = find.byKey(const ValueKey('step_1_next'));
-    await tester.ensureVisible(nextBtn2);
-    await tester.tap(nextBtn2);
+    // Next
+    await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
-    // Logic was double tapping next? Removed one tap in replacement as valid flow is single tap.
-    // Wait, original had double tap on nextBtn2?
-    // "await tester.tap(nextBtn2); await tester.pumpAndSettle(); await tester.tap(nextBtn2);"
-    // This looks like an error in previous test or intention to skip traits?
-    // Assuming we just want to proceed. Step 2 -> Step 3 (Traits).
-    // Step 3 Next button is 'step_2_next'.
 
     // Step 3: Traits. Next.
-    final nextBtn3 = find.byKey(const ValueKey('step_2_next'));
-    await tester.ensureVisible(nextBtn3);
-    await tester.tap(nextBtn3);
+    await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
 
     // Step 4: Attributes. Next.
-    final nextBtn4 = find.byKey(const ValueKey('step_3_next'));
-    await tester.ensureVisible(nextBtn4);
-    await tester.tap(nextBtn4);
+    await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
 
-    // Step 5: Skills (Last). Button should say Finish.
-    final finishBtn = find.byKey(const ValueKey('step_4_next'));
+    // Step 5: Skills (Last). Finish.
+    final finishBtn = find.text('Finish');
     await tester.ensureVisible(finishBtn);
     expect(finishBtn, findsOneWidget);
     await tester.tap(finishBtn);

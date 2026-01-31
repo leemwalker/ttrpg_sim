@@ -34,6 +34,8 @@ class Worlds extends Table {
   TextColumn get tone => text().withDefault(const Constant('Standard'))();
   TextColumn get description => text()();
   TextColumn get genres => text().withDefault(const Constant('["Fantasy"]'))();
+  BoolColumn get isMagicEnabled =>
+      boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -148,7 +150,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration {
@@ -474,6 +476,10 @@ class AppDatabase extends _$AppDatabase {
 
           await customStatement('PRAGMA foreign_keys = ON');
         }
+        if (from < 19) {
+          // Migration v19: Add isMagicEnabled column to Worlds table
+          await m.addColumn(worlds, worlds.isMagicEnabled);
+        }
       },
     );
   }
@@ -629,6 +635,36 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
 
   Stream<List<InventoryData>> watchInventory() {
     return select(inventory).watch();
+  }
+
+  // -- BOOK STUDIO METHODS --
+
+  Future<List<ChatMessage>> getFullStoryHistory(int characterId) {
+    return (select(chatMessages)
+          ..where((t) => t.characterId.equals(characterId))
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.timestamp, mode: OrderingMode.asc)
+          ]))
+        .get();
+  }
+
+  Future<int> getWordCount(int characterId) async {
+    // This is a rough estimation suitable for our needs.
+    // Ideally, we'd do this via a custom SQL query if we wanted raw DB speed,
+    // but fetching messages and counting in Dart is safer for now given complex logic checks if needed.
+    // For pure SQL speed:
+    // SELECT SUM(LENGTH(content) - LENGTH(REPLACE(content, ' ', '')) + 1) ...
+
+    final messages = await (select(chatMessages)
+          ..where((t) => t.characterId.equals(characterId)))
+        .get();
+
+    int count = 0;
+    for (final msg in messages) {
+      if (msg.content.isEmpty) continue;
+      count += msg.content.trim().split(RegExp(r'\s+')).length;
+    }
+    return count;
   }
 
   Future<int> debugCountCharacters() async {

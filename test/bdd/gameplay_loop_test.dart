@@ -57,6 +57,12 @@ class SmartMockGemini implements GeminiService {
     }
     return responses[_index++];
   }
+
+  @override
+  Future<String> generateContent(String prompt,
+      {String? modelOverride, String? apiKeyOverride}) async {
+    return "Mock content";
+  }
 }
 
 void main() {
@@ -140,8 +146,8 @@ void main() {
 
     // AND The UI should verify receipt (we check the chat log for the generated narrative)
     // Controller generates narrative: 'You arrive at **The Rusty Anchor**. A salty tavern.'
-    expect(find.textContaining('You arrive at **The Rusty Anchor**'),
-        findsOneWidget);
+    // Note: Markdown renders '**' as bold, so we check for the text content.
+    expect(find.textContaining('The Rusty Anchor'), findsOneWidget);
 
     await db.close();
   });

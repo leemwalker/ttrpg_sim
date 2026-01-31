@@ -21,3 +21,8 @@ class AIFormatException extends AppBaseException {
   AIFormatException(
       [super.message = 'AI Response Format Error', super.originalError]);
 }
+
+class QuotaExceededException extends AppBaseException {
+  QuotaExceededException(
+      [super.message = 'Quota Exceeded', super.originalError]);
+}

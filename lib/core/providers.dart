@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ttrpg_sim/core/database/database.dart';
 import 'package:ttrpg_sim/core/services/gemini_service.dart';
 import 'package:ttrpg_sim/features/settings/settings_provider.dart';
+import 'package:ttrpg_sim/core/services/story_generator_service.dart';
+import 'package:ttrpg_sim/core/services/pdf_export_service.dart';
 
 final _db = AppDatabase();
 
@@ -54,4 +56,21 @@ final locationDataProvider =
   if (id == null) return null;
   final dao = ref.watch(gameDaoProvider);
   return dao.getLocation(id);
+});
+
+final storyGeneratorServiceProvider = Provider<StoryGeneratorService>((ref) {
+  final gemini = ref.watch(geminiServiceProvider);
+  final dao = ref.watch(gameDaoProvider);
+  final settings = ref.watch(settingsProvider);
+
+  return StoryGeneratorService(
+    gemini,
+    dao,
+    ghostwritingModel: settings.ghostwritingModel,
+    paidApiKey: settings.paidApiKey,
+  );
+});
+
+final pdfExportServiceProvider = Provider<PdfExportService>((ref) {
+  return PdfExportService();
 });

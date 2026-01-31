@@ -692,6 +692,26 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
       ) as _i5.Stream<List<_i2.InventoryData>>);
 
   @override
+  _i5.Future<List<_i2.ChatMessage>> getFullStoryHistory(int? characterId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getFullStoryHistory,
+          [characterId],
+        ),
+        returnValue:
+            _i5.Future<List<_i2.ChatMessage>>.value(<_i2.ChatMessage>[]),
+      ) as _i5.Future<List<_i2.ChatMessage>>);
+
+  @override
+  _i5.Future<int> getWordCount(int? characterId) => (super.noSuchMethod(
+        Invocation.method(
+          #getWordCount,
+          [characterId],
+        ),
+        returnValue: _i5.Future<int>.value(0),
+      ) as _i5.Future<int>);
+
+  @override
   _i5.Future<int> debugCountCharacters() => (super.noSuchMethod(
         Invocation.method(
           #debugCountCharacters,
@@ -1660,6 +1680,34 @@ class MockGeminiService extends _i1.Mock implements _i7.GeminiService {
           ),
         )),
       ) as _i5.Future<_i7.TurnResult>);
+
+  @override
+  _i5.Future<String> generateContent(
+    String? prompt, {
+    String? modelOverride,
+    String? apiKeyOverride,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #generateContent,
+          [prompt],
+          {
+            #modelOverride: modelOverride,
+            #apiKeyOverride: apiKeyOverride,
+          },
+        ),
+        returnValue: _i5.Future<String>.value(_i9.dummyValue<String>(
+          this,
+          Invocation.method(
+            #generateContent,
+            [prompt],
+            {
+              #modelOverride: modelOverride,
+              #apiKeyOverride: apiKeyOverride,
+            },
+          ),
+        )),
+      ) as _i5.Future<String>);
 }
 
 /// A class which mocks [RpgSystem].

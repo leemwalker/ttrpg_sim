@@ -1,8 +1,6 @@
 Name,Genre,Type,Prerequisite,Description,Effect
 Ace Pilot,Sci-Fi,Tech,Piloting Skill,Elite vehicle control.,No Disadvantage on difficult maneuvers; +2 AC in vehicle.
-Arcane Initiate,Fantasy,Magic,None,You have studied the arcane.,Unlocks 'Spellcasting' Skill. Learn 2 Cantrips.
 Arcane Student,Fantasy,Magic,None,You learned magic through study and formulas.,Unlock Magic (Pillar: Matter/Energy/Cosmos). Standard Mana Pool (Regens on Rest).
-Armor Training,Universal,Martial,None,Experience with defensive gear.,Proficiency in Light & Medium Armor.
 Battle Mage,Fantasy,Magic,Arcane Student,Combat casting.,Can cast spells while holding weapon/shield.
 Brawler,Universal,Combat,Unarmed Skill,Unarmed mastery.,Unarmed strikes deal 1d6; Grapple as Bonus Action.
 Chrome Jockey,Cyberpunk,Body,None,Heavy modification.,Can install 1 additional Cybernetic Implant beyond CON limit.

@@ -41,7 +41,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // WHEN I enter "INVALID_KEY"
-    final apiKeyField = find.widgetWithText(TextField, 'Gemini API Key');
+    final apiKeyField = find.widgetWithText(TextField, 'Gemini API Key (Free)');
     await tester.enterText(apiKeyField, 'INVALID_KEY');
     await tester.pumpAndSettle();
 

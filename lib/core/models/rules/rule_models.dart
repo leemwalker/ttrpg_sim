@@ -1,4 +1,4 @@
-/// Represents a Genre definition from `MobileRPG - Genres.csv`
+/// Represents a Genre definition from `Genres.csv`
 class GenreDef {
   final String name;
   final String description;
@@ -28,7 +28,7 @@ class GenreDef {
   }
 }
 
-/// Represents an Attribute definition from `MobileRPG - Attributes.csv`
+/// Represents an Attribute definition from `Attributes.csv`
 class AttributeDef {
   final String name;
   final String genre;
@@ -53,7 +53,7 @@ class AttributeDef {
   }
 }
 
-/// Represents a Skill definition from `MobileRPG - Skills.csv`
+/// Represents a Skill definition from `Skills.csv`
 class SkillDef {
   final String name;
   final String genre;
@@ -81,7 +81,7 @@ class SkillDef {
   }
 }
 
-/// Represents a Species definition from `MobileRPG - Species.csv`
+/// Represents a Species definition from `Species.csv`
 class SpeciesDef {
   final String name;
   final String genre;
@@ -100,12 +100,12 @@ class SpeciesDef {
     return SpeciesDef(
       name: row[0].toString(),
       genre: row[1].toString(),
-      stats: _parseStats(row[2].toString()),
+      stats: parseStats(row[2].toString()),
       freeTraits: _parseList(row[3].toString()),
     );
   }
 
-  static Map<String, int> _parseStats(String raw) {
+  static Map<String, int> parseStats(String raw) {
     // e.g. "+2 CHA; +1 DEX" or "+1 All Stats"
     final Map<String, int> result = {};
     if (raw.trim().isEmpty) return result;
@@ -146,7 +146,7 @@ class SpeciesDef {
   }
 }
 
-/// Represents a Trait definition from `MobileRPG - Traits.csv`
+/// Represents a Trait definition from `Traits.csv`
 class TraitDef {
   final String name;
   final String type;
@@ -177,7 +177,7 @@ class TraitDef {
   }
 }
 
-/// Represents an Origin definition from `MobileRPG - Origins.csv`
+/// Represents an Origin definition from `Origins.csv`
 class OriginDef {
   final String name;
   final String genre;
@@ -213,7 +213,7 @@ class OriginDef {
   }
 }
 
-/// Represents a Feat definition from `MobileRPG - Feats.csv`
+/// Represents a Feat definition from `Feats.csv`
 class FeatDef {
   final String name;
   final String genre;
@@ -244,7 +244,7 @@ class FeatDef {
   }
 }
 
-/// Represents an Item definition from `MobileRPG - Items.csv`
+/// Represents an Item definition from `Items.csv`
 class ItemDef {
   final String name;
   final String genre;
@@ -278,5 +278,32 @@ class ItemDef {
       cost: int.parse(row[6].toString()),
       description: row[7].toString(),
     );
+  }
+}
+
+/// Represents a Magic Pillar definition from `MagicPillars.csv`
+class PillarDef {
+  final String name;
+  final String description;
+  final List<String> keywords;
+
+  PillarDef({
+    required this.name,
+    required this.description,
+    required this.keywords,
+  });
+
+  factory PillarDef.fromCsv(List<dynamic> row) {
+    // Name,Description,Keywords
+    return PillarDef(
+      name: row[0].toString(),
+      description: row[1].toString(),
+      keywords: _parseList(row[2].toString()),
+    );
+  }
+
+  static List<String> _parseList(String raw) {
+    if (raw.isEmpty) return [];
+    return raw.split(',').map((e) => e.trim()).toList();
   }
 }

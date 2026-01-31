@@ -47,6 +47,12 @@ class MockGeminiService implements GeminiService {
     return Future.value(
         TurnResult(narrative: 'Mock Function Response', stateUpdates: {}));
   }
+
+  @override
+  Future<String> generateContent(String prompt,
+      {String? modelOverride, String? apiKeyOverride}) async {
+    return "Mock content";
+  }
 }
 
 // ... class mock gemini ...

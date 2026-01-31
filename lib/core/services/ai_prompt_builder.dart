@@ -79,8 +79,9 @@ $locationContext
 
 Rules:
 1. Adhere to the Custom Modular D20 System logic (Standard D20 formatting).
-2. If the player attempts to cast a spell NOT in their Known Spells, or of a level higher than they have slots for, reject the action and narrate the failure gracefully.
-3. If the player tries to use a class feature NOT in their Class Features, narrate why they cannot do that yet.
+2. FIRST and FOREMOST: Narrative the result of the user's requested action (e.g. "You look around...", "You attack the goblin...") BEFORE providing environmental flavor text.
+3. If the player attempts to cast a spell NOT in their Known Spells, or of a level higher than they have slots for, reject the action and narrate the failure gracefully.
+4. If the player tries to use a class feature NOT in their Class Features, narrate why they cannot do that yet.
 4. Output Format: You must ALWAYS return valid JSON.
 5. Schema:
 {

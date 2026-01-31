@@ -21,6 +21,9 @@ class CharacterCreationState {
   final String? magicPillar;
   final String? magicDescription;
 
+  final Set<String> excludedSpecies; // Names of species to hide
+  final bool isMagicEnabled; // From World settings
+
   CharacterCreationState({
     required this.activeGenres,
     this.selectedSpecies,
@@ -33,6 +36,8 @@ class CharacterCreationState {
     this.skillPointsBudget = 3,
     this.magicPillar,
     this.magicDescription,
+    this.excludedSpecies = const {},
+    this.isMagicEnabled = false,
   });
 
   CharacterCreationState copyWith({
@@ -47,6 +52,8 @@ class CharacterCreationState {
     int? skillPointsBudget,
     String? magicPillar,
     String? magicDescription,
+    Set<String>? excludedSpecies,
+    bool? isMagicEnabled,
   }) {
     return CharacterCreationState(
       activeGenres: activeGenres ?? this.activeGenres,
@@ -60,6 +67,8 @@ class CharacterCreationState {
       skillPointsBudget: skillPointsBudget ?? this.skillPointsBudget,
       magicPillar: magicPillar ?? this.magicPillar,
       magicDescription: magicDescription ?? this.magicDescription,
+      excludedSpecies: excludedSpecies ?? this.excludedSpecies,
+      isMagicEnabled: isMagicEnabled ?? this.isMagicEnabled,
     );
   }
 }
@@ -70,8 +79,22 @@ class CreationNotifier extends Notifier<CharacterCreationState> {
     return CharacterCreationState(activeGenres: []);
   }
 
+  void toggleSpeciesExclusion(String speciesName) {
+    final newExcluded = Set<String>.from(state.excludedSpecies);
+    if (newExcluded.contains(speciesName)) {
+      newExcluded.remove(speciesName);
+    } else {
+      newExcluded.add(speciesName);
+    }
+    state = state.copyWith(excludedSpecies: newExcluded);
+  }
+
   void setGenres(List<String> genres) {
     state = state.copyWith(activeGenres: genres);
+  }
+
+  void setMagicEnabled(bool enabled) {
+    state = state.copyWith(isMagicEnabled: enabled);
   }
 
   void setSpecies(SpeciesDef species) {
@@ -226,6 +249,44 @@ class CreationNotifier extends Notifier<CharacterCreationState> {
 
   bool hasTrait(String traitName) {
     return state.selectedTraits.any((t) => t.name == traitName);
+  }
+
+  // Calculates the final attributes including species bonuses
+  Map<String, int> get totalAttributes {
+    final base = state.attributes;
+    final species = state.selectedSpecies;
+
+    if (species == null) return Map<String, int>.from(base);
+
+    final total = Map<String, int>.from(base);
+
+    // Apply Species Stats
+    species.stats.forEach((key, value) {
+      if (key == 'ALL') {
+        // Add to all existing keys logic
+        // Or strictly add to the standard 6 (if present in base)
+        // Assuming base is initialized
+        for (var k in [
+          'Strength',
+          'Dexterity',
+          'Constitution',
+          'Intelligence',
+          'Wisdom',
+          'Charisma'
+        ]) {
+          if (total.containsKey(k)) {
+            total[k] = (total[k] ?? 0) + value;
+          } else {
+            total[k] = 8 + value; // Fallback only if base missing
+          }
+        }
+      } else {
+        // Specific Attribute
+        total[key] = (total[key] ?? 8) + value;
+      }
+    });
+
+    return total;
   }
 }
 

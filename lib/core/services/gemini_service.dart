@@ -47,8 +47,8 @@ class GeminiService {
       model: _modelName,
       apiKey: _apiKey,
       generationConfig: GenerationConfig(
-        responseMimeType: 'application/json',
-      ),
+          // responseMimeType: 'application/json', // Unsupported with Tools in some versions
+          ),
       systemInstruction: Content.system(instruction),
       tools: [locationTool, diceTool],
     );
@@ -201,10 +201,19 @@ class GeminiService {
           e.toString().toLowerCase().contains('api key')) {
         throw ApiKeyException('Invalid API Key provided', e);
       }
-      throw AppBaseException('AI Service Error', e);
+      if (e.toString().contains('429') ||
+          e.toString().toLowerCase().contains('quota')) {
+        throw QuotaExceededException(
+            "You've exceeded your 20 requests per minute. Please wait a moment.",
+            e);
+      }
+      print('🚨 GEMINI AI EXCEPTION: $e');
+      throw AppBaseException('AI Service Error: $e', e);
     } on SocketException catch (e) {
+      print('🚨 NETWORK EXCEPTION: $e');
       throw NetworkException('No internet connection', e);
     } catch (e) {
+      print('🚨 UNEXPECTED GEMINI ERROR: $e');
       throw AppBaseException('Unexpected error communicating with AI', e);
     }
 
@@ -285,6 +294,26 @@ class GeminiService {
       // Check if it's already one of our exceptions
       if (e is AppBaseException) rethrow;
       throw AppBaseException('Unexpected error communicating with AI', e);
+    }
+  }
+
+  /// Generates content from a single prompt without session history.
+  /// Useful for auxiliary tasks like summarization, analysis, or book generation.
+  /// Optionally accepts model and API key overrides for ghostwriting.
+  Future<String> generateContent(String prompt,
+      {String? modelOverride, String? apiKeyOverride}) async {
+    // Create a fresh model instance for this one-off task
+    final model = GenerativeModel(
+      model: modelOverride ?? _modelName,
+      apiKey: apiKeyOverride ?? _apiKey,
+    );
+
+    try {
+      final response = await model.generateContent([Content.text(prompt)]);
+      return response.text ?? '';
+    } catch (e) {
+      print('🚨 GEMINI AUXILIARY GENERATION ERROR: $e');
+      throw AppBaseException('Failed to generate auxiliary content', e);
     }
   }
 }

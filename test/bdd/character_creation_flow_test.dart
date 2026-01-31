@@ -6,125 +6,293 @@ import 'package:ttrpg_sim/core/providers.dart';
 import 'package:ttrpg_sim/features/creation/character_creation_screen.dart';
 import 'package:drift/native.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
-
-import '../shared_test_utils.dart';
 import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
 import 'mock_gemini_service.dart';
-import 'package:ttrpg_sim/features/creation/steps/step_species.dart';
-import 'package:ttrpg_sim/features/creation/steps/step_origin.dart';
+import '../shared_test_utils.dart';
 
 void main() {
-  testWidgets('BDD Scenario: Create Character', (WidgetTester tester) async {
-    // GIVEN I am on the Character Creation screen for a new world
-    final mockLoader = MockRuleDataLoader();
-    mockLoader.setTestScreenSize(tester);
+  late MockRuleDataLoader mockLoader;
+  late AppDatabase db;
+  late MockGeminiService mockGemini;
+
+  setUp(() {
+    mockLoader = MockRuleDataLoader();
     mockLoader.setupDefaultRules();
-    await ModularRulesController().loadRules(loader: mockLoader);
+
+    // Add Archetype-specific rules to mock loader
+    mockLoader.setResponse(
+        'assets/system/Genres.csv',
+        'Name,Description,Currency,Themes\r\n'
+            'Fantasy,Magic worlds,GP,Magic\r\n'
+            'Superhero,Power worlds,Credits,Powers\r\n'
+            'Horror,Fear worlds,USD,Fear');
+
+    mockLoader.setResponse(
+        'assets/system/Species.csv',
+        'Name,Genre,Stats,Free Traits\r\n'
+            'Human,Universal,,None\r\n'
+            'Elf,Fantasy,,None\r\n'
+            'Mutant,Superhero,,None\r\n'
+            'Ghost,Horror,,None');
+
+    mockLoader.setResponse(
+        'assets/system/Skills.csv',
+        'Name,Genre,Attr,Locked,Desc\r\n'
+            'Athletics,Universal,STR,FALSE,Run\r\n'
+            'Spellcasting,Fantasy,INT,TRUE,Cast\r\n'
+            'Power Control,Superhero,WIS,FALSE,Finesse\r\n'
+            'Exorcism,Horror,CHA,TRUE,Banish');
+
+    mockLoader.setResponse(
+        'assets/system/Origins.csv',
+        'Name,Genre,Skills,Feat,Items,Desc\r\n'
+            'Mage,Fantasy,Spellcasting,Arcane Student,,Trained\r\n'
+            'Hero,Superhero,Power Control,None,,Champion\r\n'
+            'Priest,Horror,Exorcism,None,,Holy');
+
+    mockLoader.setResponse(
+        'assets/system/Feats.csv',
+        'Name,Genre,Type,Pre,Desc,Effect\r\n'
+            'Arcane Student,Fantasy,Magic,None,Study,Unlock Spellcasting\r\n'
+            'None,Universal,Special,None,None,None');
+
+    mockLoader.setResponse(
+        'assets/system/Traits.csv',
+        'Name,Type,Cost,Genre,Desc,Effect\r\n'
+            'Super Powered,Positive,2,Superhero,Born with it,Unlock Magic\r\n'
+            'Psychic Gift,Positive,2,Horror,Eldritch sense,Unlock Magic');
 
     final inMemoryExecutor = NativeDatabase.memory();
-    final db = AppDatabase(inMemoryExecutor);
-    final mockGemini = MockGeminiService();
-    const worldId = 1;
+    db = AppDatabase(inMemoryExecutor);
+    mockGemini = MockGeminiService();
+  });
 
-    // Seed World
-    await db.gameDao.createWorld(WorldsCompanion.insert(
-      id: const Value(1),
-      name: 'Test World',
-      genre: 'Fantasy',
-      description: 'Test',
-    ));
-    // Seed Placeholder
-    await db.gameDao.updateCharacterStats(
-      const CharacterCompanion(
-        name: Value('Traveler'),
-        species: Value('Human'), // Default
-        level: Value(1),
-        currentHp: Value(10),
-        maxHp: Value(10),
-        gold: Value(0),
-        location: Value('Unknown'),
-        worldId: Value(worldId),
-      ),
-    );
+  tearDown(() async {
+    await db.close();
+  });
 
-    // Provide dependencies
+  Future<void> pumpCreationScreen(WidgetTester tester, int worldId) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           databaseProvider.overrideWithValue(db),
           geminiServiceProvider.overrideWithValue(mockGemini),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
           home: CharacterCreationScreen(worldId: worldId),
         ),
       ),
     );
     await tester.pumpAndSettle();
+  }
 
-    // WHEN I enter "Sir Testalot" as the name
-    await tester.enterText(find.byType(TextField).first, 'Sir Testalot');
-    await tester.pumpAndSettle();
+  group('Magic Archetype Creation - BDD Widget Tests', () {
+    testWidgets('Fantasy Mage - Matter Pillar', (WidgetTester tester) async {
+      mockLoader.setTestScreenSize(tester);
+      await ModularRulesController().loadRules(loader: mockLoader);
 
-    // AND I select "Human" species (Default) - Class selection removed
-    // (We verify defaults are present to confirm "selection")
-    expect(find.text('Human'), findsWidgets);
+      // GIVEN: A Fantasy world with magic enabled
+      await db.gameDao.createWorld(WorldsCompanion.insert(
+        name: 'Magic Realm',
+        genre: 'Fantasy',
+        genres: const Value('["Fantasy"]'),
+        description: 'Test',
+        isMagicEnabled: const Value(true),
+      ));
+      const worldId = 1;
 
-    // Navigate Stepper
-    // Step 1: Species. Select 'Human'.
-    final humanOption =
-        find.byKey(const ValueKey('species_option_Human')).first;
-    await tester.scrollUntilVisible(humanOption, 500,
-        scrollable: find.descendant(
-            of: find.byType(StepSpecies), matching: find.byType(Scrollable)));
-    await tester.tap(humanOption);
-    await tester.pumpAndSettle();
+      await pumpCreationScreen(tester, worldId);
 
-    final nextBtn1 = find.byKey(const ValueKey('step_0_next')).first;
-    await tester.ensureVisible(nextBtn1);
-    await tester.tap(nextBtn1);
-    await tester.pumpAndSettle();
+      // WHEN I enter "Gandalf"
+      await tester.enterText(find.byType(TextField).first, 'Gandalf');
 
-    // Step 2: Origin. Select 'Refugee'.
-    final refugeeOption =
-        find.byKey(const ValueKey('origin_option_Refugee')).first;
-    await tester.scrollUntilVisible(refugeeOption, 500,
-        scrollable: find.descendant(
-            of: find.byType(StepOrigin), matching: find.byType(Scrollable)));
-    await tester.tap(refugeeOption);
-    await tester.pumpAndSettle();
+      // AND select Elf species
+      await tester.tap(find.byKey(const ValueKey('species_option_Elf')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nav_next_button')));
+      await tester.pumpAndSettle();
 
-    final nextBtn2 = find.byKey(const ValueKey('step_1_next')).first;
-    await tester.ensureVisible(nextBtn2);
-    await tester.tap(nextBtn2);
-    await tester.pumpAndSettle();
+      // Step 2: Select Mage origin
+      await tester.tap(find.byKey(const ValueKey('origin_option_Mage')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nav_next_button')));
+      await tester.pumpAndSettle();
 
-    // Step 3: Traits. Next.
-    final nextBtn3 = find.byKey(const ValueKey('step_2_next'));
-    await tester.ensureVisible(nextBtn3);
-    await tester.tap(nextBtn3);
-    await tester.pumpAndSettle();
+      // Step 3: Traits (Skip)
+      await tester.tap(find.byKey(const ValueKey('nav_next_button')));
+      await tester.pumpAndSettle();
 
-    // Step 4: Attributes. Next.
-    final nextBtn4 = find.byKey(const ValueKey('step_3_next'));
-    await tester.ensureVisible(nextBtn4);
-    await tester.tap(nextBtn4);
-    await tester.pumpAndSettle();
+      // Step 4: Attributes (Skip/Defaults)
+      await tester.tap(find.byKey(const ValueKey('nav_next_button')));
+      await tester.pumpAndSettle();
 
-    // Step 5: Skills (Finish).
-    // Verify Finish button
-    final finishBtn = find.byKey(const ValueKey('step_4_next'));
-    await tester.ensureVisible(finishBtn);
-    await tester.tap(finishBtn);
+      // Step 5: Magic
+      // Verify Spellcasting is Rank 1 (from Origin)
+      expect(find.text('Spellcasting'), findsOneWidget);
+      expect(find.text('Rank 1'), findsOneWidget);
 
-    // Pump navigation
-    await tester.pumpAndSettle();
+      // Verify Magic section shows up
+      expect(find.text('Magic Expression'), findsOneWidget);
 
-    // Verify DB
-    final char = await db.gameDao.getCharacter(worldId);
-    expect(char, isNotNull);
-    expect(char!.name, 'Sir Testalot');
-    expect(char.species, 'Human');
+      // Choose Matter Pillar
+      await tester.tap(find.byKey(const ValueKey('magic_pillar_dropdown')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Matter').last);
+      await tester.pumpAndSettle();
 
-    await db.close();
+      // Enter Description
+      await tester.enterText(
+          find.byKey(const ValueKey('magic_description_field')),
+          'Elemental Stone Shaper');
+      await tester.pumpAndSettle();
+
+      // Finish
+      await tester.tap(find.byKey(const ValueKey('nav_next_button')));
+      await tester.pumpAndSettle();
+
+      // THEN: Verify character in DB
+      final char = await db.gameDao.getCharacter(worldId);
+      expect(char!.name, 'Gandalf');
+      expect(char.species, 'Elf');
+      expect(char.backstory, contains('Magic Pillar: Matter'));
+      expect(char.backstory, contains('Elemental Stone Shaper'));
+    });
+
+    testWidgets('Superhero Blaster - Energy Pillar',
+        (WidgetTester tester) async {
+      mockLoader.setTestScreenSize(tester);
+      await ModularRulesController().loadRules(loader: mockLoader);
+
+      // GIVEN: A Superhero world with magic/powers enabled
+      await db.gameDao.createWorld(WorldsCompanion.insert(
+        name: 'Metro City',
+        genre: 'Superhero',
+        genres: const Value('["Superhero"]'),
+        description: 'Test',
+        isMagicEnabled: const Value(true),
+      ));
+      const worldId = 1;
+
+      await pumpCreationScreen(tester, worldId);
+
+      // WHEN I enter "BlastForce"
+      await tester.enterText(find.byType(TextField).first, 'BlastForce');
+
+      // AND select Mutant species
+      await tester.tap(find.byKey(const ValueKey('species_option_Mutant')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nav_next_button')));
+      await tester.pumpAndSettle();
+
+      // Step 2: Select Hero origin
+      await tester.tap(find.byKey(const ValueKey('origin_option_Hero')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nav_next_button')));
+      await tester.pumpAndSettle();
+
+      // Step 3: Enable "Super Powered" Trait (Required for Magic logic in this build)
+      await tester.tap(find.text('Add'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nav_next_button')));
+      await tester.pumpAndSettle();
+
+      // Step 4: Attributes
+      await tester.tap(find.byKey(const ValueKey('nav_next_button')));
+      await tester.pumpAndSettle();
+
+      // Step 5: Magic
+      // We need to rank up "Power Control" to 1 to unlock magic section
+      await tester.tap(find.byKey(const ValueKey('skill_add_Power Control')));
+      await tester.pumpAndSettle();
+
+      // Choose Energy Pillar
+      await tester.tap(find.byKey(const ValueKey('magic_pillar_dropdown')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Energy').last);
+      await tester.pumpAndSettle();
+
+      // Enter Description
+      await tester.enterText(
+          find.byKey(const ValueKey('magic_description_field')),
+          'Force Projectors');
+      await tester.pumpAndSettle();
+
+      // Finish
+      await tester.tap(find.byKey(const ValueKey('nav_next_button')));
+      await tester.pumpAndSettle();
+
+      // THEN: Verify character in DB
+      final char = await db.gameDao.getCharacter(worldId);
+      expect(char!.name, 'BlastForce');
+      expect(char.backstory, contains('Magic Pillar: Energy'));
+    });
+
+    testWidgets('Horror Psychic - Mind Pillar', (WidgetTester tester) async {
+      mockLoader.setTestScreenSize(tester);
+      await ModularRulesController().loadRules(loader: mockLoader);
+
+      // GIVEN: A Horror world with magic enabled
+      await db.gameDao.createWorld(WorldsCompanion.insert(
+        name: 'Silent Hill',
+        genre: 'Horror',
+        genres: const Value('["Horror"]'),
+        description: 'Test',
+        isMagicEnabled: const Value(true),
+      ));
+      const worldId = 1;
+
+      await pumpCreationScreen(tester, worldId);
+
+      // WHEN I enter "The Specter"
+      await tester.enterText(find.byType(TextField).first, 'The Specter');
+
+      // AND select Ghost species
+      await tester.tap(find.byKey(const ValueKey('species_option_Ghost')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nav_next_button')));
+      await tester.pumpAndSettle();
+
+      // Step 2: Select Priest origin
+      await tester.tap(find.byKey(const ValueKey('origin_option_Priest')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nav_next_button')));
+      await tester.pumpAndSettle();
+
+      // Step 3: Add "Psychic Gift" Trait
+      await tester.tap(find.text('Add'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nav_next_button')));
+      await tester.pumpAndSettle();
+
+      // Step 4: Attributes
+      await tester.tap(find.byKey(const ValueKey('nav_next_button')));
+      await tester.pumpAndSettle();
+
+      // Step 5: Magic
+      // Exorcism is already Rank 1 from Priest
+      expect(find.text('Exorcism'), findsOneWidget);
+
+      // Choose Mind Pillar
+      await tester.tap(find.byKey(const ValueKey('magic_pillar_dropdown')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Mind').last);
+      await tester.pumpAndSettle();
+
+      // Enter Description
+      await tester.enterText(
+          find.byKey(const ValueKey('magic_description_field')),
+          'Telepathic Scream');
+      await tester.pumpAndSettle();
+
+      // Finish
+      await tester.tap(find.byKey(const ValueKey('nav_next_button')));
+      await tester.pumpAndSettle();
+
+      // THEN: Verify character in DB
+      final char = await db.gameDao.getCharacter(worldId);
+      expect(char!.name, 'The Specter');
+      expect(char.backstory, contains('Magic Pillar: Mind'));
+      expect(char.backstory, contains('Telepathic Scream'));
+    });
   });
 }

@@ -66,6 +66,12 @@ class MockGeminiService implements GeminiService {
       functionCall: nextFunctionCall,
     );
   }
+
+  @override
+  Future<String> generateContent(String prompt,
+      {String? modelOverride, String? apiKeyOverride}) async {
+    return "Mock content";
+  }
 }
 
 void main() {

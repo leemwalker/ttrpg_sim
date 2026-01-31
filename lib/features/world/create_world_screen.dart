@@ -21,6 +21,7 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
 
   List<String> _availableGenres = [];
   bool _isLoading = true;
+  bool _isMagicEnabled = false;
 
   @override
   void initState() {
@@ -55,6 +56,9 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
       } else {
         _selectedGenres.add(genre);
       }
+      // Auto-set magic toggle based on selected genres
+      _isMagicEnabled = _selectedGenres
+          .any((g) => ['Fantasy', 'Horror', 'Superhero'].contains(g));
     });
   }
 
@@ -87,6 +91,7 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
       tone: drift.Value(
           _toneController.text.isEmpty ? 'Standard' : _toneController.text),
       description: _descriptionController.text,
+      isMagicEnabled: drift.Value(_isMagicEnabled),
     ));
 
     // Create Initial Linked Character (Traveler/Placeholder)
@@ -175,6 +180,19 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
                 alignLabelWithHint: true,
               ),
               maxLines: 4,
+            ),
+            const SizedBox(height: 16),
+            SwitchListTile(
+              title: const Text('Enable Magic/Powers'),
+              subtitle: const Text('Allow characters to use magical abilities'),
+              value: _isMagicEnabled,
+              onChanged: (val) => setState(() => _isMagicEnabled = val),
+              secondary: Icon(
+                Icons.auto_fix_high,
+                color: _isMagicEnabled
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+              ),
             ),
             const SizedBox(height: 24),
             FilledButton.icon(

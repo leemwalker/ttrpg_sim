@@ -51,7 +51,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Character Creation'), findsOneWidget);
+    expect(find.text('Select Species'), findsWidgets);
 
     // WHEN I press the "Back" button (AppBar back arrow)
     // Implicitly provided by Scaffold AppBar if canPop, OR we force a pop if it's the root.
@@ -88,7 +88,7 @@ void main() {
     expect(find.byType(CharacterCreationScreen), findsOneWidget);
 
     // ACT: Tap Back Button
-    final backButton = find.byType(BackButton);
+    final backButton = find.byIcon(Icons.arrow_back);
     expect(backButton, findsOneWidget);
     await tester.tap(backButton);
     await tester.pumpAndSettle();

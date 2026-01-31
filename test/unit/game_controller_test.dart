@@ -60,6 +60,7 @@ void main() {
     description: 'A test',
     tone: 'Standard',
     genres: '["Fantasy"]',
+    isMagicEnabled: true,
     createdAt: DateTime(2025, 1, 1),
   );
 

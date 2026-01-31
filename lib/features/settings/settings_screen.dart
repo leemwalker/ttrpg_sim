@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ttrpg_sim/features/settings/homebrew_manager_screen.dart';
+
 import 'package:ttrpg_sim/features/settings/settings_provider.dart';
+import 'package:ttrpg_sim/features/settings/paid_key_usage_mode.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -12,16 +13,19 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late TextEditingController _apiKeyController;
+  late TextEditingController _paidApiKeyController;
 
   @override
   void initState() {
     super.initState();
     _apiKeyController = TextEditingController();
+    _paidApiKeyController = TextEditingController();
   }
 
   @override
   void dispose() {
     _apiKeyController.dispose();
+    _paidApiKeyController.dispose();
     super.dispose();
   }
 
@@ -30,17 +34,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
 
-    // Sync controller with state if it's empty and we have a key
-    // But be careful not to overwrite user typing.
-    // Ideally, we only set it once or if the state changes externally.
-    // For simplicity, we'll just initialize it with the current value if the widget is rebuilding and the text is empty/different?
-    // Actually, handling text controllers with Riverpod needs care.
-    // We'll just set the text if the controller is empty and there is a value initially.
+    // Sync controllers with state
     if (_apiKeyController.text.isEmpty && settings.apiKey != null) {
       _apiKeyController.text = settings.apiKey!;
     }
-    // Also if the user clears it, we want it explicitly empty.
-    // Let's just listen to onChanged and update the provider.
+    if (_paidApiKeyController.text.isEmpty && settings.paidApiKey != null) {
+      _paidApiKeyController.text = settings.paidApiKey!;
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -49,6 +49,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          // ===== APPEARANCE =====
           _buildSectionHeader('Appearance'),
           const SizedBox(height: 8),
           SegmentedButton<ThemeMode>(
@@ -74,14 +75,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               notifier.setTheme(newSelection.first);
             },
           ),
+
           const SizedBox(height: 24),
+
+          // ===== AI ENGINE =====
           _buildSectionHeader('AI Engine'),
           const SizedBox(height: 8),
           TextField(
             controller: _apiKeyController,
             decoration: const InputDecoration(
-              labelText: 'Gemini API Key',
-              hintText: 'Enter custom API Key',
+              labelText: 'Gemini API Key (Free)',
+              hintText: 'Enter your API Key',
               border: OutlineInputBorder(),
               helperText: 'Required - Get your key at aistudio.google.com',
             ),
@@ -94,45 +98,145 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           DropdownButtonFormField<String>(
             initialValue: settings.modelName,
             decoration: const InputDecoration(
-              labelText: 'Model',
+              labelText: 'AI GM Model',
               border: OutlineInputBorder(),
             ),
-            items: const [
-              DropdownMenuItem(
-                value: 'models/gemini-2.5-flash',
-                child: Text('Gemini 2.5 Flash'),
-              ),
-              DropdownMenuItem(
-                value: 'models/gemini-2.5-pro',
-                child: Text('Gemini 2.5 Pro'),
-              ),
-              DropdownMenuItem(
-                value: 'models/gemini-2.0-flash-exp',
-                child: Text('Gemini 2.0 Flash Exp'),
-              ),
-            ],
+            items: _buildModelDropdownItems(settings.modelName),
             onChanged: (value) {
               if (value != null) {
                 notifier.setModel(value);
               }
             },
           ),
+
           const SizedBox(height: 24),
-          _buildSectionHeader('Homebrew'),
+
+          // ===== PAID API KEY =====
+          _buildSectionHeader('Paid API Key'),
           const SizedBox(height: 8),
-          ListTile(
-            title: const Text('Manage Custom Content'),
-            subtitle: const Text('Add custom Species and Classes'),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => const HomebrewManagerScreen(),
-              ));
+          TextField(
+            controller: _paidApiKeyController,
+            decoration: const InputDecoration(
+              labelText: 'Paid Gemini API Key',
+              hintText: 'Enter paid API Key (optional)',
+              border: OutlineInputBorder(),
+              helperText: 'Used for ghostwriting or as fallback',
+            ),
+            obscureText: true,
+            onChanged: (value) {
+              notifier.setPaidApiKey(value);
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Usage Mode
+          Text('Usage Mode', style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: 8),
+          SegmentedButton<PaidKeyUsageMode>(
+            segments: PaidKeyUsageMode.values.map((mode) {
+              return ButtonSegment(
+                value: mode,
+                label: Text(mode.displayName),
+                tooltip: mode.description,
+              );
+            }).toList(),
+            selected: {settings.paidKeyMode},
+            onSelectionChanged: (Set<PaidKeyUsageMode> newSelection) {
+              notifier.setPaidKeyMode(newSelection.first);
+            },
+          ),
+          const SizedBox(height: 8),
+          Text(
+            settings.paidKeyMode.description,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+
+          // Rate Slider (only shown for rate-based mode)
+          if (settings.paidKeyMode == PaidKeyUsageMode.rateBased) ...[
+            const SizedBox(height: 16),
+            Text(
+              'Rate: ${settings.paidKeyRate.toStringAsFixed(1)} times/minute',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            Slider(
+              value: settings.paidKeyRate,
+              min: 0.1,
+              max: 10.0,
+              divisions: 99, // 0.1 increments
+              label: settings.paidKeyRate.toStringAsFixed(1),
+              onChanged: (value) {
+                notifier.setPaidKeyRate(value);
+              },
+            ),
+            Text(
+              _getRateDescription(settings.paidKeyRate),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          ],
+
+          const SizedBox(height: 24),
+
+          // ===== GHOSTWRITING =====
+          _buildSectionHeader('Ghostwriting (LitRPG Studio)'),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            initialValue: settings.ghostwritingModel,
+            decoration: const InputDecoration(
+              labelText: 'Ghostwriting Model',
+              border: OutlineInputBorder(),
+              helperText: 'Model used for novel generation',
+            ),
+            items: _buildModelDropdownItems(settings.ghostwritingModel),
+            onChanged: (value) {
+              if (value != null) {
+                notifier.setGhostwritingModel(value);
+              }
             },
           ),
         ],
       ),
     );
+  }
+
+  List<DropdownMenuItem<String>> _buildModelDropdownItems(String currentValue) {
+    const standardModels = [
+      ('models/gemini-2.5-flash', 'Gemini 2.5 Flash'),
+      ('models/gemini-2.5-pro', 'Gemini 2.5 Pro'),
+      ('models/gemini-2.0-flash-exp', 'Gemini 2.0 Flash Exp'),
+    ];
+
+    final items = standardModels.map((m) {
+      return DropdownMenuItem(
+        value: m.$1,
+        child: Text(m.$2),
+      );
+    }).toList();
+
+    // Safety fallback: If the stored model isn't in our standard list, add it.
+    if (!standardModels.any((m) => m.$1 == currentValue)) {
+      items.add(DropdownMenuItem(
+        value: currentValue,
+        child: Text(currentValue),
+      ));
+    }
+
+    return items;
+  }
+
+  String _getRateDescription(double rate) {
+    if (rate < 1.0) {
+      final minutes = (1.0 / rate).round();
+      return 'Paid key used once every ~$minutes minutes';
+    } else if (rate == 1.0) {
+      return 'Paid key used once per minute';
+    } else {
+      final seconds = (60.0 / rate).round();
+      return 'Paid key used every ~$seconds seconds';
+    }
   }
 
   Widget _buildSectionHeader(String title) {

@@ -8,12 +8,12 @@ Regenerator,Positive,3,Sci-Fi,Your cells heal rapidly.,Heal 1 HP per minute out 
 Lucky,Positive,2,Universal,Fate favors you.,Reroll one d20 roll per Long Rest.
 Night Eyes,Positive,2,Universal,You can see in the dark.,Darkvision 60ft.
 Cyber-Interface,Positive,2,Sci-Fi,You have a port for direct data connection.,Advantage on Hacking; +1 AC (Subdermal Armor).
-Wealthy,Positive,1,Universal,You come from money.,Start with 3x standard Currency.
+Wealthy,Positive,1,Universal,You come from money.,"Start with 3x standard Currency, cancels out Poor."
 Linguist,Positive,1,Universal,You have a knack for tongues.,Learn 2 extra Languages.
 Skill Expert,Positive,1,Universal,You are widely trained.,Gain Proficiency in 1 extra Skill.
 Clumsy,Negative,-1,Universal,You lack coordination.,Disadvantage on Acrobatics.
 Technophobe,Negative,-1,Sci-Fi,You struggle with advanced tech.,Disadvantage on Computer/Piloting checks.
-Poor,Negative,-1,Universal,You are destitute.,Start with 0 Currency and only Rags.
+Poor,Negative,-1,Universal,You are destitute.,"Start with 0 Currency, cancels out Wealthy."
 Wanted,Negative,-2,Universal,A faction is hunting you.,GM introduces Bounty Hunters randomly.
 Frail,Negative,-2,Universal,You bruise easily.,-1 Max HP per Level.
 Mute,Negative,-2,Universal,You cannot speak.,Cannot cast Verbal spells or communicate easily.

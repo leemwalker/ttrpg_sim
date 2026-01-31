@@ -46,7 +46,7 @@ Plasma Cutter,Sci-Fi,Weapon,1d6,Fire,Tool/Weapon,150,Industrial mining tool used
 Energy Shield,Sci-Fi,Armor,,,+2 AC,300,Wrist-mounted force field generator.,,,
 Gravity Boots,Sci-Fi,Gear,,,Walk on walls/ceilings in Zero-G,200,Magnetic plated boots.,,,
 Portable Scanner,Sci-Fi,Tool,,,Detects lifeforms/energy (60ft),100,Handheld tricorder device.,,,
-Monofilament Whip,Cyberpunk,Weapon,1d6,Slashing,"Finesse, Reach",250,Molecularly thin wire,dangerous to wield.,,
+Monofilament Whip,Cyberpunk,Weapon,1d6,Slashing,"Finesse, Reach",250,"Molecularly thin wire, dangerous to wield.",,
 Optical Camo,Cyberpunk,Gear,,,Advantage on Stealth (1 min/charge),500,Active camouflage suit overlay.,,,
 Smart Glasses,Cyberpunk,Gear,,,"HUD,Recording,Zoom",100,Eyewear with data overlay.,
 Stim-Pack (Reflex),Cyberpunk,Consumable,,,"Advantage on Dex checks (1 hr), Crash later",50,Chemical adrenaline booster.,,,

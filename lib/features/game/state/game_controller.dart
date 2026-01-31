@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:ttrpg_sim/features/game/services/game_action_handler.dart';
 
 import 'package:ttrpg_sim/core/constants/app_constants.dart';
@@ -38,12 +39,70 @@ class GameController extends _$GameController {
       );
     }
 
+    // Initial word count fetch
+    final wordCount = await dao.getWordCount(_characterId);
+
     return GameState(
       messages: messages,
       character: null,
       inventory: [],
       isLoading: false,
+      wordCount: wordCount,
+      bookCompletion: (wordCount / 50000).clamp(0.0, 1.0),
     );
+  }
+
+  // Allows UI to await the story analysis result
+  Future<String> runStoryAnalysis() async {
+    final generator = ref.read(storyGeneratorServiceProvider);
+    try {
+      return await generator.analyzeArc(_characterId);
+    } catch (e) {
+      return "Error analyzing story: $e";
+    }
+  }
+
+  Future<void> exportBook() async {
+    final generator = ref.read(storyGeneratorServiceProvider);
+    final pdfService = ref.read(pdfExportServiceProvider);
+    final dao = ref.read(gameDaoProvider);
+
+    // update state to Generating
+    final currentState = state.value;
+    if (currentState != null) {
+      state = AsyncValue.data(currentState.copyWith(
+          isGeneratingBook: true, generationStatus: "Initializing..."));
+    }
+
+    try {
+      // Listen to stream
+      String fullBookText = "";
+      await for (final status in generator.streamBookGeneration(_characterId)) {
+        if (status.startsWith("COMPLETE:")) {
+          fullBookText = status.substring("COMPLETE:".length);
+        } else {
+          // Update status
+          state =
+              AsyncValue.data(state.value!.copyWith(generationStatus: status));
+        }
+      }
+
+      state = AsyncValue.data(
+          state.value!.copyWith(generationStatus: "Generating PDF..."));
+
+      final char = await dao.getCharacterById(_characterId);
+      if (char != null) {
+        final file = await pdfService.generatePdf(fullBookText, char);
+        // Log the file path for debugging purposes
+        debugPrint("PDF saved to: ${file.path}");
+        // TODO: In a real app, share the file via share_plus or open it.
+      }
+    } catch (e) {
+      debugPrint("Error exporting book: $e");
+    } finally {
+      state = AsyncValue.data(
+          state.value!.copyWith(isGeneratingBook: false, generationStatus: ""));
+    }
   }
 
   Future<void> submitAction(String text) async {
@@ -261,11 +320,17 @@ NPCs: ${knownNpcs.map((n) => "${n.name}: ${n.role}").join('; ')}
     // Update State
     final messages = await dao.getRecentMessages(
         _characterId, AppConstants.chatHistoryLimit);
+
+    // Update word count
+    final wordCount = await dao.getWordCount(_characterId);
+
     state = AsyncValue.data(GameState(
       messages: messages,
       character: null,
       inventory: [],
       isLoading: false,
+      wordCount: wordCount,
+      bookCompletion: (wordCount / 50000).clamp(0.0, 1.0),
     ));
   }
 
