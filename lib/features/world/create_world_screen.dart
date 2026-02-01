@@ -6,6 +6,7 @@ import 'package:ttrpg_sim/core/database/database.dart';
 import 'package:ttrpg_sim/core/providers.dart';
 import 'package:ttrpg_sim/features/creation/character_creation_screen.dart';
 import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
+import 'package:ttrpg_sim/core/models/rules/rule_models.dart';
 
 class CreateWorldScreen extends ConsumerStatefulWidget {
   const CreateWorldScreen({super.key});
@@ -22,6 +23,7 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
   List<String> _availableGenres = [];
   bool _isLoading = true;
   bool _isMagicEnabled = false;
+  GameDifficulty _selectedDifficulty = GameDifficulty.medium;
 
   @override
   void initState() {
@@ -80,8 +82,8 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
 
     final dao = ref.read(gameDaoProvider);
     final genresJson = jsonEncode(_selectedGenres.toList());
-    final mainGenre = _selectedGenres
-        .first; // Primary genre for legacy/display column if needed
+    // Primary genre for legacy/display column if needed
+    final mainGenre = _selectedGenres.first;
 
     // Create World
     final worldId = await dao.createWorld(WorldsCompanion.insert(
@@ -92,6 +94,8 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
           _toneController.text.isEmpty ? 'Standard' : _toneController.text),
       description: _descriptionController.text,
       isMagicEnabled: drift.Value(_isMagicEnabled),
+      difficulty: drift.Value(
+          _selectedDifficulty.toString().split('.').last.capitalize()),
     ));
 
     // Create Initial Linked Character (Traveler/Placeholder)
@@ -172,6 +176,31 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            DropdownButtonFormField<GameDifficulty>(
+              value: _selectedDifficulty,
+              decoration: const InputDecoration(
+                labelText: "Difficulty",
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.signal_cellular_alt),
+              ),
+              items: GameDifficulty.values.map((d) {
+                return DropdownMenuItem(
+                  value: d,
+                  child: Text(d.toString().split('.').last.capitalize()),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() => _selectedDifficulty = val);
+                }
+              },
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _getDifficultyDescription(_selectedDifficulty),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
             TextField(
               controller: _descriptionController,
               decoration: const InputDecoration(
@@ -207,5 +236,26 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
         ),
       ),
     );
+  }
+
+  String _getDifficultyDescription(GameDifficulty difficulty) {
+    switch (difficulty) {
+      case GameDifficulty.easy:
+        return "Heroic start. High stats, extra skills.";
+      case GameDifficulty.medium:
+        return "Standard adventure balance.";
+      case GameDifficulty.hard:
+        return "Gritty. Resources are scarce.";
+      case GameDifficulty.expert:
+        return "Survival is unlikely. Minimal resources.";
+      case GameDifficulty.custom:
+        return "Sandbox. No limits. Max stats 30.";
+    }
+  }
+}
+
+extension StringExtension on String {
+  String capitalize() {
+    return "${this[0].toUpperCase()}${substring(1)}";
   }
 }

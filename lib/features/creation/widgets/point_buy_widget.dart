@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 
 class PointBuyWidget extends StatefulWidget {
   final ValueChanged<Map<String, int>> onStatsChanged;
+  final int maxPoints;
+  final int maxAttribute;
 
   const PointBuyWidget({
     super.key,
     required this.onStatsChanged,
+    required this.maxPoints,
+    required this.maxAttribute,
   });
 
   @override
@@ -23,9 +27,6 @@ class _PointBuyWidgetState extends State<PointBuyWidget> {
     'Charisma': 8,
   };
 
-  // Initial points budget
-  static const int _maxPoints = 27;
-
   int get _usedPoints {
     int total = 0;
     for (var score in _stats.values) {
@@ -34,38 +35,53 @@ class _PointBuyWidgetState extends State<PointBuyWidget> {
     return total;
   }
 
-  int get _remainingPoints => _maxPoints - _usedPoints;
+  int get _remainingPoints => widget.maxPoints - _usedPoints;
 
   // Cost to reach a certain score from 8
   int _calculateCost(int score) {
+    // Standard 5e Point Buy logic extended
     // 8: 0
-    // 9: 1
-    // 10: 2
-    // 11: 3
-    // 12: 4
-    // 13: 5
-    // 14: 7 (+2)
-    // 15: 9 (+2)
+    // 9-13: 1 pt each
+    // 14-15: 2 pts each
+    // 16-17: 3 pts each (Extrapolated)
+    // 18+: 4 pts each (Extrapolated)
+
     if (score <= 8) return 0;
-    if (score <= 13) return score - 8;
-    if (score == 14) return 7;
-    if (score == 15) return 9;
-    return 0; // Should not happen with validation
+    int cost = 0;
+    for (int i = 9; i <= score; i++) {
+      if (i <= 13) {
+        cost += 1;
+      } else if (i <= 15) {
+        cost += 2;
+      } else if (i <= 17) {
+        cost += 3;
+      } else {
+        cost += 4; // High cost for super stats
+      }
+    }
+    return cost;
   }
 
   // Cost to increase from current to next
   int _costToIncrease(int currentScore) {
-    if (currentScore < 13) return 1;
-    if (currentScore >= 13) return 2;
-    return 100; // Impossible
+    final nextScore = currentScore + 1;
+    if (nextScore <= 13) return 1;
+    if (nextScore <= 15) return 2;
+    if (nextScore <= 17) return 3;
+    return 4;
   }
 
   void _increaseStat(String stat) {
     final current = _stats[stat]!;
-    if (current >= 15) return;
+    if (current >= widget.maxAttribute) return;
 
     final cost = _costToIncrease(current);
-    if (_remainingPoints >= cost) {
+
+    // In Custom mode/High budget, we might allow going negative or just have high budget.
+    // If maxPoints is huge (e.g. 999), we assume basically infinite.
+    final ignoreCost = widget.maxPoints > 500;
+
+    if (ignoreCost || _remainingPoints >= cost) {
       setState(() {
         _stats[stat] = current + 1;
       });
@@ -84,6 +100,8 @@ class _PointBuyWidgetState extends State<PointBuyWidget> {
   }
 
   Color _getStatColor(int score) {
+    if (score >= 18) return Colors.purpleAccent;
+    if (score >= 16) return Colors.orangeAccent;
     if (score >= 14) return Colors.amber;
     if (score >= 12) return Colors.blue;
     return Colors.white;
@@ -111,30 +129,35 @@ class _PointBuyWidgetState extends State<PointBuyWidget> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Ability Scores (Point Buy)',
+                  'Ability Scores',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color:
-                        _remainingPoints >= 0 ? Colors.blue[900] : Colors.red,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blueAccent),
-                  ),
-                  child: Text(
-                    'Points: $_remainingPoints',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                if (widget.maxPoints <
+                    500) // Hide points if "Infinite" (Custom)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color:
+                          _remainingPoints >= 0 ? Colors.blue[900] : Colors.red,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blueAccent),
                     ),
-                  ),
-                ),
+                    child: Text(
+                      'Points: $_remainingPoints / ${widget.maxPoints}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  )
+                else
+                  const Text("Sandbox Mode (Unlimited)",
+                      style: TextStyle(color: Colors.amber)),
               ],
             ),
             const SizedBox(height: 16),
@@ -142,7 +165,9 @@ class _PointBuyWidgetState extends State<PointBuyWidget> {
               final stat = entry.key;
               final score = entry.value;
               final costNext = _costToIncrease(score);
-              final canAfford = _remainingPoints >= costNext && score < 15;
+              final canAfford =
+                  (widget.maxPoints > 500 || _remainingPoints >= costNext) &&
+                      score < widget.maxAttribute;
               final canDecrease = score > 8;
 
               return Padding(
@@ -192,13 +217,15 @@ class _PointBuyWidgetState extends State<PointBuyWidget> {
                     ),
                     Expanded(
                       flex: 2,
-                      child: Text(
-                        // Show total cost for this stat so far
-                        '(${_calculateCost(score)} pts)',
-                        style:
-                            const TextStyle(fontSize: 12, color: Colors.grey),
-                        textAlign: TextAlign.end,
-                      ),
+                      child: widget.maxPoints < 500
+                          ? Text(
+                              // Show total cost for this stat so far
+                              '(${_calculateCost(score)} pts)',
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.grey),
+                              textAlign: TextAlign.end,
+                            )
+                          : const SizedBox.shrink(),
                     ),
                   ],
                 ),

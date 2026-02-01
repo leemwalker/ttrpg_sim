@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ttrpg_sim/core/models/rules/rule_models.dart';
 import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
 import 'package:ttrpg_sim/features/creation/logic/creation_state.dart';
 
@@ -22,26 +23,32 @@ class StepTraits extends ConsumerWidget {
               "Select Traits",
               style: Theme.of(context).textTheme.headlineSmall,
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: state.remainingTraitPoints >= 0
-                    ? Colors.blue[900]
-                    : Colors.red,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blueAccent),
-              ),
-              child: Text(
-                "Points: ${state.remainingTraitPoints}",
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-            ),
+            if (state.difficulty != GameDifficulty.custom)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: state.remainingTraitPoints >= 0
+                      ? Colors.blue[900]
+                      : Colors.red,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blueAccent),
+                ),
+                child: Text(
+                  "Points: ${state.remainingTraitPoints}",
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              )
+            else
+              const Text("Sandbox Mode (Unlimited)",
+                  style: TextStyle(color: Colors.amber)),
           ],
         ),
         const SizedBox(height: 8),
-        const Text(
-            "Budget: 2 Starting Points. Positive Cost consumes points, Negative updates refund."),
+        if (state.difficulty != GameDifficulty.custom)
+          Text(
+              "Budget: ${state.budgets.traitPoints} Starting Points. Positive Cost consumes points, Negative updates refund."),
         const SizedBox(height: 16),
         ...allTraits.map((trait) {
           final isSelected =

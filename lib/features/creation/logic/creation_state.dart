@@ -3,10 +3,10 @@ import 'package:ttrpg_sim/core/models/rules/rule_models.dart';
 
 class CharacterCreationState {
   final List<String> activeGenres;
+  final GameDifficulty difficulty;
   final SpeciesDef? selectedSpecies;
   final OriginDef? selectedOrigin;
   final List<TraitDef> selectedTraits;
-  final int remainingTraitPoints;
 
   // Attributes: Key is Attribute Name, Value is Score (e.g., 10)
   final Map<String, int> attributes;
@@ -26,10 +26,10 @@ class CharacterCreationState {
 
   CharacterCreationState({
     required this.activeGenres,
+    this.difficulty = GameDifficulty.medium,
     this.selectedSpecies,
     this.selectedOrigin,
     this.selectedTraits = const [],
-    this.remainingTraitPoints = 2,
     this.attributes = const {}, // Initialize empty or with base values
     this.skillRanks = const {},
     this.selectedFeats = const [],
@@ -42,10 +42,10 @@ class CharacterCreationState {
 
   CharacterCreationState copyWith({
     List<String>? activeGenres,
+    GameDifficulty? difficulty,
     SpeciesDef? selectedSpecies,
     OriginDef? selectedOrigin,
     List<TraitDef>? selectedTraits,
-    int? remainingTraitPoints,
     Map<String, int>? attributes,
     Map<String, int>? skillRanks,
     List<FeatDef>? selectedFeats,
@@ -57,10 +57,10 @@ class CharacterCreationState {
   }) {
     return CharacterCreationState(
       activeGenres: activeGenres ?? this.activeGenres,
+      difficulty: difficulty ?? this.difficulty,
       selectedSpecies: selectedSpecies ?? this.selectedSpecies,
       selectedOrigin: selectedOrigin ?? this.selectedOrigin,
       selectedTraits: selectedTraits ?? this.selectedTraits,
-      remainingTraitPoints: remainingTraitPoints ?? this.remainingTraitPoints,
       attributes: attributes ?? this.attributes,
       skillRanks: skillRanks ?? this.skillRanks,
       selectedFeats: selectedFeats ?? this.selectedFeats,
@@ -70,6 +70,57 @@ class CharacterCreationState {
       excludedSpecies: excludedSpecies ?? this.excludedSpecies,
       isMagicEnabled: isMagicEnabled ?? this.isMagicEnabled,
     );
+  }
+
+  CreationBudgets get budgets {
+    switch (difficulty) {
+      case GameDifficulty.easy:
+        return const CreationBudgets(
+            pointBuyPoints: 42,
+            originSkills: 4,
+            originFeats: 2,
+            traitPoints: 6,
+            maxAttribute: 18);
+      case GameDifficulty.medium:
+        return const CreationBudgets(
+            pointBuyPoints: 28,
+            originSkills: 3,
+            originFeats: 1,
+            traitPoints: 3,
+            maxAttribute: 18);
+      case GameDifficulty.hard:
+        return const CreationBudgets(
+            pointBuyPoints: 19,
+            originSkills: 2,
+            originFeats: 0,
+            traitPoints: 1,
+            maxAttribute: 18);
+      case GameDifficulty.expert:
+        return const CreationBudgets(
+            pointBuyPoints: 12,
+            originSkills: 1,
+            originFeats: 0,
+            traitPoints: 1,
+            maxAttribute: 18);
+      case GameDifficulty.custom:
+        return const CreationBudgets(
+            pointBuyPoints: 999,
+            originSkills: 99,
+            originFeats: 99,
+            traitPoints: 99,
+            maxAttribute: 30);
+    }
+  }
+
+  int get remainingTraitPoints {
+    if (difficulty == GameDifficulty.custom) return 99; // Infinite
+    // Budget - Cost of selected traits
+    // Positive cost reduces budget, Negative cost increases it.
+    int spent = 0;
+    for (var t in selectedTraits) {
+      spent += t.cost;
+    }
+    return budgets.traitPoints - spent;
   }
 }
 
@@ -89,6 +140,11 @@ class CreationNotifier extends Notifier<CharacterCreationState> {
     state = state.copyWith(excludedSpecies: newExcluded);
   }
 
+  void setDifficulty(GameDifficulty difficulty) {
+    // When difficulty changes, we might need to reset selected traits if they exceed new budget,
+    state = state.copyWith(difficulty: difficulty);
+  }
+
   void setGenres(List<String> genres) {
     state = state.copyWith(activeGenres: genres);
   }
@@ -98,63 +154,23 @@ class CreationNotifier extends Notifier<CharacterCreationState> {
   }
 
   void setSpecies(SpeciesDef species) {
-    // When species changes, logic might be needed to reset stats or traits if they were species specific
-    // For now, just set it.
-
-    // Applying stats mods from species could be done here or in the Attribute step calculation.
-    // The prompt says "Display Stat Mods", implying the base stats might be modified later or conceptually added.
-    // Usually point buy is Base + Species Mod.
     state = state.copyWith(selectedSpecies: species);
   }
 
   void setOrigin(OriginDef origin, FeatDef originFeat) {
-    // Logic: When selected, automatically add the Origin's Skills (Rank 1) and Feat to the state.
-    // We should probably reset previous origin skills/feats if origin changes.
-
-    // 1. Remove effects of previous origin if any (complex if we don't track what came from where)
-    // Simpler: Identify previous origin skills and decrement/remove them?
-    // Or just rebuild the skill/feat list.
-    // Since this is a linear process, the user selects Origin.
-
     final newSkillRanks = Map<String, int>.from(state.skillRanks);
     final newFeats = List<FeatDef>.from(state.selectedFeats);
 
-    // If there was a previous origin, we might want to clean up.
-    // Ideally, we reset skills/feats triggered by Origin when Origin changes.
-    // For this MVP implementation, we'll assume the user moves forward.
-    // But if they switch origins, we need to handle it.
-
     if (state.selectedOrigin != null) {
-      // Remove previous origin skills/feat
-      // This requires knowing exactly what the previous origin gave.
-      // Since we store selectedOrigin, we can re-fetch its definition if needed,
-      // but simpler is to just rely on the UI to call setOrigin which overwrites logic.
-
-      // Better approach: Re-calculate derived state?
-      // Or just explicitly clear "Origin" contributions.
-      // Let's clear ALL skills/feats that matched the previous origin?
-      // Too risky.
-      // Let's just trust the passed in data to be the "new truth" for Origin components.
-
-      // For now, we will just add the new ones. Ideally we reset the state relevant to origin.
-      // Let's reset 'origin' specific slots.
-      // It's safer to just clear skills/feats if we assume Origin is the PRIMARY source of initial stuff.
-      // But user might have added other things.
-
-      // Correct approach for a "Creation Wizard":
-      // We can maintain separate tracking or just be smart.
-      // Let's assume we Clean Slate the "Origin" part.
+      // Logic to clear old origin effects could go here, but for MVP we assume forward progression
     }
 
     // Add new skills
     for (var skillName in origin.skills) {
-      // Set to Rank 1 if not present. If present (e.g. from Species?), keep unique?
-      // Prompt: "add the Origin's Skills (Rank 1)"
       newSkillRanks[skillName] = 1;
     }
 
     // Add new Feat
-    // Check if feat already exists?
     if (!newFeats.any((f) => f.name == originFeat.name)) {
       newFeats.add(originFeat);
     }
@@ -166,43 +182,28 @@ class CreationNotifier extends Notifier<CharacterCreationState> {
     );
   }
 
-  // Helper to clear origin effects when switching (called by UI before setting new)?
-  // Or handled inside setOrigin if we had the rules controller here.
-  // Since we don't have the controller injected easily without ref,
-  // we will rely on UI to provide the correct "OriginFeat" object.
-
   void toggleTrait(TraitDef trait) {
     final currentTraits = List<TraitDef>.from(state.selectedTraits);
-    int currentPoints = state.remainingTraitPoints;
+    final currentPoints = state.remainingTraitPoints;
+
+    if (state.difficulty != GameDifficulty.custom) {
+      if (!currentTraits.any((t) => t.name == trait.name)) {
+        // Adding
+        if (trait.cost > 0 && currentPoints < trait.cost) {
+          // Cannot afford
+          return;
+        }
+      }
+    }
 
     if (currentTraits.any((t) => t.name == trait.name)) {
-      // Remove
       currentTraits.removeWhere((t) => t.name == trait.name);
-      currentPoints += trait
-          .cost; // Refund cost (if positive cost, we get points back. If negative cost, we loose points - wait.)
-      // "Positive costs points, Negative refunds points"
-      // So if cost is 2, we spent 2. Removing it gives back 2.
-      // If cost is -2 (flaw), we gained 2 points (budget goes up). Removing it reduces budget.
-      // Algorithm: Budget -= Cost.
-      // Remove: Budget += Cost.
     } else {
-      // Add
-      // Check budget? "Enforce the '2 Starting Points' budget"
-      // If cost is positive, need enough points.
-      // If cost is negative, we can always take it (it gives points).
-
-      if (trait.cost > 0 && currentPoints < trait.cost) {
-        // Cannot afford
-        return;
-      }
-
       currentTraits.add(trait);
-      currentPoints -= trait.cost;
     }
 
     state = state.copyWith(
       selectedTraits: currentTraits,
-      remainingTraitPoints: currentPoints,
     );
   }
 
@@ -217,18 +218,6 @@ class CreationNotifier extends Notifier<CharacterCreationState> {
 
     final newSkillRanks = Map<String, int>.from(state.skillRanks);
 
-    // Check budget? "Player gets 3 Skill Points"
-    // We need to track spent points.
-    // Changing from 0 to 1 costs 1 point.
-    // Changing from 1 to 2 costs 1 point.
-    // Origin skills are free (Rank 1).
-    // We need to know which are Origin skills to not count them against budget?
-    // Or does the "3 Skill Points" add ON TOP of Origin?
-    // "Origin skills are already Rank 1".
-
-    // Let's just update the rank here and let the UI show the budget remaining.
-    // Or we can enforce it here.
-
     if (rank == 0) {
       newSkillRanks.remove(skillName);
     } else {
@@ -242,7 +231,6 @@ class CreationNotifier extends Notifier<CharacterCreationState> {
     state = state.copyWith(magicPillar: pillar, magicDescription: description);
   }
 
-  // Helper check for unlocking logic
   bool hasFeat(String featName) {
     return state.selectedFeats.any((f) => f.name == featName);
   }
@@ -251,7 +239,6 @@ class CreationNotifier extends Notifier<CharacterCreationState> {
     return state.selectedTraits.any((t) => t.name == traitName);
   }
 
-  // Calculates the final attributes including species bonuses
   Map<String, int> get totalAttributes {
     final base = state.attributes;
     final species = state.selectedSpecies;
@@ -260,12 +247,8 @@ class CreationNotifier extends Notifier<CharacterCreationState> {
 
     final total = Map<String, int>.from(base);
 
-    // Apply Species Stats
     species.stats.forEach((key, value) {
       if (key == 'ALL') {
-        // Add to all existing keys logic
-        // Or strictly add to the standard 6 (if present in base)
-        // Assuming base is initialized
         for (var k in [
           'Strength',
           'Dexterity',
@@ -277,11 +260,10 @@ class CreationNotifier extends Notifier<CharacterCreationState> {
           if (total.containsKey(k)) {
             total[k] = (total[k] ?? 0) + value;
           } else {
-            total[k] = 8 + value; // Fallback only if base missing
+            total[k] = 8 + value;
           }
         }
       } else {
-        // Specific Attribute
         total[key] = (total[key] ?? 8) + value;
       }
     });

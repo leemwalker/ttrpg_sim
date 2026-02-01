@@ -36,6 +36,7 @@ class Worlds extends Table {
   TextColumn get genres => text().withDefault(const Constant('["Fantasy"]'))();
   BoolColumn get isMagicEnabled =>
       boolean().withDefault(const Constant(false))();
+  TextColumn get difficulty => text().withDefault(const Constant('Medium'))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -150,7 +151,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration {
@@ -479,6 +480,10 @@ class AppDatabase extends _$AppDatabase {
         if (from < 19) {
           // Migration v19: Add isMagicEnabled column to Worlds table
           await m.addColumn(worlds, worlds.isMagicEnabled);
+        }
+        if (from < 20) {
+          // Migration v20: World Difficulty System
+          await m.addColumn(worlds, worlds.difficulty);
         }
       },
     );

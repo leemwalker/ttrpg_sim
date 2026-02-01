@@ -307,3 +307,27 @@ class PillarDef {
     return raw.split(',').map((e) => e.trim()).toList();
   }
 }
+
+enum GameDifficulty {
+  easy,
+  medium,
+  hard,
+  expert,
+  custom,
+}
+
+class CreationBudgets {
+  final int pointBuyPoints;
+  final int originSkills;
+  final int originFeats;
+  final int traitPoints;
+  final int maxAttribute;
+
+  const CreationBudgets({
+    required this.pointBuyPoints,
+    required this.originSkills,
+    required this.originFeats,
+    required this.traitPoints,
+    required this.maxAttribute,
+  });
+}
