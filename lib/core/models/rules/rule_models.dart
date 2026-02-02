@@ -244,21 +244,44 @@ class FeatDef {
   }
 }
 
+/// Item Types for logic
+enum ItemType {
+  weapon,
+  armor,
+  consumable,
+  misc,
+}
+
+/// Equipment Slots for logic
+enum EquipmentSlot {
+  head,
+  body,
+  mainHand,
+  offHand,
+  accessory,
+}
+
 /// Represents an Item definition from `Items.csv`
 class ItemDef {
   final String name;
   final String genre;
-  final String type;
+  final ItemType type;
+  final EquipmentSlot? slot;
+  final int? armorClassBonus;
   final String damageDice;
   final String damageType;
   final String properties;
   final int cost;
   final String description;
 
+  int get value => cost; // Alias for "value"
+
   ItemDef({
     required this.name,
     required this.genre,
     required this.type,
+    this.slot,
+    this.armorClassBonus,
     required this.damageDice,
     required this.damageType,
     required this.properties,
@@ -267,15 +290,50 @@ class ItemDef {
   });
 
   factory ItemDef.fromCsv(List<dynamic> row) {
-    // Name,Genre,Type,DamageDice,DamageType,Properties,Cost,Description,,,
+    // Name,Genre,Type,DamageDice,DamageType,Properties,Cost,Description
+    final typeString = row[2].toString().toLowerCase();
+    final props = row[5].toString();
+
+    ItemType type = ItemType.misc;
+    if (typeString.contains('weapon'))
+      type = ItemType.weapon;
+    else if (typeString.contains('armor'))
+      type = ItemType.armor;
+    else if (typeString.contains('potion') || typeString.contains('consumable'))
+      type = ItemType.consumable;
+
+    // Infer slot and AC from properties or type
+    EquipmentSlot? slot;
+    int? acBonus;
+
+    if (type == ItemType.weapon) {
+      slot = EquipmentSlot.mainHand;
+      // Check for Two-Handed?
+    } else if (type == ItemType.armor) {
+      slot = EquipmentSlot.body;
+      // Simple parsing for AC in properties "AC:2"
+      final acMatch = RegExp(r'AC:(\d+)').firstMatch(props);
+      if (acMatch != null) {
+        acBonus = int.parse(acMatch.group(1)!);
+      }
+      // Or infer from light/medium/heavy if needed, but explicit is better.
+      // For now default to 0 if not found but is armor?
+      acBonus ??= 0;
+    } else if (typeString.contains('shield')) {
+      slot = EquipmentSlot.offHand;
+      acBonus = 2; // Default shield
+    }
+
     return ItemDef(
       name: row[0].toString(),
       genre: row[1].toString(),
-      type: row[2].toString(),
+      type: type,
+      slot: slot,
+      armorClassBonus: acBonus,
       damageDice: row[3].toString(),
       damageType: row[4].toString(),
-      properties: row[5].toString(),
-      cost: int.parse(row[6].toString()),
+      properties: props,
+      cost: int.tryParse(row[6].toString()) ?? 0,
       description: row[7].toString(),
     );
   }

@@ -11,6 +11,7 @@ import 'package:ttrpg_sim/features/creation/steps/step_origin.dart';
 import 'package:ttrpg_sim/features/creation/steps/step_skills_magic.dart';
 import 'package:ttrpg_sim/features/creation/steps/step_species.dart';
 import 'package:ttrpg_sim/features/creation/steps/step_traits.dart';
+import 'package:ttrpg_sim/core/models/rules/rule_models.dart';
 
 class CharacterCreationScreen extends ConsumerStatefulWidget {
   final int worldId;
@@ -72,6 +73,60 @@ class _CharacterCreationScreenState
         ref
             .read(creationProvider.notifier)
             .setMagicEnabled(world.isMagicEnabled);
+
+        // -- FIX: Difficulty & Custom Species --
+        // Parse Difficulty
+        GameDifficulty diff = GameDifficulty.medium;
+        try {
+          // world.difficulty is a String like 'Hard', 'Custom'
+          diff = GameDifficulty.values.firstWhere(
+            (e) => e.name.toLowerCase() == world.difficulty.toLowerCase(),
+            orElse: () => GameDifficulty.medium,
+          );
+        } catch (e) {
+          print('Error parsing difficulty: $e');
+        }
+        ref.read(creationProvider.notifier).setDifficulty(diff);
+
+        // Parse Custom Species (JSON config from World)
+        // Expected format: {"MySpec": {"stats": "...", "traits": ["..."]}} ?
+        // Or List of SpeciesDef?
+        // The World table says: speciesConfig default '{}'.
+        // If it's a Map of Name -> Def:
+        List<SpeciesDef> customSpecies = [];
+        try {
+          if (world.speciesConfig.isNotEmpty && world.speciesConfig != '{}') {
+            final parsedSpec = jsonDecode(world.speciesConfig);
+            if (parsedSpec is Map) {
+              parsedSpec.forEach((key, val) {
+                // Assuming value contains structure similar to SpeciesDef or we construct it.
+                // If the user created it in World Creation, how is it stored?
+                // Let's assume it matches the structure we need or we adapt.
+                // For now, let's treat the key as Name and val as data.
+                if (val is Map) {
+                  // This depends on how World Creation saves it.
+                  // Usually the prompt implies it IS there.
+                  // As a fallback, we can create a generic one if data is missing.
+                  final statsStr = val['stats']?.toString() ?? '';
+                  final traitsList = (val['traits'] as List?)
+                          ?.map((e) => e.toString())
+                          .toList() ??
+                      [];
+
+                  customSpecies.add(SpeciesDef(
+                    name: key.toString(),
+                    genre: 'Custom',
+                    stats: SpeciesDef.parseStats(statsStr),
+                    freeTraits: traitsList,
+                  ));
+                }
+              });
+            }
+          }
+        } catch (e) {
+          print('Error parsing custom species: $e');
+        }
+        ref.read(creationProvider.notifier).setCustomSpecies(customSpecies);
       }
 
       // Ensure Character exists (Placeholder logic)

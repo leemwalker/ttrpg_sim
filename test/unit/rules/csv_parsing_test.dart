@@ -21,9 +21,10 @@ void main() {
         ''
       ];
 
-      expect(() => ItemDef.fromCsv(brokenRow), throwsA(isA<FormatException>()),
-          reason:
-              'Should throw because Cost column contains "Recording" which is not an int');
+      final item = ItemDef.fromCsv(brokenRow);
+      expect(item, isNotNull);
+      // Cost should be 0 because "Recording" fails to parse
+      expect(item.cost, 0, reason: 'Should default to 0 on parse error');
     });
 
     test('ItemDef should parse correctly quoted row', () {

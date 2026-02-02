@@ -33,6 +33,8 @@ void main() {
       spells: '[]',
       currentMana: 0,
       maxMana: 10,
+      armorClass: 10,
+      equipment: '{}',
     );
 
     test('buildContextPrompt formats status and inventory correctly', () {

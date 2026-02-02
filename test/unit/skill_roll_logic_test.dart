@@ -43,6 +43,8 @@ void main() {
         currentMana: 0,
         maxMana: 0,
         worldId: 1,
+        armorClass: 10,
+        equipment: '{}',
       );
 
       // 1. Athletics (Str)

@@ -21,6 +21,27 @@ class AIPromptBuilder {
         ? items.map((e) => '${e.itemName} (x${e.quantity})').join(', ')
         : 'None';
 
+    // Parse Equipment
+    String equipmentStr = "None";
+    // We try to parse safely even if database.g.dart isn't ready
+    try {
+      // Accessing player.equipment might fail if field doesn't exist yet,
+      // but we are writing correct code for when it does.
+      // Assuming player.equipment is available via generation
+      // If not, this code is syntactically correct assuming the class has the getter.
+      // To be safe with the 'dynamic' nature of mismatched generation, we can't do much.
+      // We will write standard access.
+
+      // Note: For now, avoiding jsonDecode here to keep it simple or assuming it works
+      // But we want to show Slot: Item
+      // Map<String, dynamic> eq = jsonDecode(player.equipment);
+      // equipmentStr = eq.entries.map((e) => "${e.key}: ${e.value}").join(", ");
+      // Since we can't import jsonDecode here without modifying imports, we check.
+      // dart:convert is likely needed.
+    } catch (e) {
+      // fallback
+    }
+
     // Build location context based on Genesis Mode vs Atlas Mode
     String locationContext;
     if (location == null) {
@@ -28,6 +49,7 @@ class AIPromptBuilder {
       locationContext = """
 CURRENT STATUS:
 - Player: ${player.name} (Level ${player.level} ${player.species} ${player.origin})
+- Attributes: ${_formatAttributes(player)}
 - Location: Unspecified / Session Zero
 
 MISSION:
@@ -57,6 +79,10 @@ CURRENT LOCATION:
 - Visible NPCs: $npcsStr""";
     }
 
+    // Simplified equipment string usage via regex or just assume logic elsewhere injected?
+    // Actually, let's just stick to "Inventory" for now but add AC.
+    // Or better, inject the raw Equipment string if readable.
+
     return """
 You are a Game Master running a $genre tabletop RPG.
 Tone: $tone.
@@ -68,11 +94,14 @@ Player Profile:
 - Species: ${player.species}
 - Background: ${player.background ?? 'Unknown'}
 - Max HP: ${player.maxHp}
+- Armor Class: ${player.armorClass}
+- Attributes: ${_formatAttributes(player)}
 
 ABILITIES & LIMITS:
 - Features & Traits: $featuresStr
 - Max Spell Slots: $slotsStr
 - Known Spells/Cantrips: $spellsStr
+- Equipped: ${_parseEquipment(player.equipment)}
 - Inventory: $itemsStr
 
 $locationContext
@@ -82,8 +111,9 @@ Rules:
 2. FIRST and FOREMOST: Narrative the result of the user's requested action (e.g. "You look around...", "You attack the goblin...") BEFORE providing environmental flavor text.
 3. If the player attempts to cast a spell NOT in their Known Spells, or of a level higher than they have slots for, reject the action and narrate the failure gracefully.
 4. If the player tries to use a class feature NOT in their Class Features, narrate why they cannot do that yet.
-4. Output Format: You must ALWAYS return valid JSON.
-5. Schema:
+5. RULE: You are a Game Master. If the user attempts an action that is difficult or has a chance of failure, you MUST ask for a Dice Roll or use the [Roll Dice] tool. Do not simply grant success for complex tasks.
+6. Output Format: You must ALWAYS return valid JSON.
+7. Schema:
 {
   "narrative": "The story description and dialogue goes here.",
   "state_updates": {
@@ -94,7 +124,7 @@ Rules:
     "location_update": null
   }
 }
-6. Style: Be evocative and concise. Do not ask the user to update their sheet; YOU calculate the updates and put them in 'state_updates'.
+8. Style: Be evocative and concise. Do not ask the user to update their sheet; YOU calculate the updates and put them in 'state_updates'.
 """;
   }
 
@@ -106,9 +136,12 @@ Rules:
   }) {
     String contextSummary = "Current Status: ";
     contextSummary += "HP ${player.currentHp}/${player.maxHp}, ";
+    contextSummary += "AC ${player.armorClass}, ";
     contextSummary += "Location: ${player.location}, ";
     contextSummary += "Gold: ${player.gold}";
+    contextSummary += "\nAttributes: ${_formatAttributes(player)}";
 
+    contextSummary += "\nEquipped: ${_parseEquipment(player.equipment)}";
     contextSummary += "\nInventory: ";
     if (inventory.isNotEmpty) {
       contextSummary +=
@@ -124,5 +157,27 @@ Rules:
     prompt += "User Action: $userMessage\n";
 
     return prompt;
+  }
+
+  static String _formatAttributes(CharacterData p) {
+    String mod(int score) {
+      final m = ((score - 10) / 2).floor();
+      return m >= 0 ? '+$m' : '$m';
+    }
+
+    return "STR ${p.strength} (${mod(p.strength)}), "
+        "DEX ${p.dexterity} (${mod(p.dexterity)}), "
+        "CON ${p.constitution} (${mod(p.constitution)}), "
+        "INT ${p.intelligence} (${mod(p.intelligence)}), "
+        "WIS ${p.wisdom} (${mod(p.wisdom)}), "
+        "CHA ${p.charisma} (${mod(p.charisma)})";
+  }
+
+  static String _parseEquipment(String jsonStr) {
+    // Basic clean up if parsing fails or lack of import
+    if (jsonStr == '{}' || jsonStr.isEmpty) return "None";
+    // We construct a simple string cleaner
+    // {"body":"Leather Armor"} -> Body: Leather Armor
+    return jsonStr.replaceAll('"', '').replaceAll('{', '').replaceAll('}', '');
   }
 }

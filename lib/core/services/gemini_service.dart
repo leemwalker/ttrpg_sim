@@ -20,11 +20,14 @@ class TurnResult {
   });
 
   // Factory constructor to parse the JSON string from Gemini
+  // Factory constructor to parse the JSON string from Gemini
   factory TurnResult.fromJson(Map<String, dynamic> json,
       {FunctionCall? functionCall}) {
     return TurnResult(
-      narrative: json['narrative'] as String,
-      stateUpdates: json['state_updates'] as Map<String, dynamic>,
+      narrative: json['narrative']?.toString() ?? '',
+      stateUpdates: (json['state_updates'] is Map)
+          ? Map<String, dynamic>.from(json['state_updates'])
+          : {},
       functionCall: functionCall,
     );
   }
@@ -107,29 +110,6 @@ class GeminiService {
             ),
           },
           requiredProperties: ['name', 'description', 'type'],
-        ),
-      ),
-    ],
-  );
-
-  /// Tool definition for dice rolls
-  static final Tool diceTool = Tool(
-    functionDeclarations: [
-      FunctionDeclaration(
-        'roll_check',
-        'Request a skill or ability check from the player. Call this when the player attempts an action that requires a dice roll.',
-        Schema.object(
-          properties: {
-            'check_name': Schema.string(
-              description:
-                  'The name of the skill (e.g., "Stealth", "Perception") or ability (e.g., "strength", "dexterity") to check.',
-            ),
-            'difficulty': Schema.integer(
-              description:
-                  'The Difficulty Class (DC) that must be met or exceeded for success.',
-            ),
-          },
-          requiredProperties: ['check_name', 'difficulty'],
         ),
       ),
     ],
@@ -239,16 +219,89 @@ class GeminiService {
       throw AIFormatException('Empty response from AI engine');
     }
 
+    // Parse JSON safely
     try {
+      final text = response.text ?? '';
+
+      // Attempt to extract JSON substring if narrative is mixed in
+      String jsonStr = text;
+      final int start = text.indexOf('{');
+      final int end = text.lastIndexOf('}');
+      if (start != -1 && end != -1 && end > start) {
+        jsonStr = text.substring(start, end + 1);
+      } else {
+        // No JSON brackets found? Assuming it's pure narrative.
+        // We'll treat the whole text as narrative and empty updates.
+        return TurnResult(
+            narrative: text, stateUpdates: {}, functionCall: null);
+      }
+
       final cleanJson =
-          text.replaceAll('```json', '').replaceAll('```', '').trim();
+          jsonStr.replaceAll('```json', '').replaceAll('```', '').trim();
       final json = jsonDecode(cleanJson) as Map<String, dynamic>;
+
       return TurnResult.fromJson(json);
     } catch (e) {
-      throw AIFormatException(
-          'Failed to parse Gemini response: $e\nResponse text: $text', e);
+      // Fallback: If parsing fails, return text as narrative
+      // This prevents crashes on "I try to cast..." text responses
+      print('⚠️ JSON Parse Warning: $e. Returning raw text.');
+      return TurnResult(
+          narrative: response.text ?? '', stateUpdates: {}, functionCall: null);
     }
   }
+
+  /// Tool definition for dice rolls
+  static final Tool diceTool = Tool(
+    functionDeclarations: [
+      FunctionDeclaration(
+        'roll_check',
+        'Request a skill or ability check from the player. Call this when the player attempts an action that requires a dice roll.',
+        Schema.object(
+          properties: {
+            'check_name': Schema.string(
+              description:
+                  'The name of the skill (e.g., "Stealth", "Perception") or ability (e.g., "strength", "dexterity") to check.',
+            ),
+            'difficulty': Schema.integer(
+              description:
+                  'The Difficulty Class (DC) that must be met or exceeded for success.',
+            ),
+          },
+          requiredProperties: ['check_name', 'difficulty'],
+        ),
+      ),
+    ],
+  );
+
+  /// Tool definition for trade transactions
+  static final Tool tradeTool = Tool(
+    functionDeclarations: [
+      FunctionDeclaration(
+        'trade_transaction',
+        'Handle buying or selling items with an NPC merchant. Use this when the player wants to buy or sell items.',
+        Schema.object(
+          properties: {
+            'action': Schema.enumString(
+              enumValues: ['buy', 'sell'],
+              description:
+                  'Transaction type: "buy" (player buying) or "sell" (player selling)',
+            ),
+            'item_name':
+                Schema.string(description: 'Name of the item to trade'),
+            'quantity': Schema.integer(description: 'Quantity of the item'),
+            'gold_amount': Schema.integer(
+                description: 'Total gold cost/value (positive integer).'),
+          },
+          requiredProperties: [
+            'action',
+            'item_name',
+            'quantity',
+            'gold_amount'
+          ],
+        ),
+      ),
+    ],
+  );
 
   /// Send a function response back to the model and get the narrative result.
   Future<TurnResult> sendFunctionResponse(
@@ -274,13 +327,28 @@ class GeminiService {
       }
 
       try {
+        final text = result.text ?? '';
+
+        String jsonStr = text;
+        final int start = text.indexOf('{');
+        final int end = text.lastIndexOf('}');
+        if (start != -1 && end != -1 && end > start) {
+          jsonStr = text.substring(start, end + 1);
+        } else {
+          return TurnResult(
+              narrative: text, stateUpdates: {}, functionCall: null);
+        }
+
         final cleanJson =
-            text.replaceAll('```json', '').replaceAll('```', '').trim();
+            jsonStr.replaceAll('```json', '').replaceAll('```', '').trim();
         final json = jsonDecode(cleanJson) as Map<String, dynamic>;
+
         return TurnResult.fromJson(json);
       } catch (e) {
-        throw AIFormatException(
-            'Failed to parse Gemini function response: $e\nResponse text: $text');
+        // Fallback for function response too
+        print('⚠️ JSON Parse Warning (Function): $e. Returning raw text.');
+        return TurnResult(
+            narrative: result.text ?? '', stateUpdates: {}, functionCall: null);
       }
     } on GenerativeAIException catch (e) {
       if (e.toString().contains('403') ||

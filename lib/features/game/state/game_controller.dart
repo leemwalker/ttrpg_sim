@@ -7,6 +7,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:ttrpg_sim/core/database/database.dart';
 import 'package:ttrpg_sim/core/providers.dart';
 import 'package:ttrpg_sim/core/rules/core_rpg_rules.dart';
+import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
 import 'package:ttrpg_sim/core/errors/app_exceptions.dart';
 import 'package:ttrpg_sim/core/services/gemini_service.dart';
 import 'package:ttrpg_sim/features/game/state/game_state.dart';
@@ -123,7 +124,44 @@ class GameController extends _$GameController {
       final world = await dao.getWorld(worldId);
       final genre = world?.genre ?? "Fantasy";
       final tone = world?.tone ?? "Standard";
+
       final description = world?.description ?? "A standard fantasy world.";
+
+      // Parse Species Config
+      String speciesContext = "";
+      if (world != null && world.speciesConfig != '{}') {
+        try {
+          final config =
+              jsonDecode(world.speciesConfig) as Map<String, dynamic>;
+          final excluded = List<String>.from(config['excluded'] ?? []);
+          final included = List<String>.from(config['included'] ?? []);
+          final custom =
+              (config['custom'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+
+          // We don't have the full list of "Core" species here easily without the rules controller,
+          // but valid species are implicitly: (Standard for Genre - Excluded) + Included + Custom.
+          // Since we can't easily list "Standard for Genre" without loading rules, we might just list the Explicit ones?
+          // Or we can load rules.
+          await ModularRulesController().loadRules();
+          final allSpecies = ModularRulesController().getSpecies([genre]);
+
+          final validNames = allSpecies
+              .map((s) => s.name)
+              .where((name) => !excluded.contains(name))
+              .toList();
+
+          validNames.addAll(included);
+
+          final customDescriptions = custom
+              .map((c) => "${c['name']} (${c['stats']}, ${c['traits']})")
+              .toList();
+
+          speciesContext =
+              "\n[VALID SPECIES]\nNative: ${validNames.join(', ')}\nCustom/Exotic: ${customDescriptions.join(', ')}";
+        } catch (e) {
+          debugPrint("Error parsing species config: $e");
+        }
+      }
 
       // Fetch Character
       final character = await dao.getCharacterById(_characterId);
@@ -177,7 +215,8 @@ class GameController extends _$GameController {
 [PERSISTENT WORLD DATA]
 The following locations and NPCs already exist in this world. Use these details to maintain consistency if the player encounters them:
 Locations: ${knownLocations.map((l) => "${l.name}: ${l.description}").join('; ')}
-NPCs: ${knownNpcs.map((n) => "${n.name}: ${n.role}").join('; ')}
+NPCs: ${knownNpcs.map((n) => "${n.name}: ${n.role}${n.history != null ? " [History: ${n.history}]" : ""}").join('; ')} 
+$speciesContext
 '''
           : null;
 
@@ -356,5 +395,142 @@ NPCs: ${knownNpcs.map((n) => "${n.name}: ${n.role}").join('; ')}
       inventory: [],
       isLoading: false,
     ));
+  }
+
+  Future<void> equipItem(String itemName) async {
+    state = const AsyncValue.loading();
+    final dao = ref.read(gameDaoProvider);
+    final rules = ModularRulesController();
+
+    try {
+      final char = await dao.getCharacterById(_characterId);
+      if (char == null) return;
+
+      // 1. Validate Item
+      final itemDef = rules.getItem(itemName);
+      if (itemDef == null) {
+        throw Exception("Unknown item: $itemName");
+      }
+      if (itemDef.slot == null) {
+        throw Exception("Item cannot be equipped");
+      }
+
+      // 2. Check Ownership
+      final inventory = await dao.getInventoryForCharacter(_characterId);
+      final hasItem =
+          inventory.any((i) => i.itemName == itemName && i.quantity > 0);
+      if (!hasItem) {
+        throw Exception("Item not in inventory");
+      }
+
+      // 3. Prepare Logic
+
+      final equipment = jsonDecode(char.equipment) as Map<String, dynamic>;
+      final slotKey = itemDef.slot!.name; // e.g. "mainHand"
+
+      // 4. Handle Swap
+      if (equipment.containsKey(slotKey)) {
+        final oldItemName = equipment[slotKey];
+        await dao.addItem(
+            _characterId, oldItemName); // Return valid item to inv
+      }
+
+      // 5. Equip
+      equipment[slotKey] = itemName;
+      await dao.removeItem(_characterId, itemName);
+
+      // 6. Recalculate AC (if armor/dex affected)
+      int ac = 10 + _getDexMod(char.dexterity); // Base + Dex
+      // Iterate all equipped items for bonuses
+      for (var equippedName in equipment.values) {
+        final def = rules.getItem(equippedName);
+        if (def != null && def.armorClassBonus != null) {
+          ac += def.armorClassBonus!;
+        }
+      }
+
+      // 7. Save
+      // Use custom update or wait for generated code.
+      // Assuming generated code will exist:
+      await dao.updateCharacter(char.copyWith(
+        equipment: jsonEncode(equipment),
+        armorClass: ac,
+      ));
+
+      // Refresh State
+      ref.invalidate(characterDataProvider(_worldId));
+      ref.invalidate(inventoryDataProvider(char.id));
+
+      // Update UI state
+      final messages = await dao.getRecentMessages(
+          _characterId, AppConstants.chatHistoryLimit);
+      final wordCount = await dao.getWordCount(_characterId);
+      state = AsyncValue.data(GameState(
+        messages: messages,
+        character: null,
+        inventory: [],
+        isLoading: false,
+        wordCount: wordCount,
+        bookCompletion: (wordCount / 50000).clamp(0.0, 1.0),
+      ));
+    } catch (e) {
+      _handleError(e, dao, _worldId);
+    }
+  }
+
+  Future<void> unequipItem(String slotName) async {
+    state = const AsyncValue.loading();
+    final dao = ref.read(gameDaoProvider);
+    final rules = ModularRulesController();
+
+    try {
+      final char = await dao.getCharacterById(_characterId);
+      if (char == null) return;
+
+      final equipment = jsonDecode(char.equipment) as Map<String, dynamic>;
+      if (!equipment.containsKey(slotName)) return;
+
+      final itemName = equipment[slotName];
+
+      // Remove from slot
+      equipment.remove(slotName);
+      // Add to inventory
+      await dao.addItem(_characterId, itemName);
+
+      // Recalculate AC
+      int ac = 10 + _getDexMod(char.dexterity);
+      for (var equippedName in equipment.values) {
+        final def = rules.getItem(equippedName);
+        if (def != null && def.armorClassBonus != null) {
+          ac += def.armorClassBonus!;
+        }
+      }
+
+      await dao.updateCharacter(char.copyWith(
+        equipment: jsonEncode(equipment),
+        armorClass: ac,
+      ));
+
+      ref.invalidate(characterDataProvider(_worldId));
+      ref.invalidate(inventoryDataProvider(char.id));
+
+      final messages = await dao.getRecentMessages(
+          _characterId, AppConstants.chatHistoryLimit);
+      final wordCount = await dao.getWordCount(_characterId);
+      state = AsyncValue.data(GameState(
+        messages: messages,
+        character: null,
+        inventory: [],
+        isLoading: false,
+        wordCount: wordCount,
+        bookCompletion: (wordCount / 50000).clamp(0.0, 1.0),
+      ));
+    } catch (e) {
+      _handleError(e, dao, _worldId);
+    }
+  }
+
+  int _getDexMod(int score) {
+    return (score - 10) ~/ 2;
   }
 }

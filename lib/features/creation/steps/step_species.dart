@@ -43,9 +43,15 @@ class StepSpecies extends ConsumerWidget {
         for (var s in speciesList) {
           uniqueSpecies[s.name] = s;
         }
+        // Custom Traits from DAO (Global/Previous)
         for (var s in customSpecies) {
           uniqueSpecies[s.name] = s;
         }
+        // Custom Species from World Config (Local)
+        for (var s in state.customSpecies) {
+          uniqueSpecies[s.name] = s;
+        }
+
         final allSpecies = uniqueSpecies.values.toList();
 
         // Application of Excluded Filter

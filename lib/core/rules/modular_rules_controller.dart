@@ -154,4 +154,15 @@ class ModularRulesController {
   List<TraitDef> get allTraits => _traits;
   List<FeatDef> get allFeats => _feats;
   List<PillarDef> get allPillars => _pillars;
+
+  ItemDef? getItem(String name) {
+    if (_items.isEmpty) return null;
+    try {
+      return _items.firstWhere(
+          (e) => e.name.toLowerCase() == name.toLowerCase(),
+          orElse: () => throw Exception('Not found'));
+    } catch (e) {
+      return null;
+    }
+  }
 }

@@ -128,6 +128,56 @@ void main() {
       );
     ''');
 
+    // Locations (v13 schema)
+    sqlite3Db.execute('''
+      CREATE TABLE locations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        world_id INTEGER REFERENCES worlds(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL,
+        type TEXT NOT NULL,
+        coordinates TEXT
+      );
+    ''');
+
+    // Points of Interest (v13 schema)
+    sqlite3Db.execute('''
+      CREATE TABLE points_of_interest (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        location_id INTEGER REFERENCES locations(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL,
+        type TEXT NOT NULL
+      );
+    ''');
+
+    // NPCs (v13 schema)
+    sqlite3Db.execute('''
+      CREATE TABLE npcs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        world_id INTEGER REFERENCES worlds(id) ON DELETE CASCADE,
+        location_id INTEGER REFERENCES locations(id) ON DELETE CASCADE,
+        poi_id INTEGER,
+        name TEXT NOT NULL,
+        role TEXT NOT NULL,
+        description TEXT NOT NULL,
+        stats TEXT,
+        relationship_score INTEGER DEFAULT 0
+      );
+    ''');
+
+    // Custom Traits (v7 schema)
+    sqlite3Db.execute('''
+      CREATE TABLE custom_traits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        description TEXT NOT NULL,
+        abilities TEXT,
+        stats TEXT
+      );
+    ''');
+
     sqlite3Db.execute('PRAGMA foreign_keys = ON;');
 
     // 2. Set Version to 14

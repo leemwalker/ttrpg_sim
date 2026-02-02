@@ -85,7 +85,9 @@ void main() {
         charisma: 10,
         spells: '[]',
         currentMana: 0,
-        maxMana: 10);
+        maxMana: 10,
+        armorClass: 10,
+        equipment: '{}');
 
     const jsonOutput = '''
     [
@@ -155,7 +157,9 @@ void main() {
         charisma: 10,
         spells: '[]',
         currentMana: 0,
-        maxMana: 10);
+        maxMana: 10,
+        armorClass: 10,
+        equipment: '{}');
 
     // Mock response
     final candidate = Candidate(Content.text('[]'), null, null, null, null);

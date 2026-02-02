@@ -23,6 +23,7 @@ class CharacterCreationState {
 
   final Set<String> excludedSpecies; // Names of species to hide
   final bool isMagicEnabled; // From World settings
+  final List<SpeciesDef> customSpecies; // From World Config
 
   CharacterCreationState({
     required this.activeGenres,
@@ -38,6 +39,7 @@ class CharacterCreationState {
     this.magicDescription,
     this.excludedSpecies = const {},
     this.isMagicEnabled = false,
+    this.customSpecies = const [],
   });
 
   CharacterCreationState copyWith({
@@ -54,6 +56,7 @@ class CharacterCreationState {
     String? magicDescription,
     Set<String>? excludedSpecies,
     bool? isMagicEnabled,
+    List<SpeciesDef>? customSpecies,
   }) {
     return CharacterCreationState(
       activeGenres: activeGenres ?? this.activeGenres,
@@ -69,6 +72,7 @@ class CharacterCreationState {
       magicDescription: magicDescription ?? this.magicDescription,
       excludedSpecies: excludedSpecies ?? this.excludedSpecies,
       isMagicEnabled: isMagicEnabled ?? this.isMagicEnabled,
+      customSpecies: customSpecies ?? this.customSpecies,
     );
   }
 
@@ -128,6 +132,10 @@ class CreationNotifier extends Notifier<CharacterCreationState> {
   @override
   CharacterCreationState build() {
     return CharacterCreationState(activeGenres: []);
+  }
+
+  void setCustomSpecies(List<SpeciesDef> species) {
+    state = state.copyWith(customSpecies: species);
   }
 
   void toggleSpeciesExclusion(String speciesName) {

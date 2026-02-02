@@ -51,6 +51,8 @@ void main() {
     spells: '[]',
     currentMana: 0,
     maxMana: 10,
+    armorClass: 10,
+    equipment: '{}',
   );
 
   final dummyWorld = World(
@@ -61,6 +63,8 @@ void main() {
     tone: 'Standard',
     genres: '["Fantasy"]',
     isMagicEnabled: true,
+    difficulty: 'Standard',
+    speciesConfig: '{}',
     createdAt: DateTime(2025, 1, 1),
   );
 

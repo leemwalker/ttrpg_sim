@@ -17,7 +17,7 @@ void main() {
 
     test('Initial state is correct', () {
       final state = container.read(creationProvider);
-      expect(state.remainingTraitPoints, 2);
+      expect(state.remainingTraitPoints, 3);
       expect(state.selectedTraits, isEmpty);
     });
 
@@ -36,7 +36,7 @@ void main() {
 
       final state = container.read(creationProvider);
       expect(state.selectedTraits, contains(trait));
-      expect(state.remainingTraitPoints, 0); // 2 - 2 = 0
+      expect(state.remainingTraitPoints, 1); // 3 - 2 = 1
     });
 
     test('Adding negative cost trait increases points', () {
@@ -54,7 +54,7 @@ void main() {
 
       final state = container.read(creationProvider);
       expect(state.selectedTraits, contains(trait));
-      expect(state.remainingTraitPoints, 4); // 2 - (-2) = 4
+      expect(state.remainingTraitPoints, 5); // 3 - (-2) = 5
     });
 
     test('Cannot afford trait', () {
@@ -72,7 +72,7 @@ void main() {
 
       final state = container.read(creationProvider);
       expect(state.selectedTraits, isEmpty);
-      expect(state.remainingTraitPoints, 2);
+      expect(state.remainingTraitPoints, 3);
     });
 
     test('removing trait refunds points', () {
@@ -88,14 +88,14 @@ void main() {
 
       // Add first
       notifier.toggleTrait(trait);
-      expect(container.read(creationProvider).remainingTraitPoints, 0);
+      expect(container.read(creationProvider).remainingTraitPoints, 1);
 
       // Remove
       notifier.toggleTrait(trait);
 
       final state = container.read(creationProvider);
       expect(state.selectedTraits, isEmpty);
-      expect(state.remainingTraitPoints, 2);
+      expect(state.remainingTraitPoints, 3);
     });
 
     test('Origin selection adds skills and feats', () {

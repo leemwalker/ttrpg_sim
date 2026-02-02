@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ttrpg_sim/core/database/database.dart';
 import 'package:ttrpg_sim/core/providers.dart';
 import 'package:ttrpg_sim/features/creation/character_creation_screen.dart';
+import 'package:ttrpg_sim/features/world/widgets/species_manager_widget.dart';
 import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
 import 'package:ttrpg_sim/core/models/rules/rule_models.dart';
 
@@ -23,7 +24,9 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
   List<String> _availableGenres = [];
   bool _isLoading = true;
   bool _isMagicEnabled = false;
+
   GameDifficulty _selectedDifficulty = GameDifficulty.medium;
+  String _speciesConfig = '{}';
 
   @override
   void initState() {
@@ -96,6 +99,7 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
       isMagicEnabled: drift.Value(_isMagicEnabled),
       difficulty: drift.Value(
           _selectedDifficulty.toString().split('.').last.capitalize()),
+      speciesConfig: drift.Value(_speciesConfig),
     ));
 
     // Create Initial Linked Character (Traveler/Placeholder)
@@ -222,6 +226,11 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
                     ? Theme.of(context).colorScheme.primary
                     : null,
               ),
+            ),
+            const SizedBox(height: 24),
+            SpeciesManagerWidget(
+              selectedGenres: _selectedGenres.toList(),
+              onConfigChanged: (val) => _speciesConfig = val,
             ),
             const SizedBox(height: 24),
             FilledButton.icon(

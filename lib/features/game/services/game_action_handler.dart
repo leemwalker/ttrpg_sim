@@ -24,9 +24,77 @@ class GameActionHandler {
       return await _handleGenerateLocation(fc, worldId, characterId);
     } else if (fc.name == 'roll_check') {
       return await _handleRollCheck(fc, worldId, characterId, gemini);
+    } else if (fc.name == 'trade_transaction') {
+      return await _handleTradeTransaction(fc, worldId, characterId, gemini);
     }
 
     return null;
+  }
+
+  Future<TurnResult> _handleTradeTransaction(FunctionCall fc, int worldId,
+      int characterId, GeminiService gemini) async {
+    final args = fc.args;
+    final action = args['action'] as String? ?? 'buy';
+    final itemName = args['item_name'] as String? ?? 'Item';
+    final quantity = args['quantity'] as int? ?? 1;
+    final goldAmount = args['gold_amount'] as int? ?? 0;
+
+    final char = await _dao.getCharacterById(characterId);
+    if (char == null) {
+      return TurnResult(narrative: '', stateUpdates: {});
+    }
+
+    bool success = false;
+    String message = "";
+    int currentGold = char.gold;
+
+    if (action == 'buy') {
+      if (currentGold >= goldAmount) {
+        // Process Buy
+        await _dao.updateGold(characterId, currentGold - goldAmount);
+        for (int i = 0; i < quantity; i++) {
+          await _dao.addItem(characterId, itemName);
+        }
+        success = true;
+        message = "Purchased $quantity x $itemName for $goldAmount gold.";
+      } else {
+        success = false;
+        message = "Not enough gold (Have: $currentGold, Cost: $goldAmount).";
+      }
+    } else if (action == 'sell') {
+      // Process Sell
+      // Check inventory
+      final inv = await _dao.getInventoryForCharacter(characterId);
+      final item = inv.firstWhere((i) => i.itemName == itemName,
+          orElse: () => InventoryData(
+              id: 0, characterId: characterId, itemName: '', quantity: 0));
+
+      if (item.quantity >= quantity) {
+        await _dao.updateGold(characterId, currentGold + goldAmount);
+        for (int i = 0; i < quantity; i++) {
+          await _dao.removeItem(characterId, itemName);
+        }
+        success = true;
+        message = "Sold $quantity x $itemName for $goldAmount gold.";
+      } else {
+        success = false;
+        message = "Not enough items (Have: ${item.quantity}, Need: $quantity).";
+      }
+    }
+
+    // Insert system message for log
+    await _dao.insertMessage(
+        'system', "💰 **Trade**: $message", worldId, characterId);
+
+    return await gemini.sendFunctionResponse('trade_transaction', {
+      'success': success,
+      'message': message,
+      'current_gold': success
+          ? (action == 'buy'
+              ? currentGold - goldAmount
+              : currentGold + goldAmount)
+          : currentGold,
+    });
   }
 
   Future<TurnResult> _handleGenerateLocation(

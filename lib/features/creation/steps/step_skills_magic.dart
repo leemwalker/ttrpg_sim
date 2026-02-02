@@ -114,11 +114,21 @@ class _StepSkillsMagicState extends ConsumerState<StepSkillsMagic> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text("Skills", style: Theme.of(context).textTheme.headlineSmall),
-            Chip(
-              label: Text("Points: $remainingPoints"),
-              backgroundColor:
-                  remainingPoints >= 0 ? Colors.blue[900] : Colors.red,
-              labelStyle: const TextStyle(color: Colors.white),
+            Row(
+              children: [
+                ActionChip(
+                  label: const Text("Add Custom"),
+                  avatar: const Icon(Icons.add, size: 16),
+                  onPressed: () => _showAddSkillDialog(context, ref),
+                ),
+                const SizedBox(width: 8),
+                Chip(
+                  label: Text("Points: $remainingPoints"),
+                  backgroundColor:
+                      remainingPoints >= 0 ? Colors.blue[900] : Colors.red,
+                  labelStyle: const TextStyle(color: Colors.white),
+                ),
+              ],
             )
           ],
         ),
@@ -254,6 +264,68 @@ class _StepSkillsMagicState extends ConsumerState<StepSkillsMagic> {
           ),
         ]
       ],
+    );
+  }
+
+  void _showAddSkillDialog(BuildContext context, WidgetRef ref) {
+    final nameCtrl = TextEditingController();
+    String selectedAttr = 'Intelligence';
+    final attributes = [
+      'Strength',
+      'Dexterity',
+      'Constitution',
+      'Intelligence',
+      'Wisdom',
+      'Charisma'
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text("Add Custom Skill"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: "Skill Name",
+                    hintText: "e.g. Knowledge: Geography",
+                  ),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                    value: selectedAttr,
+                    decoration: const InputDecoration(labelText: "Attribute"),
+                    items: attributes
+                        .map((a) => DropdownMenuItem(value: a, child: Text(a)))
+                        .toList(),
+                    onChanged: (val) {
+                      setDialogState(() => selectedAttr = val!);
+                    }),
+              ],
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text("Cancel")),
+              FilledButton(
+                onPressed: () {
+                  if (nameCtrl.text.isNotEmpty) {
+                    ref
+                        .read(creationProvider.notifier)
+                        .updateSkillRank(nameCtrl.text, 1);
+                    Navigator.pop(ctx);
+                  }
+                },
+                child: const Text("Add"),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
