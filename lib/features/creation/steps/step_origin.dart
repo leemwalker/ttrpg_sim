@@ -59,25 +59,12 @@ class _StepOriginState extends ConsumerState<StepOrigin> {
       name: name,
       genre: 'Universal',
       skills: [], // User selects manually in later steps? Or we assume empty for now.
-      feat: 'None',
+      feats: [],
       items: [],
       description: desc,
     );
 
-    // We also need a dummy feat or 'None'
-    // Finding 'None' feat or creating placeholder
-    final feats = ModularRulesController()
-        .getFeats([]); // Empty genres ok for finding None?
-    // Usually 'None' feat exists or we mock it.
-    final noneFeat = FeatDef(
-        name: 'None',
-        genre: 'Universal',
-        type: 'General',
-        prerequisite: '',
-        description: 'No specific feat.',
-        effect: '');
-
-    ref.read(creationProvider.notifier).setOrigin(customOrigin, noneFeat);
+    ref.read(creationProvider.notifier).setOrigin(customOrigin, []);
   }
 
   @override
@@ -128,22 +115,25 @@ class _StepOriginState extends ConsumerState<StepOrigin> {
       CharacterCreationState state, OriginDef origin) {
     final isSelected = state.selectedOrigin?.name == origin.name;
 
-    // Check budget validation
-    final skillsCount = origin.skills.length;
-    bool valid = true;
+    // Apply scaling logic
+    var displaySkills = List<String>.from(origin.skills);
     if (state.difficulty != GameDifficulty.custom) {
-      if (skillsCount > state.budgets.originSkills) valid = false;
-      if (state.budgets.originFeats == 0 &&
-          origin.feat.isNotEmpty &&
-          origin.feat != 'None') valid = false;
+      if (displaySkills.length > state.budgets.originSkills) {
+        displaySkills = displaySkills.sublist(0, state.budgets.originSkills);
+      }
+    }
+
+    var displayFeatNames = List<String>.from(origin.feats);
+    if (state.difficulty != GameDifficulty.custom) {
+      if (displayFeatNames.length > state.budgets.originFeats) {
+        displayFeatNames =
+            displayFeatNames.sublist(0, state.budgets.originFeats);
+      }
     }
 
     return Card(
-      color: valid
-          ? (isSelected
-              ? Theme.of(context).primaryColor.withOpacity(0.2)
-              : null)
-          : Colors.grey.withOpacity(0.1),
+      color:
+          isSelected ? Theme.of(context).primaryColor.withOpacity(0.2) : null,
       margin: const EdgeInsets.only(bottom: 8),
       shape: isSelected
           ? RoundedRectangleBorder(
@@ -153,32 +143,38 @@ class _StepOriginState extends ConsumerState<StepOrigin> {
           : null,
       child: InkWell(
         key: ValueKey('origin_option_${origin.name}'),
-        onTap: valid
-            ? () {
-                final feats =
-                    ModularRulesController().getFeats(state.activeGenres);
-                try {
-                  final featDef = feats.firstWhere((f) => f.name == origin.feat,
-                      orElse: () => feats.firstWhere(
-                          (f) => f.name == 'Error', // Fallback
-                          orElse: () => feats.isEmpty
-                              ? FeatDef(
-                                  name: "Placeholder",
-                                  genre: "",
-                                  type: "",
-                                  prerequisite: "",
-                                  description: "",
-                                  effect: "")
-                              : feats.first));
+        onTap: () {
+          final feats = ModularRulesController().getFeats(state.activeGenres);
 
-                  ref
-                      .read(creationProvider.notifier)
-                      .setOrigin(origin, featDef);
-                } catch (e) {
-                  // Error handling
-                }
-              }
-            : null,
+          final resolvedFeats = <FeatDef>[];
+          for (var fName in displayFeatNames) {
+            try {
+              final f = feats.firstWhere((x) => x.name == fName);
+              resolvedFeats.add(f);
+            } catch (e) {
+              // Determine fallback if not found
+              resolvedFeats.add(FeatDef(
+                  name: fName,
+                  genre: 'Unknown',
+                  type: 'Error',
+                  prerequisite: '',
+                  description: 'Feat not found',
+                  effect: ''));
+            }
+          }
+
+          final effectiveOrigin = OriginDef(
+              name: origin.name,
+              genre: origin.genre,
+              skills: displaySkills,
+              feats: displayFeatNames,
+              items: origin.items,
+              description: origin.description);
+
+          ref
+              .read(creationProvider.notifier)
+              .setOrigin(effectiveOrigin, resolvedFeats);
+        },
         child: Padding(
           padding: const EdgeInsets.all(12.0),
           child: Column(
@@ -188,44 +184,40 @@ class _StepOriginState extends ConsumerState<StepOrigin> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(origin.name,
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: valid ? null : Colors.grey)),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16)),
                   if (isSelected)
                     const Icon(Icons.check_circle, color: Colors.green),
-                  if (!valid)
-                    const Text("Exceeds Budget",
-                        style: TextStyle(color: Colors.red, fontSize: 12)),
                 ],
               ),
               const Divider(),
               Text(origin.description,
-                  style: TextStyle(color: valid ? null : Colors.grey)),
+                  style: TextStyle(color: Colors.grey[600])),
               const SizedBox(height: 8),
-              if (valid) ...[
-                Row(
-                  children: [
-                    Icon(Icons.star,
-                        size: 16, color: valid ? Colors.amber : Colors.grey),
-                    const SizedBox(width: 4),
-                    Text("Grants Feat: ${origin.feat}",
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                  ],
-                ),
-                const SizedBox(height: 4),
+              if (displayFeatNames.isNotEmpty)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.school,
-                        size: 16,
-                        color: valid ? Colors.blueAccent : Colors.grey),
+                    const Icon(Icons.star, size: 16, color: Colors.amber),
                     const SizedBox(width: 4),
                     Expanded(
-                        child: Text("Skills: ${origin.skills.join(', ')}")),
+                      child: Text(
+                          "Grants Feats: ${displayFeatNames.join(', ')}",
+                          style: const TextStyle(fontWeight: FontWeight.w600)),
+                    ),
                   ],
                 ),
-              ]
+              if (displaySkills.isNotEmpty)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.school,
+                        size: 16, color: Colors.blueAccent),
+                    const SizedBox(width: 4),
+                    Expanded(
+                        child: Text("Skills: ${displaySkills.join(', ')}")),
+                  ],
+                ),
             ],
           ),
         ),

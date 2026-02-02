@@ -12,23 +12,59 @@ class TurnResult {
   final String narrative;
   final Map<String, dynamic> stateUpdates;
   final FunctionCall? functionCall;
+  final List<SkillOption> suggestedActions; // Task 1: Three Card options
 
   TurnResult({
     required this.narrative,
     required this.stateUpdates,
     this.functionCall,
+    this.suggestedActions = const [],
   });
 
   // Factory constructor to parse the JSON string from Gemini
-  // Factory constructor to parse the JSON string from Gemini
   factory TurnResult.fromJson(Map<String, dynamic> json,
       {FunctionCall? functionCall}) {
+    // Parse suggested_actions if present
+    List<SkillOption> options = [];
+    if (json['suggested_actions'] != null &&
+        json['suggested_actions'] is List) {
+      options = (json['suggested_actions'] as List)
+          .map((e) => SkillOption.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+
     return TurnResult(
       narrative: json['narrative']?.toString() ?? '',
       stateUpdates: (json['state_updates'] is Map)
           ? Map<String, dynamic>.from(json['state_updates'])
           : {},
       functionCall: functionCall,
+      suggestedActions: options,
+    );
+  }
+}
+
+/// Represents a skill check option for the "Three Card" system.
+/// The AI suggests 3 approaches and the player picks one.
+class SkillOption {
+  final String label; // e.g., "Force Open"
+  final String skill; // e.g., "Athletics"
+  final String attribute; // e.g., "STR"
+  final int difficulty;
+
+  SkillOption({
+    required this.label,
+    required this.skill,
+    required this.attribute,
+    required this.difficulty,
+  });
+
+  factory SkillOption.fromJson(Map<String, dynamic> json) {
+    return SkillOption(
+      label: json['label']?.toString() ?? 'Unknown',
+      skill: json['skill']?.toString() ?? 'General',
+      attribute: json['attribute']?.toString() ?? 'INT',
+      difficulty: (json['difficulty'] as num?)?.toInt() ?? 10,
     );
   }
 }

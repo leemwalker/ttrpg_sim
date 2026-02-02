@@ -782,6 +782,7 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
     String? spells = '[]',
     int? currentMana = 10,
     int? maxMana = 10,
+    String? magicPillar,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -810,6 +811,7 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
             #spells: spells,
             #currentMana: currentMana,
             #maxMana: maxMana,
+            #magicPillar: magicPillar,
           },
         ),
         returnValue: _i5.Future<void>.value(),
@@ -1035,6 +1037,66 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
         Invocation.method(
           #deleteCustomTrait,
           [id],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+
+  @override
+  _i5.Future<_i2.Npc?> getNpc(int? id) => (super.noSuchMethod(
+        Invocation.method(
+          #getNpc,
+          [id],
+        ),
+        returnValue: _i5.Future<_i2.Npc?>.value(),
+      ) as _i5.Future<_i2.Npc?>);
+
+  @override
+  _i5.Future<void> updateLocationVisited(
+    int? locationId,
+    bool? isVisited,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #updateLocationVisited,
+          [
+            locationId,
+            isVisited,
+          ],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> updateLocationHistory(
+    int? locationId,
+    String? historyJson,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #updateLocationHistory,
+          [
+            locationId,
+            historyJson,
+          ],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> updateNpcMemory(
+    int? npcId,
+    String? memoryJson,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #updateNpcMemory,
+          [
+            npcId,
+            memoryJson,
+          ],
         ),
         returnValue: _i5.Future<void>.value(),
         returnValueForMissingStub: _i5.Future<void>.value(),

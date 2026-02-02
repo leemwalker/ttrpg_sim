@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ttrpg_sim/features/creation/logic/creation_state.dart';
 import 'package:ttrpg_sim/core/models/rules/rule_models.dart';
+import 'package:ttrpg_sim/core/models/rules/spell_model.dart';
 
 void main() {
   group('CreationNotifier', () {
@@ -104,7 +105,7 @@ void main() {
         name: 'Scholar',
         genre: 'Fantasy',
         skills: ['Arcana'],
-        feat: 'Arcane Initiate',
+        feats: ['Arcane Initiate'],
         items: ['Book'],
         description: 'Learned',
       );
@@ -117,7 +118,7 @@ void main() {
         effect: 'None',
       );
 
-      notifier.setOrigin(origin, feat);
+      notifier.setOrigin(origin, [feat]);
 
       final state = container.read(creationProvider);
       expect(state.selectedOrigin, equals(origin));
@@ -143,6 +144,156 @@ void main() {
       notifier.toggleTrait(trait);
 
       expect(notifier.hasTrait('Magic Touched'), isTrue);
+    });
+
+    group('Magic Pillar Logic', () {
+      test('Generic Unlock allows all pillars (null)', () {
+        final notifier = container.read(creationProvider.notifier);
+        final trait = TraitDef(
+            name: 'Gifted',
+            type: 'Magic',
+            cost: 1,
+            genre: 'All',
+            description: 'Magic',
+            effect: 'Unlock Magic');
+        notifier.toggleTrait(trait);
+        expect(container.read(creationProvider).allowedPillars, isNull);
+      });
+
+      test('Specific Unlock restricts pillars', () {
+        final notifier = container.read(creationProvider.notifier);
+        final trait = TraitDef(
+            name: 'Cosmic Soul',
+            type: 'Magic',
+            cost: 1,
+            genre: 'All',
+            description: 'Cosmos',
+            effect: 'Unlock Magic (Pillar: Cosmos)');
+        notifier.toggleTrait(trait);
+
+        final allowed = container.read(creationProvider).allowedPillars;
+        expect(allowed, isNotNull);
+        expect(allowed, contains('Cosmos'));
+        expect(allowed!.length, 1);
+      });
+
+      test('Multiple Specific traits combine (Union)', () {
+        final notifier = container.read(creationProvider.notifier);
+        final t1 = TraitDef(
+            name: 'Cosmic',
+            type: 'Magic',
+            cost: 1,
+            genre: 'All',
+            description: '',
+            effect: 'Pillar: Cosmos');
+        final t2 = TraitDef(
+            name: 'Druid',
+            type: 'Magic',
+            cost: 1,
+            genre: 'All',
+            description: '',
+            effect: 'Pillar: Spirit');
+
+        notifier.toggleTrait(t1);
+        notifier.toggleTrait(t2);
+
+        final allowed = container.read(creationProvider).allowedPillars;
+        expect(allowed, containsAll(['Cosmos', 'Spirit']));
+      });
+
+      test('Generic Unlock overrides Specific restriction', () {
+        final notifier = container.read(creationProvider.notifier);
+        final specific = TraitDef(
+            name: 'Cosmic',
+            type: 'Magic',
+            cost: 1,
+            genre: 'All',
+            description: '',
+            effect: 'Pillar: Cosmos');
+        final generic = TraitDef(
+            name: 'Archmage',
+            type: 'Magic',
+            cost: 1,
+            genre: 'All',
+            description: '',
+            effect: 'Unlock Magic');
+
+        notifier.toggleTrait(specific);
+        expect(container.read(creationProvider).allowedPillars, isNotNull);
+
+        notifier.toggleTrait(generic);
+        expect(container.read(creationProvider).allowedPillars, isNull);
+      });
+
+      test('Multi-Pillar String parses correctly', () {
+        final notifier = container.read(creationProvider.notifier);
+        final trait = TraitDef(
+            name: 'Hybrid',
+            type: 'Magic',
+            cost: 1,
+            genre: 'All',
+            description: '',
+            effect: 'Pillar: Time/Matter');
+
+        notifier.toggleTrait(trait);
+
+        final allowed = container.read(creationProvider).allowedPillars;
+        expect(allowed, containsAll(['Time', 'Matter']));
+      });
+    });
+
+    group('Spell Selection Logic', () {
+      final spell1 = SpellDef(
+        name: 'Fireball',
+        source: 'Arcane',
+        intent: 'Harm',
+        tier: 1,
+        cost: 0,
+        description: 'Boom',
+        damageDice: '1d6',
+        damageType: 'Fire',
+      );
+      final spell2 = SpellDef(
+        name: 'Heal',
+        source: 'Divine',
+        intent: 'Utility',
+        tier: 1,
+        cost: 0,
+        description: 'Heals',
+        damageDice: '',
+        damageType: '',
+      );
+
+      test('setGeneratedSpells updates state and clears selected', () {
+        final notifier = container.read(creationProvider.notifier);
+
+        notifier.toggleSpell(spell1); // Select one first
+        expect(container.read(creationProvider).selectedSpells.length, 1);
+
+        notifier.setGeneratedSpells([spell1, spell2]);
+
+        final state = container.read(creationProvider);
+        expect(state.generatedSpells.length, 2);
+        expect(state.selectedSpells,
+            isEmpty); // Should clear selection on new generation
+      });
+
+      test('toggleSpell adds and removes spells', () {
+        final notifier = container.read(creationProvider.notifier);
+
+        notifier.toggleSpell(spell1);
+        expect(container.read(creationProvider).selectedSpells.length, 1);
+        expect(container.read(creationProvider).selectedSpells.first.name,
+            'Fireball');
+
+        notifier.toggleSpell(spell1); // Toggle off
+        expect(container.read(creationProvider).selectedSpells, isEmpty);
+
+        notifier.toggleSpell(spell2);
+        expect(container.read(creationProvider).selectedSpells.length, 1);
+        expect(
+            container.read(creationProvider).selectedSpells.first.name, 'Heal');
+      });
     });
   });
 }

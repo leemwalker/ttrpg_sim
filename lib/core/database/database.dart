@@ -82,6 +82,7 @@ class Character extends Table {
       text().withDefault(const Constant('[]'))(); // JSON List<SpellDef>
   IntColumn get currentMana => integer().withDefault(const Constant(0))();
   IntColumn get maxMana => integer().withDefault(const Constant(10))();
+  TextColumn get magicPillar => text().nullable()(); // Added in v24
 
   // Equipment System (v22)
   IntColumn get armorClass => integer().withDefault(const Constant(10))();
@@ -105,6 +106,9 @@ class Locations extends Table {
   TextColumn get description => text()();
   TextColumn get type => text()(); // e.g., "Village", "Forest", "Dungeon"
   TextColumn get coordinates => text().nullable()(); // e.g., "0,1"
+  // v23: World Integrity System
+  BoolColumn get isVisited => boolean().withDefault(const Constant(false))();
+  TextColumn get history => text().nullable()(); // JSON List of event summaries
 }
 
 class PointsOfInterest extends Table {
@@ -129,6 +133,9 @@ class Npcs extends Table {
   TextColumn get history => text().nullable()(); // Long-term memory/history
   TextColumn get stats => text().nullable()(); // JSON for future combat stats
   IntColumn get relationshipScore => integer().withDefault(const Constant(0))();
+  // v23: Player interaction memory
+  TextColumn get memory => text()
+      .nullable()(); // JSON: { "player_interactions": [], "mentioned_pois": [] }
 }
 
 class CustomTraits extends Table {
@@ -160,7 +167,7 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   @override
-  int get schemaVersion => 22;
+  int get schemaVersion => 24;
 
   @override
   MigrationStrategy get migration {
@@ -511,6 +518,30 @@ class AppDatabase extends _$AppDatabase {
                 'Migration v22 Info: Columns match existing schema or error: $e');
           }
         }
+        if (from < 23) {
+          // Migration v23: World Integrity System
+          // Add new columns to Locations table
+          try {
+            await m.addColumn(locations, locations.isVisited);
+            await m.addColumn(locations, locations.history);
+          } catch (e) {
+            print('Migration v23 Locations Info: $e');
+          }
+          // Add memory column to NPCs table
+          try {
+            await m.addColumn(npcs, npcs.memory);
+          } catch (e) {
+            print('Migration v23 Npcs Info: $e');
+          }
+        }
+        if (from < 24) {
+          // Migration v24: Magic Pillar persistence
+          try {
+            await m.addColumn(character, character.magicPillar);
+          } catch (e) {
+            print('Migration v24 Info: $e');
+          }
+        }
       },
     );
   }
@@ -746,6 +777,7 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
     String spells = '[]',
     int currentMana = 10,
     int maxMana = 10,
+    String? magicPillar,
   }) async {
     await (update(character)..where((t) => t.id.equals(characterId))).write(
       CharacterCompanion(
@@ -774,6 +806,7 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
         spells: Value(spells),
         currentMana: Value(currentMana),
         maxMana: Value(maxMana),
+        magicPillar: Value(magicPillar),
       ),
     );
   }
@@ -903,5 +936,30 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
 
   Future<void> deleteCustomTrait(int id) {
     return (delete(customTraits)..where((t) => t.id.equals(id))).go();
+  }
+
+  // -- WORLD INTEGRITY METHODS (v23) --
+
+  /// Get a single NPC by ID
+  Future<Npc?> getNpc(int id) {
+    return (select(npcs)..where((t) => t.id.equals(id))).getSingleOrNull();
+  }
+
+  /// Update location visited status
+  Future<void> updateLocationVisited(int locationId, bool isVisited) {
+    return (update(locations)..where((t) => t.id.equals(locationId)))
+        .write(LocationsCompanion(isVisited: Value(isVisited)));
+  }
+
+  /// Update location history JSON
+  Future<void> updateLocationHistory(int locationId, String historyJson) {
+    return (update(locations)..where((t) => t.id.equals(locationId)))
+        .write(LocationsCompanion(history: Value(historyJson)));
+  }
+
+  /// Update NPC memory JSON
+  Future<void> updateNpcMemory(int npcId, String memoryJson) {
+    return (update(npcs)..where((t) => t.id.equals(npcId)))
+        .write(NpcsCompanion(memory: Value(memoryJson)));
   }
 }

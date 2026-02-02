@@ -182,7 +182,7 @@ class OriginDef {
   final String name;
   final String genre;
   final List<String> skills;
-  final String feat;
+  final List<String> feats;
   final List<String> items;
   final String description;
 
@@ -190,18 +190,18 @@ class OriginDef {
     required this.name,
     required this.genre,
     required this.skills,
-    required this.feat,
+    required this.feats,
     required this.items,
     required this.description,
   });
 
   factory OriginDef.fromCsv(List<dynamic> row) {
-    // Name,Genre,Skills,Feat,Starting Items,Description
+    // Name,Genre,Skills,Feat(s),Starting Items,Description
     return OriginDef(
       name: row[0].toString(),
       genre: row[1].toString(),
       skills: _parseList(row[2].toString()),
-      feat: row[3].toString(),
+      feats: _parseList(row[3].toString()),
       items: _parseList(row[4].toString()),
       description: row[5].toString(),
     );
@@ -379,6 +379,7 @@ class CreationBudgets {
   final int originSkills;
   final int originFeats;
   final int traitPoints;
+  final int generalSkillPoints; // Points to spend on skills freely
   final int maxAttribute;
 
   const CreationBudgets({
@@ -386,6 +387,7 @@ class CreationBudgets {
     required this.originSkills,
     required this.originFeats,
     required this.traitPoints,
+    this.generalSkillPoints = 3, // Default for backward compatibility
     required this.maxAttribute,
   });
 }

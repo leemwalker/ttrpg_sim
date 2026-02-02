@@ -154,7 +154,11 @@ class GameActionHandler {
     final difficulty = args['difficulty'] as int? ?? 10;
 
     final char = await _dao.getCharacterById(characterId);
-    final mod = char != null ? _rules.getModifier(char, checkName) : 0;
+
+    // Get detailed modifier breakdown for display
+    final breakdown =
+        char != null ? _rules.getModifierBreakdown(char, checkName) : null;
+    final mod = breakdown?.totalModifier ?? 0;
 
     // Check for "Large" trait => Advantage on Strength and Athletics
     bool advantage = false;
@@ -182,20 +186,51 @@ class GameActionHandler {
     final total = roll + mod;
     final isSuccess = total >= difficulty;
 
+    // Build detailed breakdown string
+    String breakdownStr;
+    if (breakdown != null) {
+      final parts = <String>[];
+      parts.add('[$roll]'); // d20 roll
+      parts.add(
+          '${breakdown.attributeAbbrev} (${breakdown.formatMod(breakdown.attributeModifier)})');
+      if (breakdown.skillRank != 0) {
+        parts.add('Skill (${breakdown.formatMod(breakdown.skillRank)})');
+      }
+      breakdownStr = parts.join(' + ');
+    } else {
+      breakdownStr = '[$roll] + $mod';
+    }
+
     String systemMsg = "🎲 **${args['check_name']} Check**\n";
     if (advantage) {
       systemMsg += "(Advantage: rolled $roll and $roll2)\n";
     }
-    systemMsg += "Roll: $roll + $mod = **$total** vs DC $difficulty\n"
+    systemMsg += "Roll: $breakdownStr = **$total** vs DC $difficulty\n"
         "${isSuccess ? '✅ SUCCESS' : '❌ FAILURE'}";
 
     await _dao.insertMessage('system', systemMsg, worldId, characterId);
+
+    // Determine result description
+    String resultDesc;
+    if (roll == 20) {
+      resultDesc = "Critical Success (Nat 20)";
+    } else if (roll == 1) {
+      resultDesc = "Critical Failure (Nat 1)";
+    } else if (isSuccess) {
+      resultDesc = "Success";
+    } else {
+      resultDesc = "Failure";
+    }
+
+    final int margin = total - difficulty;
 
     return await gemini.sendFunctionResponse('roll_check', {
       'roll': roll,
       'modifier': mod,
       'total': total,
       'success': isSuccess,
+      'margin': margin,
+      'result_description': resultDesc,
       'check_name': checkName,
       'difficulty': difficulty,
       'advantage': advantage, // Inform AI

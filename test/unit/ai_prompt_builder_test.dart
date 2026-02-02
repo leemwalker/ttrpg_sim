@@ -100,6 +100,7 @@ void main() {
         description: "A small town",
         type: "Village",
         coordinates: "0,0",
+        isVisited: true,
       );
 
       final instruction = AIPromptBuilder.buildInstruction(

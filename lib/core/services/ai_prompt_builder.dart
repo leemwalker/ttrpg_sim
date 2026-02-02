@@ -50,7 +50,7 @@ class AIPromptBuilder {
 CURRENT STATUS:
 - Player: ${player.name} (Level ${player.level} ${player.species} ${player.origin})
 - Attributes: ${_formatAttributes(player)}
-- Location: Unspecified / Session Zero
+- Location: A quiet conceptual space within the $genre universe. The air is filled with the potential of $tone.
 
 MISSION:
 The World: $genre setting. Tone: $tone. $description.
@@ -62,7 +62,7 @@ Goal: Conduct a 'Session Zero'.
 1. Welcome the player to the table using a tone appropriate for a $tone setting.
 2. Briefly summarize how their character might fit into this world based on their backstory.
 3. Ask the player 1 or 2 probing questions to flesh out their connections or motivations (e.g., 'Who is your rival?', 'Why did you leave home?').
-4. Do NOT start the adventure yet. We are establishing the scene. Ask them to confirm if this fits their vision or if they want to adjust anything.
+4. Do NOT start the adventure yet. We are establishing the scene. Ask them to confirm if this fits their vision or if they want to adjust anything. 
 """;
     } else {
       // Atlas Mode: Describe current location with POIs and NPCs
@@ -112,8 +112,10 @@ Rules:
 3. If the player attempts to cast a spell NOT in their Known Spells, or of a level higher than they have slots for, reject the action and narrate the failure gracefully.
 4. If the player tries to use a class feature NOT in their Class Features, narrate why they cannot do that yet.
 5. RULE: You are a Game Master. If the user attempts an action that is difficult or has a chance of failure, you MUST ask for a Dice Roll or use the [Roll Dice] tool. Do not simply grant success for complex tasks.
-6. Output Format: You must ALWAYS return valid JSON.
-7. Schema:
+6. LITRPG FORMATTING: When narrating State Updates (e.g. HP loss, XP gain, Item drops), format them distinctly using [Blue Brackets] or **Bold Text** to mimic a system notification.
+7. SKILL CHECK OPTIONS: When the player attempts a complex action that could be approached multiple ways (e.g., opening a locked door, convincing a guard, bypassing a trap), provide EXACTLY 3 distinct approaches in the 'suggested_actions' array. Each option should use a different skill/attribute combination. Do NOT include suggested_actions for simple narrative responses or combat actions.
+8. Output Format: You must ALWAYS return valid JSON.
+9. Schema:
 {
   "narrative": "The story description and dialogue goes here.",
   "state_updates": {
@@ -122,9 +124,15 @@ Rules:
     "add_items": [], 
     "remove_items": [], 
     "location_update": null
-  }
+  },
+  "suggested_actions": [
+    {"label": "Force it open", "skill": "Athletics", "attribute": "STR", "difficulty": 15},
+    {"label": "Pick the lock", "skill": "Sleight of Hand", "attribute": "DEX", "difficulty": 12},
+    {"label": "Find another way", "skill": "Perception", "attribute": "WIS", "difficulty": 10}
+  ]
 }
-8. Style: Be evocative and concise. Do not ask the user to update their sheet; YOU calculate the updates and put them in 'state_updates'.
+10. Style: Be evocative and concise. Do not ask the user to update their sheet; YOU calculate the updates and put them in 'state_updates'.
+11. IMPORTANT: Only include 'suggested_actions' when a skill check is required. For simple narrative responses, omit this field or return an empty array.
 """;
   }
 

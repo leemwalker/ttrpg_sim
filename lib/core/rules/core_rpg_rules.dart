@@ -2,6 +2,41 @@ import 'dart:convert';
 import 'package:ttrpg_sim/core/database/database.dart';
 import 'rpg_system.dart';
 
+/// Detailed breakdown of a modifier calculation for display purposes.
+class ModifierBreakdown {
+  final String checkName;
+  final String attributeName;
+  final int attributeScore;
+  final int attributeModifier;
+  final int skillRank;
+  final int totalModifier;
+
+  ModifierBreakdown({
+    required this.checkName,
+    required this.attributeName,
+    required this.attributeScore,
+    required this.attributeModifier,
+    required this.skillRank,
+    required this.totalModifier,
+  });
+
+  /// Format the modifier with sign (e.g., "+2" or "-1")
+  String formatMod(int value) => value >= 0 ? '+$value' : '$value';
+
+  /// Short attribute abbreviation (first 3 letters, uppercase)
+  String get attributeAbbrev => attributeName.substring(0, 3).toUpperCase();
+
+  @override
+  String toString() {
+    final parts = <String>[];
+    parts.add('$attributeAbbrev (${formatMod(attributeModifier)})');
+    if (skillRank != 0) {
+      parts.add('Skill (${formatMod(skillRank)})');
+    }
+    return parts.join(' + ');
+  }
+}
+
 /// Generic Modular d20 implementation of the RPG rules system.
 class CoreRpgRules extends RpgSystem {
   // Standard d20 Skill mappings (Generic)
@@ -81,8 +116,10 @@ class CoreRpgRules extends RpgSystem {
     return [];
   }
 
-  @override
-  int getModifier(CharacterData character, String checkName) {
+  /// Get detailed modifier breakdown for a skill or ability check.
+  /// Returns structured data with attribute and skill components.
+  ModifierBreakdown getModifierBreakdown(
+      CharacterData character, String checkName) {
     // Determine which attribute to use
     String attribute;
     if (_standardSkillMap.containsKey(checkName)) {
@@ -128,6 +165,21 @@ class CoreRpgRules extends RpgSystem {
       print('Error parsing skills for modifier: $e');
     }
 
-    return attrMod + skillRank;
+    // Capitalize attribute name for display
+    final displayAttr = attribute[0].toUpperCase() + attribute.substring(1);
+
+    return ModifierBreakdown(
+      checkName: checkName,
+      attributeName: displayAttr,
+      attributeScore: score,
+      attributeModifier: attrMod,
+      skillRank: skillRank,
+      totalModifier: attrMod + skillRank,
+    );
+  }
+
+  @override
+  int getModifier(CharacterData character, String checkName) {
+    return getModifierBreakdown(character, checkName).totalModifier;
   }
 }

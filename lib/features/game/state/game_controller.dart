@@ -11,6 +11,7 @@ import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
 import 'package:ttrpg_sim/core/errors/app_exceptions.dart';
 import 'package:ttrpg_sim/core/services/gemini_service.dart';
 import 'package:ttrpg_sim/features/game/state/game_state.dart';
+import 'package:ttrpg_sim/core/utils/dice_utils.dart';
 
 part 'game_controller.g.dart';
 
@@ -109,10 +110,28 @@ class GameController extends _$GameController {
   Future<void> submitAction(String text) async {
     if (text.trim().isEmpty) return;
 
-    state = const AsyncValue.loading();
-
     final dao = ref.read(gameDaoProvider);
     final worldId = _worldId;
+
+    // --- TASK 4: OPTIMISTIC UPDATE ---
+    // 1. Create optimistic user message (temporary ID = -1)
+    final optimisticUserMessage = ChatMessage(
+      id: -1, // Temp ID, will be replaced
+      role: MessageRole.user,
+      content: text,
+      timestamp: DateTime.now(),
+      worldId: worldId,
+      characterId: _characterId,
+    );
+
+    // 2. Get current messages and add optimistic one + set typing indicator
+    final currentMessages = state.value?.messages ?? [];
+    state = AsyncValue.data((state.value ?? const GameState()).copyWith(
+      messages: [optimisticUserMessage, ...currentMessages],
+      isTyping: true,
+      lastError: null, // Clear previous errors
+      pendingSkillCheck: [], // Clear any pending skill checks
+    ));
 
     try {
       final gemini = ref.read(geminiServiceProvider);
@@ -239,11 +258,130 @@ $speciesContext
             worldKnowledge, // Pass context explicitly if GeminiService supports it, or it will be built in the builder
       );
 
+      // --- TASK 1: SKILL CHECK OPTIONS ---
+      // Check if AI returned skill check options (strict fallback)
+      if (result.suggestedActions.isNotEmpty) {
+        // Enter skill check pending state - show cards, wait for selection
+        final messages = await dao.getRecentMessages(
+            _characterId, AppConstants.chatHistoryLimit);
+        final wordCount = await dao.getWordCount(_characterId);
+
+        state = AsyncValue.data(GameState(
+          messages: messages,
+          character: null,
+          inventory: [],
+          isLoading: false,
+          isTyping: false,
+          pendingSkillCheck: result.suggestedActions, // Store options for UI
+          wordCount: wordCount,
+          bookCompletion: (wordCount / 50000).clamp(0.0, 1.0),
+        ));
+        return; // Wait for user to select an option
+      }
+
       // Handle Result (Function Calls, State Updates, Narrative)
       await _handleTurnResult(result, dao, gemini, rules, worldId);
     } catch (e) {
-      _handleError(e, dao, worldId);
+      // --- TASK 4: ERROR ROLLBACK ---
+      // Remove optimistic message and show error
+      await _handleErrorWithRollback(e, dao, worldId);
     }
+  }
+
+  /// Task 1: Handle skill check card selection
+  /// Task 1: Handle skill check card selection
+  Future<void> selectSkillOption(SkillOption option) async {
+    final dao = ref.read(gameDaoProvider);
+    final character = await dao.getCharacterById(_characterId);
+
+    String rollResult = "";
+    if (character != null) {
+      final int attrScore = _getAttributeValue(character, option.attribute);
+      final int mod = _getMod(attrScore);
+      final roll = DiceUtils.roll("1d20+$mod");
+
+      final bool isSuccess = roll.total >= option.difficulty;
+      final String status = isSuccess ? "Success" : "Failure";
+
+      rollResult =
+          "Rolled ${roll.total} ($status) vs DC ${option.difficulty}. [1d20${mod >= 0 ? '+' : ''}$mod = ${roll.total}]";
+    }
+
+    // Auto-send message based on selected skill option with RESULT
+    final message = "I choose: ${option.label}. $rollResult";
+
+    // Clear pending skill check first
+    state = AsyncValue.data((state.value ?? const GameState()).copyWith(
+      pendingSkillCheck: [],
+    ));
+
+    // Submit as a regular action
+    await submitAction(message);
+  }
+
+  int _getAttributeValue(CharacterData c, String attr) {
+    switch (attr.trim().toUpperCase()) {
+      case 'STR':
+      case 'STRENGTH':
+        return c.strength;
+      case 'DEX':
+      case 'DEXTERITY':
+        return c.dexterity;
+      case 'CON':
+      case 'CONSTITUTION':
+        return c.constitution;
+      case 'INT':
+      case 'INTELLIGENCE':
+        return c.intelligence;
+      case 'WIS':
+      case 'WISDOM':
+        return c.wisdom;
+      case 'CHA':
+      case 'CHARISMA':
+        return c.charisma;
+      default:
+        return 10;
+    }
+  }
+
+  int _getMod(int score) {
+    return (score - 10) ~/ 2;
+  }
+
+  /// Task 1: Dismiss skill check and return to text input
+  void dismissSkillCheck() {
+    state = AsyncValue.data((state.value ?? const GameState()).copyWith(
+      pendingSkillCheck: [],
+    ));
+  }
+
+  /// Task 4: Error handling with optimistic rollback
+  Future<void> _handleErrorWithRollback(
+      Object e, GameDao dao, int worldId) async {
+    String errorMsg;
+    if (e is ApiKeyException) {
+      errorMsg = "⛔ Auth Error: Please check your API Key in Settings.";
+    } else if (e is NetworkException) {
+      errorMsg = "📡 Network Error: Unable to reach the oracle.";
+    } else if (e is AppBaseException) {
+      errorMsg = "❌ Error: ${e.message}";
+    } else {
+      errorMsg = "❌ Message failed to send: $e";
+    }
+
+    // Fetch real messages from DB (without the failed optimistic one)
+    final messages = await dao.getRecentMessages(
+        _characterId, AppConstants.chatHistoryLimit);
+
+    // Update state with error for SnackBar display
+    state = AsyncValue.data(GameState(
+      messages: messages,
+      character: null,
+      inventory: [],
+      isLoading: false,
+      isTyping: false,
+      lastError: errorMsg, // For SnackBar display in UI
+    ));
   }
 
   Future<void> _startSessionZero() async {

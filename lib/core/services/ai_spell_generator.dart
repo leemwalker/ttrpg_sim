@@ -51,9 +51,16 @@ class AiSpellGeneratorService {
       // Let's assume if this function is called, the UI/Controller determined the user is a spellcaster.
     }
 
+    String pillarMsg = '';
+    if (char.magicPillar != null && char.magicPillar!.isNotEmpty) {
+      pillarMsg =
+          "Magic Pillar: ${char.magicPillar}. Spells MUST align with this pillar/theme.";
+    }
+
     final prompt = """
     Character is a level ${char.level} adventurer in a ${char.species} ${char.origin} role.
     Key Traits/Feats: ${magicHints.join(', ')}.
+    $pillarMsg
     Background: ${char.backstory ?? 'Unknown'}.
     
     Generate 3 Tier 1 Spells (1 Harm, 1 Ward, 1 Utility) tailored to this character's theme.

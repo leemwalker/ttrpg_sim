@@ -73,6 +73,9 @@ void main() {
     mockDao = MockGameDao();
     listener = Listener<AsyncValue<GameState>>();
 
+    // Add default stub for getWordCount
+    when(mockDao.getWordCount(any)).thenAnswer((_) async => 0);
+
     container = ProviderContainer(
       overrides: [
         geminiServiceProvider.overrideWithValue(mockGemini),
@@ -141,7 +144,12 @@ void main() {
       );
 
       // Wait for build to complete
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      // Debug: Ensure no error occurred
+      // If this fails, it means _startSessionZero caught an exception
+      verifyNever(mockDao.insertMessage(
+          'system', argThat(contains('Error')), any, any));
 
       // THEN: Verify Session Zero triggered
       verify(mockGemini.sendMessage(
@@ -339,10 +347,13 @@ void main() {
       await controller.submitAction("Hello");
       await Future.delayed(const Duration(milliseconds: 50));
 
-      // THEN: Should insert a system error message
-      verify(mockDao.insertMessage(
-              'system', argThat(contains('Network Error')), any, any))
-          .called(1);
+      // THEN: Should update state with error (no DB insert for rollback)
+      final state =
+          container.read(gameControllerProvider(worldId, characterId));
+      expect(state.value?.lastError, contains('Network Error'));
+
+      // Ensure NO system message was inserted (rollback)
+      verifyNever(mockDao.insertMessage('system', any, any, any));
     });
 
     test('Submit Action: Invalid State Recovery (No Character)', () async {
@@ -371,8 +382,11 @@ void main() {
       // Character is null
       when(mockDao.getCharacterById(any)).thenAnswer((_) async {
         await Future.delayed(const Duration(milliseconds: 10));
-        return null;
+        return null; // Deleted?
       });
+
+      // Stub getWordCount also, just in case
+      when(mockDao.getWordCount(any)).thenAnswer((_) async => 0);
 
       container.listen(
         gameControllerProvider(worldId, characterId),
@@ -388,10 +402,13 @@ void main() {
       await controller.submitAction("Action");
       await Future.delayed(const Duration(milliseconds: 50));
 
-      // THEN: Should catch Exception and log error
-      verify(mockDao.insertMessage(
-              'system', argThat(contains('Error')), any, any))
-          .called(1);
+      // THEN: Should show error in state
+      final state =
+          container.read(gameControllerProvider(worldId, characterId));
+      expect(state.value?.lastError, contains('Message failed to send'));
+
+      // And no system message
+      verifyNever(mockDao.insertMessage('system', any, any, any));
     });
   });
 }

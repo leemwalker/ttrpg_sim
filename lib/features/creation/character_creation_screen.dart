@@ -326,6 +326,9 @@ class _CharacterCreationScreenState
     final int conMod = ((con - 10) / 2).floor();
     final int maxHp = 10 + conMod;
 
+    final spellsJson =
+        jsonEncode(state.selectedSpells.map((s) => s.toJson()).toList());
+
     await dao.updateCharacterBio(
       characterId: _characterId!,
       name: _nameController.text,
@@ -346,6 +349,8 @@ class _CharacterCreationScreenState
       intelligence: finalAttributes['Intelligence'] ?? 10,
       wisdom: finalAttributes['Wisdom'] ?? 10,
       charisma: finalAttributes['Charisma'] ?? 10,
+      spells: spellsJson,
+      magicPillar: state.magicPillar,
     );
 
     if (mounted) {

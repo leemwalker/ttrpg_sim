@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ttrpg_sim/core/models/rules/rule_models.dart';
+import 'package:ttrpg_sim/core/models/rules/spell_model.dart';
 
 class CharacterCreationState {
   final List<String> activeGenres;
@@ -25,6 +26,12 @@ class CharacterCreationState {
   final bool isMagicEnabled; // From World settings
   final List<SpeciesDef> customSpecies; // From World Config
 
+  final Set<String>?
+      allowedPillars; // If null, all allowed (or none if not magic enabled?). Let's say null = all/generic. Empty = none?
+
+  final List<SpellDef> generatedSpells;
+  final List<SpellDef> selectedSpells;
+
   CharacterCreationState({
     required this.activeGenres,
     this.difficulty = GameDifficulty.medium,
@@ -37,9 +44,12 @@ class CharacterCreationState {
     this.skillPointsBudget = 3,
     this.magicPillar,
     this.magicDescription,
+    this.allowedPillars,
     this.excludedSpecies = const {},
     this.isMagicEnabled = false,
     this.customSpecies = const [],
+    this.generatedSpells = const [],
+    this.selectedSpells = const [],
   });
 
   CharacterCreationState copyWith({
@@ -54,9 +64,13 @@ class CharacterCreationState {
     int? skillPointsBudget,
     String? magicPillar,
     String? magicDescription,
+    Set<String>? allowedPillars,
+    bool forceNullAllowedPillars = false,
     Set<String>? excludedSpecies,
     bool? isMagicEnabled,
     List<SpeciesDef>? customSpecies,
+    List<SpellDef>? generatedSpells,
+    List<SpellDef>? selectedSpells,
   }) {
     return CharacterCreationState(
       activeGenres: activeGenres ?? this.activeGenres,
@@ -70,34 +84,43 @@ class CharacterCreationState {
       skillPointsBudget: skillPointsBudget ?? this.skillPointsBudget,
       magicPillar: magicPillar ?? this.magicPillar,
       magicDescription: magicDescription ?? this.magicDescription,
+      allowedPillars: forceNullAllowedPillars
+          ? null
+          : (allowedPillars ?? this.allowedPillars),
       excludedSpecies: excludedSpecies ?? this.excludedSpecies,
       isMagicEnabled: isMagicEnabled ?? this.isMagicEnabled,
       customSpecies: customSpecies ?? this.customSpecies,
+      generatedSpells: generatedSpells ?? this.generatedSpells,
+      selectedSpells: selectedSpells ?? this.selectedSpells,
     );
   }
 
+  // ... (budgets and remainingTraitPoints getters stay same)
   CreationBudgets get budgets {
     switch (difficulty) {
       case GameDifficulty.easy:
         return const CreationBudgets(
             pointBuyPoints: 42,
             originSkills: 4,
-            originFeats: 2,
+            originFeats: 3,
             traitPoints: 6,
+            generalSkillPoints: 12,
             maxAttribute: 18);
       case GameDifficulty.medium:
         return const CreationBudgets(
             pointBuyPoints: 28,
             originSkills: 3,
-            originFeats: 1,
+            originFeats: 2,
             traitPoints: 3,
+            generalSkillPoints: 6,
             maxAttribute: 18);
       case GameDifficulty.hard:
         return const CreationBudgets(
             pointBuyPoints: 19,
             originSkills: 2,
-            originFeats: 0,
+            originFeats: 1,
             traitPoints: 1,
+            generalSkillPoints: 3,
             maxAttribute: 18);
       case GameDifficulty.expert:
         return const CreationBudgets(
@@ -105,6 +128,7 @@ class CharacterCreationState {
             originSkills: 1,
             originFeats: 0,
             traitPoints: 1,
+            generalSkillPoints: 1,
             maxAttribute: 18);
       case GameDifficulty.custom:
         return const CreationBudgets(
@@ -112,6 +136,7 @@ class CharacterCreationState {
             originSkills: 99,
             originFeats: 99,
             traitPoints: 99,
+            generalSkillPoints: 99,
             maxAttribute: 30);
     }
   }
@@ -133,6 +158,8 @@ class CreationNotifier extends Notifier<CharacterCreationState> {
   CharacterCreationState build() {
     return CharacterCreationState(activeGenres: []);
   }
+
+  // ... (other methods)
 
   void setCustomSpecies(List<SpeciesDef> species) {
     state = state.copyWith(customSpecies: species);
@@ -165,7 +192,7 @@ class CreationNotifier extends Notifier<CharacterCreationState> {
     state = state.copyWith(selectedSpecies: species);
   }
 
-  void setOrigin(OriginDef origin, FeatDef originFeat) {
+  void setOrigin(OriginDef origin, List<FeatDef> originFeats) {
     final newSkillRanks = Map<String, int>.from(state.skillRanks);
     final newFeats = List<FeatDef>.from(state.selectedFeats);
 
@@ -178,9 +205,11 @@ class CreationNotifier extends Notifier<CharacterCreationState> {
       newSkillRanks[skillName] = 1;
     }
 
-    // Add new Feat
-    if (!newFeats.any((f) => f.name == originFeat.name)) {
-      newFeats.add(originFeat);
+    // Add new Feats
+    for (var feat in originFeats) {
+      if (!newFeats.any((f) => f.name == feat.name)) {
+        newFeats.add(feat);
+      }
     }
 
     state = state.copyWith(
@@ -188,6 +217,7 @@ class CreationNotifier extends Notifier<CharacterCreationState> {
       skillRanks: newSkillRanks,
       selectedFeats: newFeats,
     );
+    _recalculateAllowedPillars();
   }
 
   void toggleTrait(TraitDef trait) {
@@ -213,6 +243,7 @@ class CreationNotifier extends Notifier<CharacterCreationState> {
     state = state.copyWith(
       selectedTraits: currentTraits,
     );
+    _recalculateAllowedPillars();
   }
 
   void updateAttribute(String name, int value) {
@@ -239,12 +270,89 @@ class CreationNotifier extends Notifier<CharacterCreationState> {
     state = state.copyWith(magicPillar: pillar, magicDescription: description);
   }
 
+  void setGeneratedSpells(List<SpellDef> spells) {
+    state = state.copyWith(generatedSpells: spells, selectedSpells: []);
+  }
+
+  void toggleSpell(SpellDef spell) {
+    final current = List<SpellDef>.from(state.selectedSpells);
+    if (current.any((s) => s.name == spell.name)) {
+      current.removeWhere((s) => s.name == spell.name);
+    } else {
+      current.add(spell);
+    }
+    state = state.copyWith(selectedSpells: current);
+  }
+
   bool hasFeat(String featName) {
     return state.selectedFeats.any((f) => f.name == featName);
   }
 
   bool hasTrait(String traitName) {
     return state.selectedTraits.any((t) => t.name == traitName);
+  }
+
+  void _recalculateAllowedPillars() {
+    // 1. Collect all magic-related effects
+    final allEffects = [
+      ...state.selectedTraits.map((t) => t.effect),
+      ...state.selectedFeats.map((f) => f.effect),
+    ];
+
+    // 2. Check for Magic Unlocks
+    // Keywords: "Unlock Magic", "Unlock Pillar", "Pillar:"
+    // If we have "Unlock Magic" WITHOUT "Pillar:", it's Generic -> All Allowed (return null).
+
+    // However, "Unlock Magic (Pillar: Cosmos)" is a single string.
+    // So we check if there is ANY effect that unlocks magic but DOES NOT specify a pillar.
+    // Heuristic: contains "Unlock Magic" and does not contain "Pillar:" ?
+    // Or maybe "Unlock Magic" is the key.
+
+    bool hasGenericUnlock = false;
+    final specificPillars = <String>{};
+    for (var effect in allEffects) {
+      final hasUnlock =
+          effect.contains('Unlock Magic') || effect.contains('Unlock Power');
+      final hasPillar = effect.contains('Pillar:');
+
+      if (hasPillar) {
+        // Parse specific
+        final match = RegExp(r'Pillar:\s*([^).]+)').firstMatch(effect);
+        if (match != null) {
+          final parts = match.group(1)!.split('/');
+          for (var p in parts) {
+            specificPillars.add(p.trim());
+          }
+        }
+      }
+
+      if (hasUnlock && !hasPillar) {
+        // Generic unlock found
+        hasGenericUnlock = true;
+      }
+    }
+
+    if (hasGenericUnlock) {
+      // Generic overrides specific restrictions -> All allowed.
+      state = state.copyWith(forceNullAllowedPillars: true); // Null means all
+    } else if (specificPillars.isNotEmpty) {
+      // Only specific allowed
+      state = state.copyWith(allowedPillars: specificPillars);
+
+      // If current selection is invalid, clear it?
+      if (state.magicPillar != null &&
+          !specificPillars.contains(state.magicPillar)) {
+        state = state.copyWith(magicPillar: null);
+      }
+    } else {
+      // No magic unlocked?
+      // If visibility depends on this, we might want to signal "None".
+      // But typically if no magic, the section is hidden anyway.
+      // We'll set allowedPillars to empty set logic if that helps, or null.
+      // Let's default to null (all) but relies on visibility check.
+      // actually, let's strictly clear it if no magic found to be safe.
+      state = state.copyWith(forceNullAllowedPillars: true);
+    }
   }
 
   Map<String, int> get totalAttributes {

@@ -224,7 +224,7 @@ void main() {
     // Find system message
     final systemMsg = messages.firstWhere((m) => m.role.name == 'system');
     expect(systemMsg.content, contains('Roll:'));
-    expect(systemMsg.content, contains('+ 3'));
+    expect(systemMsg.content, contains('STR (+3)'));
     expect(systemMsg.content, contains('vs DC 10'));
 
     // Also verify final narrative
