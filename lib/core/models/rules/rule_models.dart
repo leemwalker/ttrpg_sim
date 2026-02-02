@@ -276,6 +276,16 @@ class ItemDef {
 
   int get value => cost; // Alias for "value"
 
+  /// Parses the properties string into a list of tags (e.g., ["Finesse", "Heavy"])
+  List<String> get tags {
+    if (properties.isEmpty) return [];
+    return properties
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty && !e.startsWith('AC:'))
+        .toList();
+  }
+
   ItemDef({
     required this.name,
     required this.genre,

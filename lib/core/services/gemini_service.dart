@@ -89,7 +89,7 @@ class GeminiService {
           // responseMimeType: 'application/json', // Unsupported with Tools in some versions
           ),
       systemInstruction: Content.system(instruction),
-      tools: [locationTool, diceTool],
+      tools: [locationTool, diceTool, tradeTool],
     );
     return GoogleGenerativeModelWrapper(realModel);
   }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:ttrpg_sim/features/game/services/context_service.dart';
 import 'package:ttrpg_sim/features/game/services/game_action_handler.dart';
 
 import 'package:ttrpg_sim/core/constants/app_constants.dart';
@@ -224,20 +225,15 @@ class GameController extends _$GameController {
         }
       }
 
-      // Fetch shared world data for context injection
-      final knownLocations = await dao.getLocationsForWorld(worldId);
-      final knownNpcs = await dao.getNpcsForWorld(worldId);
-
-      // Build world knowledge section for prompt
-      final worldKnowledge = (knownLocations.isNotEmpty || knownNpcs.isNotEmpty)
-          ? '''
-[PERSISTENT WORLD DATA]
-The following locations and NPCs already exist in this world. Use these details to maintain consistency if the player encounters them:
-Locations: ${knownLocations.map((l) => "${l.name}: ${l.description}").join('; ')}
-NPCs: ${knownNpcs.map((n) => "${n.name}: ${n.role}${n.history != null ? " [History: ${n.history}]" : ""}").join('; ')} 
-$speciesContext
-'''
-          : null;
+      // Fetch filtered world data for context injection (only relevant items)
+      final contextService = ContextService(dao);
+      final recentMessages = await dao.getRecentMessages(_characterId, 6);
+      final worldKnowledge = await contextService.buildRelevantWorldData(
+        worldId,
+        character.currentLocationId,
+        recentMessages,
+        speciesContext: speciesContext,
+      );
 
       // Call Gemini (includes world knowledge if available)
       final result = await gemini.sendMessage(

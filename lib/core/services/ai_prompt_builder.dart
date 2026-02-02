@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:ttrpg_sim/core/database/database.dart';
+import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
 
 class AIPromptBuilder {
   static String buildInstruction(
@@ -181,11 +183,62 @@ Rules:
         "CHA ${p.charisma} (${mod(p.charisma)})";
   }
 
+  /// Parses equipment JSON and returns a formatted string with damage dice for weapons.
+  /// Example: "Main Hand: Longsword (1d8), Body: Leather Armor (AC +2)"
   static String _parseEquipment(String jsonStr) {
-    // Basic clean up if parsing fails or lack of import
     if (jsonStr == '{}' || jsonStr.isEmpty) return "None";
-    // We construct a simple string cleaner
-    // {"body":"Leather Armor"} -> Body: Leather Armor
-    return jsonStr.replaceAll('"', '').replaceAll('{', '').replaceAll('}', '');
+
+    try {
+      final Map<String, dynamic> equipment = jsonDecode(jsonStr);
+      if (equipment.isEmpty) return "None";
+
+      final rules = ModularRulesController();
+      final parts = <String>[];
+
+      for (final entry in equipment.entries) {
+        final slotName = _formatSlotName(entry.key);
+        final itemName = entry.value.toString();
+        final itemDef = rules.getItem(itemName);
+
+        if (itemDef != null) {
+          String itemInfo = itemName;
+          if (itemDef.damageDice.isNotEmpty && itemDef.damageDice != '-') {
+            itemInfo += " (${itemDef.damageDice})";
+          } else if (itemDef.armorClassBonus != null &&
+              itemDef.armorClassBonus! > 0) {
+            itemInfo += " (AC +${itemDef.armorClassBonus})";
+          }
+          parts.add("$slotName: $itemInfo");
+        } else {
+          parts.add("$slotName: $itemName");
+        }
+      }
+
+      return parts.join(", ");
+    } catch (e) {
+      // Fallback to simple string cleaning
+      return jsonStr
+          .replaceAll('"', '')
+          .replaceAll('{', '')
+          .replaceAll('}', '');
+    }
+  }
+
+  /// Converts slot key to readable name (mainHand -> Main Hand)
+  static String _formatSlotName(String slot) {
+    switch (slot) {
+      case 'mainHand':
+        return 'Main Hand';
+      case 'offHand':
+        return 'Off Hand';
+      case 'body':
+        return 'Body';
+      case 'head':
+        return 'Head';
+      case 'accessory':
+        return 'Accessory';
+      default:
+        return slot[0].toUpperCase() + slot.substring(1);
+    }
   }
 }
