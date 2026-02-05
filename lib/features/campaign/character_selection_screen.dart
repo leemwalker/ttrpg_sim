@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ttrpg_sim/core/database/database.dart';
 import 'package:ttrpg_sim/core/providers.dart';
 import 'package:ttrpg_sim/features/creation/character_creation_screen.dart';
+import 'package:ttrpg_sim/features/creation/imagin8/imagin8_creation_screen.dart';
 import 'package:ttrpg_sim/features/game/presentation/game_screen.dart';
 
 class CharacterSelectionScreen extends ConsumerStatefulWidget {
@@ -114,8 +115,13 @@ class _CharacterSelectionScreenState
   }
 
   void _navigateToCreation(BuildContext context) async {
-    // Create a new placeholder character to ensure we are editing a distinct entity
     final dao = ref.read(gameDaoProvider);
+
+    // Fetch World to check system
+    final world = await dao.getWorld(widget.worldId);
+    final system = world?.system ?? 'd20';
+
+    // Create a new placeholder character to ensure we are editing a distinct entity
     final newCharId = await dao.updateCharacterStats(CharacterCompanion.insert(
       name: "Traveler",
       species: const drift.Value("Human"),
@@ -128,15 +134,25 @@ class _CharacterSelectionScreenState
     ));
 
     if (context.mounted) {
-      Navigator.of(context)
-          .push(MaterialPageRoute(
-        builder: (context) => CharacterCreationScreen(
-            worldId: widget.worldId, characterId: newCharId),
-      ))
-          .then((_) {
-        // Refresh list when returning from creation
-        _refreshCharacters();
-      });
+      if (system == 'imagin8') {
+        Navigator.of(context)
+            .push(MaterialPageRoute(
+          builder: (context) => Imagin8CreationScreen(worldId: widget.worldId),
+        ))
+            .then((_) {
+          _refreshCharacters();
+        });
+      } else {
+        Navigator.of(context)
+            .push(MaterialPageRoute(
+          builder: (context) => CharacterCreationScreen(
+              worldId: widget.worldId, characterId: newCharId),
+        ))
+            .then((_) {
+          // Refresh list when returning from creation
+          _refreshCharacters();
+        });
+      }
     }
   }
 

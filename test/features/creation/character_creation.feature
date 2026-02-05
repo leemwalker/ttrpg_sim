@@ -21,3 +21,30 @@ Feature: Character Creation
     When I reach the Attributes step
     Then I should see "Strength", "Agility" and "Mind" as Attributes
     And I should see "Melee", "Arcana" and "Stealth" as Skills
+
+  Scenario Outline: Character Creation at <difficulty> difficulty without magic
+    Given a World exists with genre "Fantasy" and difficulty "<difficulty>"
+    And magic is disabled
+    When I complete character creation
+    Then the character should be saved with correct budget constraints
+    Examples:
+      | difficulty |
+      | easy       |
+      | medium     |
+      | hard       |
+      | expert     |
+      | custom     |
+
+  Scenario Outline: Character Creation at <difficulty> difficulty with magic
+    Given a World exists with genre "Fantasy" and difficulty "<difficulty>"
+    And magic is enabled
+    And I select the Mage origin (grants Spellcasting via Arcane Student feat)
+    When I complete character creation with a magic pillar
+    Then the character should be saved with magic pillar set
+    Examples:
+      | difficulty |
+      | easy       |
+      | medium     |
+      | hard       |
+      | expert     |
+      | custom     |

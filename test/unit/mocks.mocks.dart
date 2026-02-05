@@ -178,8 +178,8 @@ class _Fake$CustomTraitsTable_13 extends _i1.SmartFake
         );
 }
 
-class _FakeFuture_14<T1> extends _i1.SmartFake implements _i5.Future<T1> {
-  _FakeFuture_14(
+class _Fake$QuestsTable_14 extends _i1.SmartFake implements _i2.$QuestsTable {
+  _Fake$QuestsTable_14(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -188,9 +188,30 @@ class _FakeFuture_14<T1> extends _i1.SmartFake implements _i5.Future<T1> {
         );
 }
 
-class _FakeInsertStatement_15<T1 extends _i3.Table, D1> extends _i1.SmartFake
+class _Fake$Imagin8CardsTable_15 extends _i1.SmartFake
+    implements _i2.$Imagin8CardsTable {
+  _Fake$Imagin8CardsTable_15(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeFuture_16<T1> extends _i1.SmartFake implements _i5.Future<T1> {
+  _FakeFuture_16(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeInsertStatement_17<T1 extends _i3.Table, D1> extends _i1.SmartFake
     implements _i3.InsertStatement<T1, D1> {
-  _FakeInsertStatement_15(
+  _FakeInsertStatement_17(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -199,9 +220,9 @@ class _FakeInsertStatement_15<T1 extends _i3.Table, D1> extends _i1.SmartFake
         );
 }
 
-class _FakeUpdateStatement_16<T extends _i3.Table, D> extends _i1.SmartFake
+class _FakeUpdateStatement_18<T extends _i3.Table, D> extends _i1.SmartFake
     implements _i3.UpdateStatement<T, D> {
-  _FakeUpdateStatement_16(
+  _FakeUpdateStatement_18(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -210,9 +231,9 @@ class _FakeUpdateStatement_16<T extends _i3.Table, D> extends _i1.SmartFake
         );
 }
 
-class _FakeSimpleSelectStatement_17<T1 extends _i3.HasResultSet, D>
+class _FakeSimpleSelectStatement_19<T1 extends _i3.HasResultSet, D>
     extends _i1.SmartFake implements _i3.SimpleSelectStatement<T1, D> {
-  _FakeSimpleSelectStatement_17(
+  _FakeSimpleSelectStatement_19(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -221,9 +242,9 @@ class _FakeSimpleSelectStatement_17<T1 extends _i3.HasResultSet, D>
         );
 }
 
-class _FakeJoinedSelectStatement_18<FirstT extends _i3.HasResultSet, FirstD>
+class _FakeJoinedSelectStatement_20<FirstT extends _i3.HasResultSet, FirstD>
     extends _i1.SmartFake implements _i3.JoinedSelectStatement<FirstT, FirstD> {
-  _FakeJoinedSelectStatement_18(
+  _FakeJoinedSelectStatement_20(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -232,9 +253,9 @@ class _FakeJoinedSelectStatement_18<FirstT extends _i3.HasResultSet, FirstD>
         );
 }
 
-class _FakeBaseSelectStatement_19<Row> extends _i1.SmartFake
+class _FakeBaseSelectStatement_21<Row> extends _i1.SmartFake
     implements _i3.BaseSelectStatement<Row> {
-  _FakeBaseSelectStatement_19(
+  _FakeBaseSelectStatement_21(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -243,9 +264,9 @@ class _FakeBaseSelectStatement_19<Row> extends _i1.SmartFake
         );
 }
 
-class _FakeDeleteStatement_20<T1 extends _i3.Table, D1> extends _i1.SmartFake
+class _FakeDeleteStatement_22<T1 extends _i3.Table, D1> extends _i1.SmartFake
     implements _i3.DeleteStatement<T1, D1> {
-  _FakeDeleteStatement_20(
+  _FakeDeleteStatement_22(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -254,8 +275,8 @@ class _FakeDeleteStatement_20<T1 extends _i3.Table, D1> extends _i1.SmartFake
         );
 }
 
-class _FakeSelectable_21<T> extends _i1.SmartFake implements _i3.Selectable<T> {
-  _FakeSelectable_21(
+class _FakeSelectable_23<T> extends _i1.SmartFake implements _i3.Selectable<T> {
+  _FakeSelectable_23(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -264,9 +285,9 @@ class _FakeSelectable_21<T> extends _i1.SmartFake implements _i3.Selectable<T> {
         );
 }
 
-class _FakeGenerationContext_22 extends _i1.SmartFake
+class _FakeGenerationContext_24 extends _i1.SmartFake
     implements _i3.GenerationContext {
-  _FakeGenerationContext_22(
+  _FakeGenerationContext_24(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -275,9 +296,9 @@ class _FakeGenerationContext_22 extends _i1.SmartFake
         );
 }
 
-class _FakeGenerativeModelWrapper_23 extends _i1.SmartFake
+class _FakeGenerativeModelWrapper_25 extends _i1.SmartFake
     implements _i6.GenerativeModelWrapper {
-  _FakeGenerativeModelWrapper_23(
+  _FakeGenerativeModelWrapper_25(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -286,8 +307,8 @@ class _FakeGenerativeModelWrapper_23 extends _i1.SmartFake
         );
 }
 
-class _FakeTurnResult_24 extends _i1.SmartFake implements _i7.TurnResult {
-  _FakeTurnResult_24(
+class _FakeTurnResult_26 extends _i1.SmartFake implements _i7.TurnResult {
+  _FakeTurnResult_26(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -296,9 +317,9 @@ class _FakeTurnResult_24 extends _i1.SmartFake implements _i7.TurnResult {
         );
 }
 
-class _FakeBackgroundInfo_25 extends _i1.SmartFake
+class _FakeBackgroundInfo_27 extends _i1.SmartFake
     implements _i8.BackgroundInfo {
-  _FakeBackgroundInfo_25(
+  _FakeBackgroundInfo_27(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -449,6 +470,24 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
           Invocation.getter(#customTraits),
         ),
       ) as _i2.$CustomTraitsTable);
+
+  @override
+  _i2.$QuestsTable get quests => (super.noSuchMethod(
+        Invocation.getter(#quests),
+        returnValue: _Fake$QuestsTable_14(
+          this,
+          Invocation.getter(#quests),
+        ),
+      ) as _i2.$QuestsTable);
+
+  @override
+  _i2.$Imagin8CardsTable get imagin8Cards => (super.noSuchMethod(
+        Invocation.getter(#imagin8Cards),
+        returnValue: _Fake$Imagin8CardsTable_15(
+          this,
+          Invocation.getter(#imagin8Cards),
+        ),
+      ) as _i2.$Imagin8CardsTable);
 
   @override
   _i5.Future<int> insertMessage(
@@ -1103,6 +1142,183 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
       ) as _i5.Future<void>);
 
   @override
+  _i5.Future<void> updateXp(
+    int? characterId,
+    int? xp,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #updateXp,
+          [
+            characterId,
+            xp,
+          ],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> updateLevelAndHp(
+    int? characterId,
+    int? level,
+    int? maxHp,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #updateLevelAndHp,
+          [
+            characterId,
+            level,
+            maxHp,
+          ],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+
+  @override
+  _i5.Future<int> createQuest({
+    required int? worldId,
+    required String? title,
+    required String? description,
+    String? status = 'active',
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #createQuest,
+          [],
+          {
+            #worldId: worldId,
+            #title: title,
+            #description: description,
+            #status: status,
+          },
+        ),
+        returnValue: _i5.Future<int>.value(0),
+      ) as _i5.Future<int>);
+
+  @override
+  _i5.Future<List<_i2.Quest>> getQuestsForWorld(int? worldId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getQuestsForWorld,
+          [worldId],
+        ),
+        returnValue: _i5.Future<List<_i2.Quest>>.value(<_i2.Quest>[]),
+      ) as _i5.Future<List<_i2.Quest>>);
+
+  @override
+  _i5.Future<List<_i2.Quest>> getQuestsByStatus(
+    int? worldId,
+    String? status,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getQuestsByStatus,
+          [
+            worldId,
+            status,
+          ],
+        ),
+        returnValue: _i5.Future<List<_i2.Quest>>.value(<_i2.Quest>[]),
+      ) as _i5.Future<List<_i2.Quest>>);
+
+  @override
+  _i5.Future<void> updateQuestStatus(
+    int? questId,
+    String? status,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #updateQuestStatus,
+          [
+            questId,
+            status,
+          ],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+
+  @override
+  _i5.Future<_i2.Quest?> getQuest(int? id) => (super.noSuchMethod(
+        Invocation.method(
+          #getQuest,
+          [id],
+        ),
+        returnValue: _i5.Future<_i2.Quest?>.value(),
+      ) as _i5.Future<_i2.Quest?>);
+
+  @override
+  _i5.Stream<List<_i2.Quest>> watchQuests(int? worldId) => (super.noSuchMethod(
+        Invocation.method(
+          #watchQuests,
+          [worldId],
+        ),
+        returnValue: _i5.Stream<List<_i2.Quest>>.empty(),
+      ) as _i5.Stream<List<_i2.Quest>>);
+
+  @override
+  _i5.Future<List<String>> getAvailableDecks() => (super.noSuchMethod(
+        Invocation.method(
+          #getAvailableDecks,
+          [],
+        ),
+        returnValue: _i5.Future<List<String>>.value(<String>[]),
+      ) as _i5.Future<List<String>>);
+
+  @override
+  _i5.Future<List<_i2.Imagin8Card>> getCardsForDecks(List<String>? decks) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getCardsForDecks,
+          [decks],
+        ),
+        returnValue:
+            _i5.Future<List<_i2.Imagin8Card>>.value(<_i2.Imagin8Card>[]),
+      ) as _i5.Future<List<_i2.Imagin8Card>>);
+
+  @override
+  _i5.Future<_i2.Imagin8Card?> getImagin8Card(int? id) => (super.noSuchMethod(
+        Invocation.method(
+          #getImagin8Card,
+          [id],
+        ),
+        returnValue: _i5.Future<_i2.Imagin8Card?>.value(),
+      ) as _i5.Future<_i2.Imagin8Card?>);
+
+  @override
+  _i5.Future<List<_i2.Imagin8Card>> getImagin8CardsByIds(List<int>? ids) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getImagin8CardsByIds,
+          [ids],
+        ),
+        returnValue:
+            _i5.Future<List<_i2.Imagin8Card>>.value(<_i2.Imagin8Card>[]),
+      ) as _i5.Future<List<_i2.Imagin8Card>>);
+
+  @override
+  _i5.Future<List<_i2.Imagin8Card>> searchImagin8Cards(
+    String? query, {
+    List<String>? allowedDecks,
+    String? type,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #searchImagin8Cards,
+          [query],
+          {
+            #allowedDecks: allowedDecks,
+            #type: type,
+          },
+        ),
+        returnValue:
+            _i5.Future<List<_i2.Imagin8Card>>.value(<_i2.Imagin8Card>[]),
+      ) as _i5.Future<List<_i2.Imagin8Card>>);
+
+  @override
   _i5.Stream<T> createStream<T extends Object>(
           _i4.QueryStreamFetcher<T>? stmt) =>
       (super.noSuchMethod(
@@ -1186,7 +1402,7 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
               ),
               (T v) => _i5.Future<T>.value(v),
             ) ??
-            _FakeFuture_14<T>(
+            _FakeFuture_16<T>(
               this,
               Invocation.method(
                 #doWhenOpened,
@@ -1203,7 +1419,7 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
           #into,
           [table],
         ),
-        returnValue: _FakeInsertStatement_15<T, D>(
+        returnValue: _FakeInsertStatement_17<T, D>(
           this,
           Invocation.method(
             #into,
@@ -1220,7 +1436,7 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
           #update,
           [table],
         ),
-        returnValue: _FakeUpdateStatement_16<Tbl, R>(
+        returnValue: _FakeUpdateStatement_18<Tbl, R>(
           this,
           Invocation.method(
             #update,
@@ -1240,7 +1456,7 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
           [table],
           {#distinct: distinct},
         ),
-        returnValue: _FakeSimpleSelectStatement_17<T, R>(
+        returnValue: _FakeSimpleSelectStatement_19<T, R>(
           this,
           Invocation.method(
             #select,
@@ -1261,7 +1477,7 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
           [table],
           {#distinct: distinct},
         ),
-        returnValue: _FakeJoinedSelectStatement_18<T, R>(
+        returnValue: _FakeJoinedSelectStatement_20<T, R>(
           this,
           Invocation.method(
             #selectOnly,
@@ -1279,7 +1495,7 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
           #selectExpressions,
           [columns],
         ),
-        returnValue: _FakeBaseSelectStatement_19<_i3.TypedResult>(
+        returnValue: _FakeBaseSelectStatement_21<_i3.TypedResult>(
           this,
           Invocation.method(
             #selectExpressions,
@@ -1296,7 +1512,7 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
           #delete,
           [table],
         ),
-        returnValue: _FakeDeleteStatement_20<T, D>(
+        returnValue: _FakeDeleteStatement_22<T, D>(
           this,
           Invocation.method(
             #delete,
@@ -1378,7 +1594,7 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
             #readsFrom: readsFrom,
           },
         ),
-        returnValue: _FakeSelectable_21<_i3.QueryRow>(
+        returnValue: _FakeSelectable_23<_i3.QueryRow>(
           this,
           Invocation.method(
             #customSelect,
@@ -1406,7 +1622,7 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
             #readsFrom: readsFrom,
           },
         ),
-        returnValue: _FakeSelectable_21<_i3.QueryRow>(
+        returnValue: _FakeSelectable_23<_i3.QueryRow>(
           this,
           Invocation.method(
             #customSelectQuery,
@@ -1458,7 +1674,7 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
               ),
               (T v) => _i5.Future<T>.value(v),
             ) ??
-            _FakeFuture_14<T>(
+            _FakeFuture_16<T>(
               this,
               Invocation.method(
                 #transaction,
@@ -1485,7 +1701,7 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
               ),
               (T v) => _i5.Future<T>.value(v),
             ) ??
-            _FakeFuture_14<T>(
+            _FakeFuture_16<T>(
               this,
               Invocation.method(
                 #exclusively,
@@ -1527,7 +1743,7 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
               ),
               (T v) => _i5.Future<T>.value(v),
             ) ??
-            _FakeFuture_14<T>(
+            _FakeFuture_16<T>(
               this,
               Invocation.method(
                 #runWithInterceptor,
@@ -1552,7 +1768,7 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
             #startIndex: startIndex,
           },
         ),
-        returnValue: _FakeGenerationContext_22(
+        returnValue: _FakeGenerationContext_24(
           this,
           Invocation.method(
             #$write,
@@ -1580,7 +1796,7 @@ class MockGameDao extends _i1.Mock implements _i2.GameDao {
           ],
           {#startIndex: startIndex},
         ),
-        returnValue: _FakeGenerationContext_22(
+        returnValue: _FakeGenerationContext_24(
           this,
           Invocation.method(
             #$writeInsertable,
@@ -1644,7 +1860,7 @@ class MockGeminiService extends _i1.Mock implements _i7.GeminiService {
           #createModel,
           [instruction],
         ),
-        returnValue: _FakeGenerativeModelWrapper_23(
+        returnValue: _FakeGenerativeModelWrapper_25(
           this,
           Invocation.method(
             #createModel,
@@ -1669,6 +1885,9 @@ class MockGeminiService extends _i1.Mock implements _i7.GeminiService {
     List<_i2.PointsOfInterestData>? pois = const [],
     List<_i2.Npc>? npcs = const [],
     String? worldKnowledge,
+    String? system = 'd20',
+    List<_i2.Imagin8Card>? hand = const [],
+    List<_i2.Imagin8Card>? discard = const [],
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -1690,9 +1909,12 @@ class MockGeminiService extends _i1.Mock implements _i7.GeminiService {
             #pois: pois,
             #npcs: npcs,
             #worldKnowledge: worldKnowledge,
+            #system: system,
+            #hand: hand,
+            #discard: discard,
           },
         ),
-        returnValue: _i5.Future<_i7.TurnResult>.value(_FakeTurnResult_24(
+        returnValue: _i5.Future<_i7.TurnResult>.value(_FakeTurnResult_26(
           this,
           Invocation.method(
             #sendMessage,
@@ -1713,6 +1935,9 @@ class MockGeminiService extends _i1.Mock implements _i7.GeminiService {
               #pois: pois,
               #npcs: npcs,
               #worldKnowledge: worldKnowledge,
+              #system: system,
+              #hand: hand,
+              #discard: discard,
             },
           ),
         )),
@@ -1731,7 +1956,7 @@ class MockGeminiService extends _i1.Mock implements _i7.GeminiService {
             response,
           ],
         ),
-        returnValue: _i5.Future<_i7.TurnResult>.value(_FakeTurnResult_24(
+        returnValue: _i5.Future<_i7.TurnResult>.value(_FakeTurnResult_26(
           this,
           Invocation.method(
             #sendFunctionResponse,
@@ -1821,7 +2046,7 @@ class MockRpgSystem extends _i1.Mock implements _i8.RpgSystem {
           #getBackgroundInfo,
           [backgroundName],
         ),
-        returnValue: _FakeBackgroundInfo_25(
+        returnValue: _FakeBackgroundInfo_27(
           this,
           Invocation.method(
             #getBackgroundInfo,

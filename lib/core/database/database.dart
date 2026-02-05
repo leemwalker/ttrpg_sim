@@ -40,6 +40,8 @@ class Worlds extends Table {
   TextColumn get speciesConfig =>
       text().withDefault(const Constant('{}'))(); // JSON Species Config
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get system => text().withDefault(const Constant('d20'))();
+  TextColumn get selectedDecks => text().nullable()(); // JSON List of Deck IDs
 }
 
 class Character extends Table {
@@ -88,6 +90,13 @@ class Character extends Table {
   IntColumn get armorClass => integer().withDefault(const Constant(10))();
   TextColumn get equipment => text()
       .withDefault(const Constant('{}'))(); // JSON Map of Slot -> ItemName
+
+  // Progression System (v25)
+  IntColumn get xp => integer().withDefault(const Constant(0))();
+
+  // Imagin8 System (v26)
+  TextColumn get hand => text().nullable()(); // JSON List of Card IDs
+  TextColumn get discardPile => text().nullable()(); // JSON List of Card IDs
 }
 
 class Inventory extends Table {
@@ -147,6 +156,27 @@ class CustomTraits extends Table {
   TextColumn get stats => text().nullable()(); // JSON or text map
 }
 
+/// Quests table for tracking player objectives (v25)
+class Quests extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get worldId =>
+      integer().references(Worlds, #id, onDelete: KeyAction.cascade)();
+  TextColumn get title => text()();
+  TextColumn get status => text()(); // 'active', 'completed', 'failed'
+  TextColumn get description => text()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+class Imagin8Cards extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get type =>
+      text()(); // Trait, Skill, Item, Drawback, Connection, Ability, etc.
+  TextColumn get deck => text()(); // Genre/Theme
+  TextColumn get description => text()();
+  TextColumn get mechanic => text().nullable()(); // JSON
+}
+
 @DriftDatabase(tables: [
   ChatMessages,
   Character,
@@ -155,7 +185,9 @@ class CustomTraits extends Table {
   Locations,
   PointsOfInterest,
   Npcs,
-  CustomTraits
+  CustomTraits,
+  Quests,
+  Imagin8Cards,
 ], daos: [
   GameDao
 ])
@@ -166,8 +198,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  @override
-  int get schemaVersion => 24;
+  int get schemaVersion => 26;
 
   @override
   MigrationStrategy get migration {
@@ -542,6 +573,46 @@ class AppDatabase extends _$AppDatabase {
             print('Migration v24 Info: $e');
           }
         }
+        if (from < 25) {
+          // Migration v25: Progression System
+          // Add XP column to character table
+          try {
+            await m.addColumn(character, character.xp);
+          } catch (e) {
+            print('Migration v25 XP Info: $e');
+          }
+          // Create Quests table
+          try {
+            await m.createTable(quests);
+          } catch (e) {
+            print('Migration v25 Quests Info: $e');
+          }
+        }
+        if (from < 26) {
+          // Migration v26: Imagin8 System
+          // 1. Create Imagin8Cards table
+          try {
+            await m.createTable(imagin8Cards);
+          } catch (e) {
+            print('Migration v26 Imagin8 Cards Table Info: $e');
+          }
+
+          // 2. Add columns to Worlds
+          try {
+            await m.addColumn(worlds, worlds.system);
+            await m.addColumn(worlds, worlds.selectedDecks);
+          } catch (e) {
+            print('Migration v26 Worlds Columns Info: $e');
+          }
+
+          // 3. Add columns to Character
+          try {
+            await m.addColumn(character, character.hand);
+            await m.addColumn(character, character.discardPile);
+          } catch (e) {
+            print('Migration v26 Character Columns Info: $e');
+          }
+        }
       },
     );
   }
@@ -563,7 +634,9 @@ LazyDatabase _openConnection() {
   Locations,
   PointsOfInterest,
   Npcs,
-  CustomTraits
+  CustomTraits,
+  Quests,
+  Imagin8Cards,
 ])
 class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
   GameDao(super.db);
@@ -961,5 +1034,115 @@ class GameDao extends DatabaseAccessor<AppDatabase> with _$GameDaoMixin {
   Future<void> updateNpcMemory(int npcId, String memoryJson) {
     return (update(npcs)..where((t) => t.id.equals(npcId)))
         .write(NpcsCompanion(memory: Value(memoryJson)));
+  }
+
+  // -- PROGRESSION SYSTEM METHODS (v25) --
+
+  /// Update character XP
+  Future<void> updateXp(int characterId, int xp) {
+    return (update(character)..where((t) => t.id.equals(characterId)))
+        .write(CharacterCompanion(xp: Value(xp)));
+  }
+
+  /// Update character level and max HP
+  Future<void> updateLevelAndHp(int characterId, int level, int maxHp) {
+    return (update(character)..where((t) => t.id.equals(characterId)))
+        .write(CharacterCompanion(level: Value(level), maxHp: Value(maxHp)));
+  }
+
+  // -- QUEST METHODS (v25) --
+
+  /// Create a new quest
+  Future<int> createQuest({
+    required int worldId,
+    required String title,
+    required String description,
+    String status = 'active',
+  }) {
+    return into(quests).insert(QuestsCompanion.insert(
+      worldId: worldId,
+      title: title,
+      description: description,
+      status: status,
+    ));
+  }
+
+  /// Get all quests for a world
+  Future<List<Quest>> getQuestsForWorld(int worldId) {
+    return (select(quests)..where((t) => t.worldId.equals(worldId))).get();
+  }
+
+  /// Get quests by status
+  Future<List<Quest>> getQuestsByStatus(int worldId, String status) {
+    return (select(quests)
+          ..where((t) => t.worldId.equals(worldId) & t.status.equals(status)))
+        .get();
+  }
+
+  /// Update quest status
+  Future<void> updateQuestStatus(int questId, String status) {
+    return (update(quests)..where((t) => t.id.equals(questId)))
+        .write(QuestsCompanion(status: Value(status)));
+  }
+
+  /// Get a single quest by ID
+  Future<Quest?> getQuest(int id) {
+    return (select(quests)..where((t) => t.id.equals(id))).getSingleOrNull();
+  }
+
+  /// Watch quests for a world
+  Stream<List<Quest>> watchQuests(int worldId) {
+    return (select(quests)..where((t) => t.worldId.equals(worldId))).watch();
+  }
+
+  // -- IMAGIN8 SYSTEM METHODS --
+
+  Future<List<String>> getAvailableDecks() async {
+    final query = selectOnly(imagin8Cards, distinct: true)
+      ..addColumns([imagin8Cards.deck]);
+    final result = await query.map((row) => row.read(imagin8Cards.deck)).get();
+    return result.whereType<String>().toList();
+  }
+
+  Future<List<Imagin8Card>> getCardsForDecks(List<String> decks) {
+    return (select(imagin8Cards)..where((t) => t.deck.isIn(decks))).get();
+  }
+
+  Future<Imagin8Card?> getImagin8Card(int id) {
+    return (select(imagin8Cards)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+  }
+
+  Future<List<Imagin8Card>> getImagin8CardsByIds(List<int> ids) {
+    return (select(imagin8Cards)..where((t) => t.id.isIn(ids))).get();
+  }
+
+  Future<List<Imagin8Card>> searchImagin8Cards(
+    String query, {
+    List<String>? allowedDecks,
+    String? type,
+  }) {
+    return (select(imagin8Cards)
+          ..where((tbl) {
+            final conditions = <Expression<bool>>[];
+
+            // Text Search
+            conditions.add(
+                tbl.name.like('%$query%') | tbl.description.like('%$query%'));
+
+            // Deck Filter
+            if (allowedDecks != null && allowedDecks.isNotEmpty) {
+              conditions.add(tbl.deck.isIn(allowedDecks));
+            }
+
+            // Type Filter
+            if (type != null) {
+              conditions.add(tbl.type.equals(type));
+            }
+
+            return conditions.reduce((a, b) => a & b);
+          })
+          ..limit(5))
+        .get();
   }
 }

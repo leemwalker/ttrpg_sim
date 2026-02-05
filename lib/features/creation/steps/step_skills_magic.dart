@@ -66,6 +66,9 @@ class _StepSkillsMagicState extends ConsumerState<StepSkillsMagic> {
         intelligence: 10,
         wisdom: 10,
         charisma: 10,
+        xp: 0,
+        hand: '[]',
+        discardPile: '[]',
         inventory: '[]',
         equipment: '{}',
       );

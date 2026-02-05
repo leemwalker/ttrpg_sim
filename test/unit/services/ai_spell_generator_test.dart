@@ -87,6 +87,9 @@ void main() {
         currentMana: 0,
         maxMana: 10,
         armorClass: 10,
+        xp: 0,
+        hand: '[]',
+        discardPile: '[]',
         equipment: '{}');
 
     const jsonOutput = '''
@@ -159,6 +162,9 @@ void main() {
         currentMana: 0,
         maxMana: 10,
         armorClass: 10,
+        xp: 0,
+        hand: '[]',
+        discardPile: '[]',
         equipment: '{}');
 
     // Mock response

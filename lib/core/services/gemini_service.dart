@@ -89,7 +89,7 @@ class GeminiService {
           // responseMimeType: 'application/json', // Unsupported with Tools in some versions
           ),
       systemInstruction: Content.system(instruction),
-      tools: [locationTool, diceTool, tradeTool],
+      tools: [locationTool, diceTool, tradeTool, deckTool],
     );
     return GoogleGenerativeModelWrapper(realModel);
   }
@@ -166,6 +166,9 @@ class GeminiService {
     List<PointsOfInterestData> pois = const [],
     List<Npc> npcs = const [],
     String? worldKnowledge,
+    String system = 'd20',
+    List<Imagin8Card> hand = const [],
+    List<Imagin8Card> discard = const [],
   }) async {
     // Fetch inventory first (needed for both session init and context)
     final inventory = await dao.getInventoryForCharacter(player.id);
@@ -189,6 +192,7 @@ class GeminiService {
         location: location,
         pois: pois,
         npcs: npcs,
+        system: system,
       );
       final model = createModel(instruction);
       _currentSession = model.startChat();
@@ -203,6 +207,8 @@ class GeminiService {
       player,
       inventory,
       worldKnowledge: worldKnowledge,
+      hand: hand,
+      discard: discard,
     );
 
     // Send to model
@@ -338,6 +344,25 @@ class GeminiService {
       ),
     ],
   );
+
+  /// Tool definition for deck searching (Imagin8)
+  static final Tool deckTool = Tool(functionDeclarations: [
+    FunctionDeclaration(
+      'consult_deck',
+      'Search the Imagin8 decks for cards to introduce into the story (Monsters, NPCs, Items, Drawbacks). Use this to ensure enemies and loot match the game mechanics.',
+      Schema.object(
+        properties: {
+          'query': Schema.string(
+              description: 'The search term (e.g., "sword", "droid", "fear").'),
+          'type': Schema.string(
+              description:
+                  'Optional filter for card type (Character, Item, Drawback, Origin).',
+              nullable: true),
+        },
+        requiredProperties: ['query'],
+      ),
+    ),
+  ]);
 
   /// Send a function response back to the model and get the narrative result.
   Future<TurnResult> sendFunctionResponse(

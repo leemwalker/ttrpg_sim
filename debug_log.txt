@@ -1,0 +1,47 @@
+00:00 +0: loading /Users/walker/git/ttrpg_sim/test/bdd/imagin8_flow_test.dart                                                                                                                          00:01 +0: loading /Users/walker/git/ttrpg_sim/test/bdd/imagin8_flow_test.dart                                                                                                                          00:02 +0: loading /Users/walker/git/ttrpg_sim/test/bdd/imagin8_flow_test.dart                                                                                                                          00:03 +0: loading /Users/walker/git/ttrpg_sim/test/bdd/imagin8_flow_test.dart                                                                                                                          00:04 +0: loading /Users/walker/git/ttrpg_sim/test/bdd/imagin8_flow_test.dart                                                                                                                          00:04 +0: BDD Scenario: Imagin8 Character Creation and Gameplay                                                                                                                                        00:05 +0: BDD Scenario: Imagin8 Character Creation and Gameplay                                                                                                                                        00:05 +0: BDD Scenario: Imagin8 Character Creation and Gameplay                                                                                                                                        
+🏗️ DATABASE CREATED! Instance ID: 1770255885123
+Attempting to tap: Sword
+Attempting to tap: Shield
+Attempting to tap: Magic
+Attempting to tap: Fire
+Attempting to tap: Heal
+Attempting to tap: Buff
+Attempting to tap: Zap
+Attempting to tap: Run
+Attempting to tap: Curse
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: No element
+
+When the exception was thrown, this was the stack:
+#0      Iterable.single (dart:core/iterable.dart:694:25)
+#1      WidgetController.element (package:flutter_test/src/controller.dart:868:30)
+#2      WidgetController.dragUntilVisible.<anonymous closure> (package:flutter_test/src/controller.dart:2398:38)
+<asynchronous suspension>
+#3      TestAsyncUtils.guard.<anonymous closure> (package:flutter_test/src/test_async_utils.dart:130:27)
+<asynchronous suspension>
+#4      WidgetController.scrollUntilVisible.<anonymous closure> (package:flutter_test/src/controller.dart:2355:7)
+<asynchronous suspension>
+#5      TestAsyncUtils.guard.<anonymous closure> (package:flutter_test/src/test_async_utils.dart:130:27)
+<asynchronous suspension>
+#6      main.<anonymous closure>.scrollAndTap (file:///Users/walker/git/ttrpg_sim/test/bdd/imagin8_flow_test.dart:167:7)
+<asynchronous suspension>
+#7      main.<anonymous closure> (file:///Users/walker/git/ttrpg_sim/test/bdd/imagin8_flow_test.dart:173:7)
+<asynchronous suspension>
+#8      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#9      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1059:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  BDD Scenario: Imagin8 Character Creation and Gameplay
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:10 +0 -1: BDD Scenario: Imagin8 Character Creation and Gameplay [E]                                                                                                                                 
+  Test failed. See exception logs above.
+  The test description was: BDD Scenario: Imagin8 Character Creation and Gameplay
+  
+
+To run this test again: /Users/walker/flutter/bin/cache/dart-sdk/bin/dart test /Users/walker/git/ttrpg_sim/test/bdd/imagin8_flow_test.dart -p vm --plain-name 'BDD Scenario: Imagin8 Character Creation and Gameplay'
+00:10 +0 -1: Some tests failed.                                                                                                                                                                        

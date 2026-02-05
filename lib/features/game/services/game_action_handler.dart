@@ -5,12 +5,14 @@ import 'package:ttrpg_sim/core/services/gemini_service.dart';
 import 'package:ttrpg_sim/core/utils/dice_utils.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:ttrpg_sim/core/rules/core_rpg_rules.dart';
+import 'package:ttrpg_sim/features/character/services/progression_service.dart';
 
 class GameActionHandler {
   final GameDao _dao;
   final CoreRpgRules _rules;
+  final ProgressionService _progression;
 
-  GameActionHandler(this._dao, this._rules);
+  GameActionHandler(this._dao, this._rules, this._progression);
 
   Future<TurnResult?> handleFunctionCall({
     required FunctionCall functionCall,
@@ -26,6 +28,10 @@ class GameActionHandler {
       return await _handleRollCheck(fc, worldId, characterId, gemini);
     } else if (fc.name == 'trade_transaction') {
       return await _handleTradeTransaction(fc, worldId, characterId, gemini);
+    } else if (fc.name == 'manage_quest') {
+      return await _handleManageQuest(fc, worldId, characterId, gemini);
+    } else if (fc.name == 'consult_deck') {
+      return await _handleConsultDeck(fc, worldId, characterId, gemini);
     }
 
     return null;
@@ -281,5 +287,141 @@ class GameActionHandler {
         }
       }
     }
+  }
+
+  Future<TurnResult> _handleManageQuest(FunctionCall fc, int worldId,
+      int characterId, GeminiService gemini) async {
+    final args = fc.args;
+    final action = args['action'] as String? ?? 'start';
+    final title = args['title'] as String? ?? 'New Quest';
+    final description =
+        args['description'] as String? ?? 'No description provided.';
+    final questStatus = args['status'] as String? ?? 'active';
+
+    String message = "";
+    int xpAwarded = 0;
+    bool levelUpAvailable = false;
+
+    if (action == 'start') {
+      await _dao.createQuest(
+          worldId: worldId,
+          title: title,
+          description: description,
+          status: questStatus);
+      message = "Quest Started: $title";
+      await _dao.insertMessage('system',
+          "📜 **New Quest**: $title\n$description", worldId, characterId);
+    } else if (action == 'complete') {
+      // Find quest by title (fuzzy match?) or just create completed entry if not robust ID system yet
+      // For now, let's assume the prompt includes the ID or we search by Title match
+      final quests = await _dao.getQuestsByStatus(worldId, 'active');
+      int? foundId;
+      for (final q in quests) {
+        if (q.title.toLowerCase().contains(title.toLowerCase())) {
+          foundId = q.id;
+          break;
+        }
+      }
+
+      if (foundId != null) {
+        await _dao.updateQuestStatus(foundId, 'completed');
+
+        // Award XP
+        await _progression.awardXp(characterId, 500); // Standard Quest Reward
+        xpAwarded = 500;
+        levelUpAvailable = await _progression.isLevelUpAvailable(characterId);
+
+        message = "Quest Completed: $title (+500 XP)";
+        await _dao.insertMessage(
+            'system',
+            "🎉 **Quest Completed**: $title\nAwarded 500 XP!",
+            worldId,
+            characterId);
+
+        if (levelUpAvailable) {
+          await _dao.insertMessage(
+              'system',
+              "🌟 **LEVEL UP AVAILABLE!**\nVisit your Character Sheet to level up.",
+              worldId,
+              characterId);
+        }
+      } else {
+        // Fallback: Just log it if not found in DB
+        message = "Quest Completed (Un-tracked): $title (+500 XP)";
+        await _progression.awardXp(characterId, 500);
+        xpAwarded = 500;
+        levelUpAvailable = await _progression.isLevelUpAvailable(characterId);
+      }
+    } else if (action == 'fail') {
+      final quests = await _dao.getQuestsByStatus(worldId, 'active');
+      int? foundId;
+      for (final q in quests) {
+        if (q.title.toLowerCase().contains(title.toLowerCase())) {
+          foundId = q.id;
+          break;
+        }
+      }
+      if (foundId != null) {
+        await _dao.updateQuestStatus(foundId, 'failed');
+        message = "Quest Failed: $title";
+      } else {
+        message = "Quest Failed: $title";
+      }
+      await _dao.insertMessage(
+          'system', "❌ **Quest Failed**: $title", worldId, characterId);
+    }
+
+    return await gemini.sendFunctionResponse('manage_quest', {
+      'status': 'success',
+      'message': message,
+      'xp_awarded': xpAwarded,
+      'level_up_available': levelUpAvailable,
+    });
+  }
+
+  Future<TurnResult> _handleConsultDeck(FunctionCall fc, int worldId,
+      int characterId, GeminiService gemini) async {
+    final args = fc.args;
+    final query = args['query'] as String;
+    final type = args['type'] as String?;
+
+    final world = await _dao.getWorld(worldId);
+    List<String>? allowedDecks;
+
+    if (world != null &&
+        world.system == 'imagin8' &&
+        world.selectedDecks != null) {
+      try {
+        allowedDecks =
+            (jsonDecode(world.selectedDecks!) as List).cast<String>();
+      } catch (e) {
+        // ignore parse error
+      }
+    }
+
+    final cards = await _dao.searchImagin8Cards(query,
+        allowedDecks: allowedDecks, type: type);
+
+    String resultMsg;
+    if (cards.isEmpty) {
+      resultMsg = "No matching cards found in the deck.";
+    } else {
+      resultMsg = "Found Cards:\n" +
+          cards
+              .map((c) =>
+                  "• ${c.name} (${c.type}): ${c.description} [Mechanic: ${c.mechanic ?? 'None'}]")
+              .join('\n');
+    }
+
+    // System Log
+    await _dao.insertMessage(
+        'system',
+        "🃏 **Deck Consulation**:\nQuery: '$query' (Type: ${type ?? 'All'})\n$resultMsg",
+        worldId,
+        characterId);
+
+    return await gemini.sendFunctionResponse('consult_deck', {
+      'result': resultMsg,
+    });
   }
 }

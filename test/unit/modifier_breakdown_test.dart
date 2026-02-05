@@ -45,7 +45,10 @@ void main() {
         maxMana: 0,
         location: 'Town',
         armorClass: 10,
+        xp: 0,
         equipment: '{}',
+        hand: '[]',
+        discardPile: '[]',
       );
     }
 

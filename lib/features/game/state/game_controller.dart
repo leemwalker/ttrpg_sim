@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:drift/drift.dart' as drift;
 import 'package:ttrpg_sim/features/game/services/context_service.dart';
 import 'package:ttrpg_sim/features/game/services/game_action_handler.dart';
+import 'package:ttrpg_sim/features/character/services/progression_service.dart';
 
 import 'package:ttrpg_sim/core/constants/app_constants.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -11,6 +13,7 @@ import 'package:ttrpg_sim/core/rules/core_rpg_rules.dart';
 import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
 import 'package:ttrpg_sim/core/errors/app_exceptions.dart';
 import 'package:ttrpg_sim/core/services/gemini_service.dart';
+import 'package:ttrpg_sim/core/models/rules/rule_models.dart';
 import 'package:ttrpg_sim/features/game/state/game_state.dart';
 import 'package:ttrpg_sim/core/utils/dice_utils.dart';
 
@@ -235,6 +238,31 @@ class GameController extends _$GameController {
         speciesContext: speciesContext,
       );
 
+      // Fetch Imagin8 Context if applicable
+      List<Imagin8Card> handCards = [];
+      List<Imagin8Card> discardCards = [];
+      final system = world?.system ?? 'd20';
+
+      if (system == 'imagin8') {
+        try {
+          final hIds = (jsonDecode(character.hand ?? '[]') as List)
+              .map((e) => int.parse(e.toString()))
+              .toList();
+          final dIds = (jsonDecode(character.discardPile ?? '[]') as List)
+              .map((e) => int.parse(e.toString()))
+              .toList();
+
+          if (hIds.isNotEmpty) {
+            handCards = await dao.getImagin8CardsByIds(hIds);
+          }
+          if (dIds.isNotEmpty) {
+            discardCards = await dao.getImagin8CardsByIds(dIds);
+          }
+        } catch (e) {
+          debugPrint("Error fetching Imagin8 context: $e");
+        }
+      }
+
       // Call Gemini (includes world knowledge if available)
       final result = await gemini.sendMessage(
         text,
@@ -252,6 +280,9 @@ class GameController extends _$GameController {
         npcs: npcs,
         worldKnowledge:
             worldKnowledge, // Pass context explicitly if GeminiService supports it, or it will be built in the builder
+        system: system,
+        hand: handCards,
+        discard: discardCards,
       );
 
       // --- TASK 1: SKILL CHECK OPTIONS ---
@@ -437,6 +468,9 @@ class GameController extends _$GameController {
         spellSlots: slots,
         spells: spells,
         location: null,
+        system: world.system,
+        hand: [], // Session zero has no cards usually, or we could fetch them if we wanted
+        discard: [],
       );
 
       await _handleTurnResult(result, dao, gemini, rules, _worldId);
@@ -457,7 +491,8 @@ class GameController extends _$GameController {
 
     // Handle Function Calls
     if (currentResult.functionCall != null) {
-      final handler = GameActionHandler(dao, rules);
+      final progression = ProgressionService(dao);
+      final handler = GameActionHandler(dao, rules, progression);
       final functionResult = await handler.handleFunctionCall(
         functionCall: currentResult.functionCall!,
         worldId: worldId,
@@ -473,7 +508,8 @@ class GameController extends _$GameController {
 
     // Apply State Updates
     if (currentResult.stateUpdates.isNotEmpty) {
-      final handler = GameActionHandler(dao, rules);
+      final progression = ProgressionService(dao);
+      final handler = GameActionHandler(dao, rules, progression);
       await handler.processStateUpdates(
           currentResult.stateUpdates, _characterId);
     }
@@ -562,7 +598,7 @@ class GameController extends _$GameController {
       final equipment = jsonDecode(char.equipment) as Map<String, dynamic>;
       final slotKey = itemDef.slot!.name; // e.g. "mainHand"
 
-      // 4. Handle Swap
+      // 4. Handle Swap/Unequip
       if (equipment.containsKey(slotKey)) {
         final oldItemName = equipment[slotKey];
         await dao.addItem(
@@ -574,7 +610,24 @@ class GameController extends _$GameController {
       await dao.removeItem(_characterId, itemName);
 
       // 6. Recalculate AC (if armor/dex affected)
-      int ac = 10 + _getDexMod(char.dexterity); // Base + Dex
+      // Check equipped armor for DEX modifier clamping
+      int dexMod = _getDexMod(char.dexterity);
+      for (var equippedName in equipment.values) {
+        final def = rules.getItem(equippedName);
+        if (def != null && def.type == ItemType.armor) {
+          final tags = def.tags;
+          if (tags.contains('Heavy')) {
+            dexMod = 0; // Heavy armor ignores DEX
+            break;
+          } else if (tags.contains('Medium')) {
+            dexMod = dexMod.clamp(-5, 2); // Medium armor caps DEX at +2
+            break;
+          }
+          // Light armor keeps full DEX modifier
+        }
+      }
+
+      int ac = 10 + dexMod; // Base + (clamped) Dex
       // Iterate all equipped items for bonuses
       for (var equippedName in equipment.values) {
         final def = rules.getItem(equippedName);
@@ -584,12 +637,10 @@ class GameController extends _$GameController {
       }
 
       // 7. Save
-      // Use custom update or wait for generated code.
-      // Assuming generated code will exist:
-      await dao.updateCharacter(char.copyWith(
-        equipment: jsonEncode(equipment),
-        armorClass: ac,
-      ));
+      await dao.updateCharacterStats(char.toCompanion(true).copyWith(
+            equipment: drift.Value(jsonEncode(equipment)),
+            armorClass: drift.Value(ac),
+          ));
 
       // Refresh State
       ref.invalidate(characterDataProvider(_worldId));
@@ -612,6 +663,123 @@ class GameController extends _$GameController {
     }
   }
 
+  // --- IMAGIN8 CARD MECHANICS ---
+
+  Future<void> playImagin8Card(int cardId) async {
+    final dao = ref.read(gameDaoProvider);
+    final char = await dao.getCharacterById(_characterId);
+    if (char == null) return;
+
+    try {
+      final hand = List<int>.from(jsonDecode(char.hand ?? '[]'));
+      final discard = List<int>.from(jsonDecode(char.discardPile ?? '[]'));
+
+      if (hand.contains(cardId)) {
+        hand.remove(cardId);
+        discard.add(cardId);
+
+        // Fetch card info for log
+        final card = await dao.getImagin8Card(cardId);
+        final cardName = card?.name ?? 'Unknown Card';
+
+        await dao.updateCharacterStats(char.toCompanion(true).copyWith(
+              hand: drift.Value(jsonEncode(hand)),
+              discardPile: drift.Value(jsonEncode(discard)),
+            ));
+
+        await dao.insertMessage(
+            'system', "🃏 **Played Card**: $cardName", _worldId, _characterId);
+
+        // Update local state
+        ref.invalidate(characterDataProvider(_worldId));
+      }
+    } catch (e) {
+      debugPrint("Error playing card: $e");
+    }
+  }
+
+  Future<void> recoverImagin8Card(int cardId) async {
+    final dao = ref.read(gameDaoProvider);
+    final char = await dao.getCharacterById(_characterId);
+    if (char == null) return;
+
+    try {
+      final hand = List<int>.from(jsonDecode(char.hand ?? '[]'));
+      final discard = List<int>.from(jsonDecode(char.discardPile ?? '[]'));
+
+      if (discard.contains(cardId)) {
+        discard.remove(cardId);
+        hand.add(cardId);
+
+        // Fetch card info for log
+        final card = await dao.getImagin8Card(cardId);
+        final cardName = card?.name ?? 'Unknown Card';
+
+        await dao.updateCharacterStats(char.toCompanion(true).copyWith(
+              hand: drift.Value(jsonEncode(hand)),
+              discardPile: drift.Value(jsonEncode(discard)),
+            ));
+
+        await dao.insertMessage('system', "🔄 **Recovered Card**: $cardName",
+            _worldId, _characterId);
+
+        // Update local state
+        ref.invalidate(characterDataProvider(_worldId));
+      }
+    } catch (e) {
+      debugPrint("Error recovering card: $e");
+    }
+  }
+
+  Future<void> recoverAllImagin8Cards() async {
+    final dao = ref.read(gameDaoProvider);
+    final char = await dao.getCharacterById(_characterId);
+    if (char == null) return;
+
+    try {
+      final hand = List<int>.from(jsonDecode(char.hand ?? '[]'));
+      final discard = List<int>.from(jsonDecode(char.discardPile ?? '[]'));
+
+      if (discard.isNotEmpty) {
+        hand.addAll(discard);
+        discard.clear();
+
+        await dao.updateCharacterStats(char.toCompanion(true).copyWith(
+              hand: drift.Value(jsonEncode(hand)),
+              discardPile: drift.Value(jsonEncode(discard)),
+            ));
+
+        await dao.insertMessage(
+            'system', "🔄 **Recovered All Cards**", _worldId, _characterId);
+
+        ref.invalidate(characterDataProvider(_worldId));
+      }
+    } catch (e) {
+      debugPrint("Error recovering cards: $e");
+    }
+  }
+
+  Future<void> rollImagin8Die([int faces = 8]) async {
+    final dao = ref.read(gameDaoProvider);
+    final roll = DiceUtils.roll("1d$faces");
+    String result = "Rolled ${roll.total}";
+    if (roll.total >= 8)
+      result += " (Critical/Recover!)";
+    else if (roll.total >= 5)
+      result += " (Success)";
+    else
+      result += " (Failure/Complication)";
+
+    await dao.insertMessage(
+        'system', "🎲 **Risk Roll (d8)**: $result", _worldId, _characterId);
+
+    // Refresh messages
+    final messages = await dao.getRecentMessages(
+        _characterId, AppConstants.chatHistoryLimit);
+    state = AsyncValue.data(
+        (state.value ?? const GameState()).copyWith(messages: messages));
+  }
+
   Future<void> unequipItem(String slotName) async {
     state = const AsyncValue.loading();
     final dao = ref.read(gameDaoProvider);
@@ -631,8 +799,23 @@ class GameController extends _$GameController {
       // Add to inventory
       await dao.addItem(_characterId, itemName);
 
-      // Recalculate AC
-      int ac = 10 + _getDexMod(char.dexterity);
+      // Recalculate AC with armor weight DEX clamping
+      int dexMod = _getDexMod(char.dexterity);
+      for (var equippedName in equipment.values) {
+        final def = rules.getItem(equippedName);
+        if (def != null && def.type == ItemType.armor) {
+          final tags = def.tags;
+          if (tags.contains('Heavy')) {
+            dexMod = 0;
+            break;
+          } else if (tags.contains('Medium')) {
+            dexMod = dexMod.clamp(-5, 2);
+            break;
+          }
+        }
+      }
+
+      int ac = 10 + dexMod;
       for (var equippedName in equipment.values) {
         final def = rules.getItem(equippedName);
         if (def != null && def.armorClassBonus != null) {

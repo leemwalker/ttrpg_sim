@@ -43,23 +43,23 @@ class ModularRulesController {
 
     final dataLoader = loader ?? AssetRuleDataLoader();
 
-    _genres = await _loadCsv(
-        dataLoader, 'assets/system/Genres.csv', (row) => GenreDef.fromCsv(row));
-    _attributes = await _loadCsv(dataLoader, 'assets/system/Attributes.csv',
+    _genres = await _loadCsv(dataLoader, 'assets/system/d20/Genres.csv',
+        (row) => GenreDef.fromCsv(row));
+    _attributes = await _loadCsv(dataLoader, 'assets/system/d20/Attributes.csv',
         (row) => AttributeDef.fromCsv(row));
-    _skills = await _loadCsv(
-        dataLoader, 'assets/system/Skills.csv', (row) => SkillDef.fromCsv(row));
-    _species = await _loadCsv(dataLoader, 'assets/system/Species.csv',
+    _skills = await _loadCsv(dataLoader, 'assets/system/d20/Skills.csv',
+        (row) => SkillDef.fromCsv(row));
+    _species = await _loadCsv(dataLoader, 'assets/system/d20/Species.csv',
         (row) => SpeciesDef.fromCsv(row));
-    _traits = await _loadCsv(
-        dataLoader, 'assets/system/Traits.csv', (row) => TraitDef.fromCsv(row));
-    _origins = await _loadCsv(dataLoader, 'assets/system/Origins.csv',
+    _traits = await _loadCsv(dataLoader, 'assets/system/d20/Traits.csv',
+        (row) => TraitDef.fromCsv(row));
+    _origins = await _loadCsv(dataLoader, 'assets/system/d20/Origins.csv',
         (row) => OriginDef.fromCsv(row));
-    _feats = await _loadCsv(
-        dataLoader, 'assets/system/Feats.csv', (row) => FeatDef.fromCsv(row));
-    _items = await _loadCsv(
-        dataLoader, 'assets/system/Items.csv', (row) => ItemDef.fromCsv(row));
-    _pillars = await _loadCsv(dataLoader, 'assets/system/MagicPillars.csv',
+    _feats = await _loadCsv(dataLoader, 'assets/system/d20/Feats.csv',
+        (row) => FeatDef.fromCsv(row));
+    _items = await _loadCsv(dataLoader, 'assets/system/d20/Items.csv',
+        (row) => ItemDef.fromCsv(row));
+    _pillars = await _loadCsv(dataLoader, 'assets/system/d20/MagicPillars.csv',
         (row) => PillarDef.fromCsv(row));
 
     _isLoaded = true;

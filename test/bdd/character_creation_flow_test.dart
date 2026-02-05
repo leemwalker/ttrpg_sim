@@ -21,14 +21,14 @@ void main() {
 
     // Add Archetype-specific rules to mock loader
     mockLoader.setResponse(
-        'assets/system/Genres.csv',
+        'assets/system/d20/Genres.csv',
         'Name,Description,Currency,Themes\r\n'
             'Fantasy,Magic worlds,GP,Magic\r\n'
             'Superhero,Power worlds,Credits,Powers\r\n'
             'Horror,Fear worlds,USD,Fear');
 
     mockLoader.setResponse(
-        'assets/system/Species.csv',
+        'assets/system/d20/Species.csv',
         'Name,Genre,Stats,Free Traits\r\n'
             'Human,Universal,,None\r\n'
             'Elf,Fantasy,,None\r\n'
@@ -36,7 +36,7 @@ void main() {
             'Ghost,Horror,,None');
 
     mockLoader.setResponse(
-        'assets/system/Skills.csv',
+        'assets/system/d20/Skills.csv',
         'Name,Genre,Attr,Locked,Desc\r\n'
             'Athletics,Universal,STR,FALSE,Run\r\n'
             'Spellcasting,Fantasy,INT,TRUE,Cast\r\n'
@@ -44,20 +44,20 @@ void main() {
             'Exorcism,Horror,CHA,TRUE,Banish');
 
     mockLoader.setResponse(
-        'assets/system/Origins.csv',
+        'assets/system/d20/Origins.csv',
         'Name,Genre,Skills,Feat,Items,Desc\r\n'
             'Mage,Fantasy,Spellcasting,Arcane Student,,Trained\r\n'
             'Hero,Superhero,Power Control,None,,Champion\r\n'
             'Priest,Horror,Exorcism,None,,Holy');
 
     mockLoader.setResponse(
-        'assets/system/Feats.csv',
+        'assets/system/d20/Feats.csv',
         'Name,Genre,Type,Pre,Desc,Effect\r\n'
             'Arcane Student,Fantasy,Magic,None,Study,Unlock Spellcasting\r\n'
             'None,Universal,Special,None,None,None');
 
     mockLoader.setResponse(
-        'assets/system/Traits.csv',
+        'assets/system/d20/Traits.csv',
         'Name,Type,Cost,Genre,Desc,Effect\r\n'
             'Super Powered,Positive,2,Superhero,Born with it,Unlock Magic\r\n'
             'Psychic Gift,Positive,2,Horror,Eldritch sense,Unlock Magic');

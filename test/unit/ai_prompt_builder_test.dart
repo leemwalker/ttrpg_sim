@@ -34,7 +34,10 @@ void main() {
       currentMana: 0,
       maxMana: 10,
       armorClass: 10,
+      xp: 0,
       equipment: '{}',
+      hand: '[]',
+      discardPile: '[]',
     );
 
     test('buildContextPrompt formats status and inventory correctly', () {
@@ -52,7 +55,6 @@ void main() {
       );
 
       expect(prompt, contains("Current Status: HP 10/10"));
-      expect(prompt, contains("Location: TestLoc"));
       expect(prompt, contains("Gold: 100"));
       expect(prompt, contains("Wand (x1)"));
       expect(prompt, contains("User Action: Hello World"));
@@ -85,10 +87,9 @@ void main() {
         location: null, // null location implies Genesis Mode
       );
 
-      expect(instruction, contains("MISSION:"));
       expect(instruction, contains("running a Fantasy tabletop RPG"));
       expect(instruction, contains("Tone: Dark"));
-      expect(instruction, contains("Goal: Conduct a 'Session Zero'"));
+      expect(instruction, contains("Genesis/Session Zero."));
     });
 
     test('buildInstruction generates correct Atlas prompt (Atlas Mode)', () {

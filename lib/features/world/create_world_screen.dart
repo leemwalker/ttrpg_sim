@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ttrpg_sim/core/database/database.dart';
 import 'package:ttrpg_sim/core/providers.dart';
 import 'package:ttrpg_sim/features/creation/character_creation_screen.dart';
+import 'package:ttrpg_sim/features/creation/imagin8/imagin8_creation_screen.dart';
 import 'package:ttrpg_sim/features/world/widgets/species_manager_widget.dart';
+import 'package:ttrpg_sim/features/world/widgets/deck_selection_widget.dart';
 import 'package:ttrpg_sim/core/rules/modular_rules_controller.dart';
 import 'package:ttrpg_sim/core/models/rules/rule_models.dart';
 
@@ -22,8 +24,12 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
   final _toneController = TextEditingController();
 
   List<String> _availableGenres = [];
+  List<String> _availableDecks = [];
   bool _isLoading = true;
   bool _isMagicEnabled = false;
+
+  String _system = 'd20'; // 'd20' or 'imagin8'
+  List<String> _selectedDecks = [];
 
   GameDifficulty _selectedDifficulty = GameDifficulty.medium;
   String _speciesConfig = '{}';
@@ -32,6 +38,27 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
   void initState() {
     super.initState();
     _loadGenres();
+    _loadDecks();
+  }
+
+  Future<void> _loadDecks() async {
+    final dao = ref.read(gameDaoProvider);
+    final decks = await dao.getAvailableDecks();
+    if (mounted) {
+      setState(() {
+        _availableDecks = decks;
+        if (_availableDecks.isEmpty) {
+          // Fallback defaults if DB is empty
+          _availableDecks = [
+            'Fantasy',
+            'Sci-Fi',
+            'Horror',
+            'Noir',
+            'Steampunk'
+          ];
+        }
+      });
+    }
   }
 
   Future<void> _loadGenres() async {
@@ -76,17 +103,26 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
       return;
     }
 
-    if (_selectedGenres.isEmpty) {
+    if (_selectedGenres.isEmpty && _system == 'd20') {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select at least one genre.")),
       );
       return;
     }
 
+    if (_system == 'imagin8' && _selectedDecks.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select at least one deck.")),
+      );
+      return;
+    }
+
     final dao = ref.read(gameDaoProvider);
     final genresJson = jsonEncode(_selectedGenres.toList());
+    final decksJson = jsonEncode(_selectedDecks);
     // Primary genre for legacy/display column if needed
-    final mainGenre = _selectedGenres.first;
+    final mainGenre =
+        _selectedGenres.isNotEmpty ? _selectedGenres.first : 'Imagin8';
 
     // Create World
     final worldId = await dao.createWorld(WorldsCompanion.insert(
@@ -100,6 +136,8 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
       difficulty: drift.Value(
           _selectedDifficulty.toString().split('.').last.capitalize()),
       speciesConfig: drift.Value(_speciesConfig),
+      system: drift.Value(_system),
+      selectedDecks: drift.Value(decksJson),
     ));
 
     // Create Initial Linked Character (Traveler/Placeholder)
@@ -125,9 +163,15 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
 
     if (mounted) {
       // Navigate to Character Creation
-      Navigator.of(context).pushReplacement(MaterialPageRoute(
-        builder: (context) => CharacterCreationScreen(worldId: worldId),
-      ));
+      if (_system == 'imagin8') {
+        Navigator.of(context).pushReplacement(MaterialPageRoute(
+          builder: (context) => Imagin8CreationScreen(worldId: worldId),
+        ));
+      } else {
+        Navigator.of(context).pushReplacement(MaterialPageRoute(
+          builder: (context) => CharacterCreationScreen(worldId: worldId),
+        ));
+      }
     }
   }
 
@@ -154,56 +198,92 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Text("Genres", style: Theme.of(context).textTheme.titleMedium),
+            // System Selection
+            Text("Rule System", style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8.0,
-              children: _availableGenres.map((genre) {
-                final isSelected = _selectedGenres.contains(genre);
-                return FilterChip(
-                  label: Text(genre),
-                  selected: isSelected,
-                  onSelected: (_) => _toggleGenre(genre),
-                  selectedColor: Theme.of(context).colorScheme.primaryContainer,
-                  checkmarkColor: Theme.of(context).colorScheme.primary,
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _toneController,
-              decoration: const InputDecoration(
-                labelText: "Tone",
-                hintText: "e.g., Gritty, Whimsical, Dark",
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.mood),
-              ),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<GameDifficulty>(
-              value: _selectedDifficulty,
-              decoration: const InputDecoration(
-                labelText: "Difficulty",
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.signal_cellular_alt),
-              ),
-              items: GameDifficulty.values.map((d) {
-                return DropdownMenuItem(
-                  value: d,
-                  child: Text(d.toString().split('.').last.capitalize()),
-                );
-              }).toList(),
-              onChanged: (val) {
-                if (val != null) {
-                  setState(() => _selectedDifficulty = val);
-                }
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'd20', label: Text('Modular d20')),
+                ButtonSegment(
+                    value: 'imagin8', label: Text('Imagin8 (Narrative)')),
+              ],
+              selected: {_system},
+              onSelectionChanged: (newSelection) {
+                setState(() {
+                  _system = newSelection.first;
+                });
               },
             ),
+            const SizedBox(height: 16),
+            if (_system == 'd20') ...[
+              Text("Genres", style: Theme.of(context).textTheme.titleMedium),
+              // ... existing genre code
+            ],
             const SizedBox(height: 8),
-            Text(
-              _getDifficultyDescription(_selectedDifficulty),
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            if (_system == 'd20')
+              Wrap(
+                spacing: 8.0,
+                children: _availableGenres.map((genre) {
+                  final isSelected = _selectedGenres.contains(genre);
+                  return FilterChip(
+                    label: Text(genre),
+                    selected: isSelected,
+                    onSelected: (_) => _toggleGenre(genre),
+                    selectedColor:
+                        Theme.of(context).colorScheme.primaryContainer,
+                    checkmarkColor: Theme.of(context).colorScheme.primary,
+                  );
+                }).toList(),
+              ),
+            const SizedBox(height: 16),
+            if (_system == 'd20')
+              TextField(
+                controller: _toneController,
+                decoration: const InputDecoration(
+                  labelText: "Tone",
+                  hintText: "e.g., Gritty, Whimsical, Dark",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.mood),
+                ),
+              ),
+            if (_system == 'imagin8')
+              TextField(
+                controller: _toneController,
+                decoration: const InputDecoration(
+                  labelText: "Theme / Tone",
+                  hintText: "e.g., Dark Fantasy, Space Opera",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.mood),
+                ),
+              ),
+            const SizedBox(height: 16),
+            if (_system == 'd20')
+              DropdownButtonFormField<GameDifficulty>(
+                value: _selectedDifficulty,
+                decoration: const InputDecoration(
+                  labelText: "Difficulty",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.signal_cellular_alt),
+                ),
+                items: GameDifficulty.values.map((d) {
+                  return DropdownMenuItem(
+                    value: d,
+                    child: Text(d.toString().split('.').last.capitalize()),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _selectedDifficulty = val);
+                  }
+                },
+              ),
+            if (_system == 'd20') ...[
+              const SizedBox(height: 8),
+              Text(
+                _getDifficultyDescription(_selectedDifficulty),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             const SizedBox(height: 16),
             TextField(
               controller: _descriptionController,
@@ -227,11 +307,18 @@ class _CreateWorldScreenState extends ConsumerState<CreateWorldScreen> {
                     : null,
               ),
             ),
-            const SizedBox(height: 24),
-            SpeciesManagerWidget(
-              selectedGenres: _selectedGenres.toList(),
-              onConfigChanged: (val) => _speciesConfig = val,
-            ),
+            if (_system == 'd20') ...[
+              const SizedBox(height: 24),
+              SpeciesManagerWidget(
+                selectedGenres: _selectedGenres.toList(),
+                onConfigChanged: (val) => _speciesConfig = val,
+              ),
+            ] else ...[
+              const SizedBox(height: 24),
+              DeckSelectionWidget(
+                onSelectionChanged: (val) => _selectedDecks = val,
+              ),
+            ],
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: _createWorld,

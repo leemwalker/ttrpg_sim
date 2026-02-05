@@ -7,14 +7,14 @@ void main() {
   group('System Assets Integrity', () {
     test('All CSVs should parse without error', () async {
       final files = [
-        'assets/system/Genres.csv',
-        'assets/system/Attributes.csv',
-        'assets/system/Skills.csv',
-        'assets/system/Species.csv',
-        'assets/system/Traits.csv',
-        'assets/system/Origins.csv',
-        'assets/system/Feats.csv',
-        'assets/system/Items.csv',
+        'assets/system/d20/Genres.csv',
+        'assets/system/d20/Attributes.csv',
+        'assets/system/d20/Skills.csv',
+        'assets/system/d20/Species.csv',
+        'assets/system/d20/Traits.csv',
+        'assets/system/d20/Origins.csv',
+        'assets/system/d20/Feats.csv',
+        'assets/system/d20/Items.csv',
       ];
 
       for (final path in files) {
@@ -25,7 +25,7 @@ void main() {
 
         final content = await file.readAsString();
         List<List<dynamic>> rows =
-            const CsvToListConverter(eol: '\n', shouldParseNumbers: false)
+            const CsvToListConverter(shouldParseNumbers: false)
                 .convert(content);
 
         // Skip header

@@ -1,5 +1,6 @@
 Name,Type,Cost,Genre,Description,Effect
-Large,Positive,3,Universal,You are larger than normal for your people.,Advantage on STR checks; Strength-based attacks deal +1 dmg.
+Large,Positive,3,Universal,You are larger than normal for your people.,Advantage on STR checks; +1 melee dmg; +1 Max HP per Level.
+Hardy,Positive,2,Universal,You are exceptionally tough and resilient.,+1 Max HP per Level.
 Innate Source,Positive,3,Fantasy,You were born with a dangerous abundance of magic.,Unlock Magic (Pillar: Energy/Matter). Ability: Overchannel (Cast Tier+1 but take HP Dmg).
 Spirit Companion,Positive,4,Fantasy,You share your soul with a magical beast.,"Unlock Magic. Companion has own Actions. Mana fixed at 12."
 Mana Void,Positive,2,Fantasy,"You are a Void-Soul; you cannot generate magic only take it.",Unlock Magic. Mana fixed at 0. Action: 'Drain' to steal Mana.

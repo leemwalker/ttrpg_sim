@@ -28,26 +28,26 @@ void main() {
       mockLoader = MockRuleDataLoader();
 
       // Seed minimum required CSVs
-      mockLoader.setResponse('assets/system/Genres.csv',
+      mockLoader.setResponse('assets/system/d20/Genres.csv',
           'Name,Description,Currency,Key Themes\r\nFantasy,Magic worlds,GP,Magic');
-      mockLoader.setResponse('assets/system/Attributes.csv',
+      mockLoader.setResponse('assets/system/d20/Attributes.csv',
           'Name,Genre,Type,Description\r\nStrength,Universal,Physical,Power');
-      mockLoader.setResponse('assets/system/Skills.csv',
+      mockLoader.setResponse('assets/system/d20/Skills.csv',
           'Name,Genre,Attribute,Locked?,Description\r\nArcana,Fantasy,INT,TRUE,Magic info');
-      mockLoader.setResponse('assets/system/Species.csv',
+      mockLoader.setResponse('assets/system/d20/Species.csv',
           'Name,Genre,Stats,Free Traits\r\nHuman,Universal,+1 All Stats,None');
-      mockLoader.setResponse('assets/system/Traits.csv',
+      mockLoader.setResponse('assets/system/d20/Traits.csv',
           'Name,Type,Cost,Genre,Description,Effect');
-      mockLoader.setResponse('assets/system/Origins.csv',
+      mockLoader.setResponse('assets/system/d20/Origins.csv',
           'Name,Genre,Skills,Feat,Starting Items,Description');
-      mockLoader.setResponse('assets/system/Feats.csv',
+      mockLoader.setResponse('assets/system/d20/Feats.csv',
           'Name,Genre,Type,Prerequisite,Description,Effect');
-      mockLoader.setResponse('assets/system/Items.csv',
+      mockLoader.setResponse('assets/system/d20/Items.csv',
           'Name,Genre,Type,DamageDice,DamageType,Properties,Cost,Description');
 
       // Magic Pillars CSV
       mockLoader.setResponse(
-          'assets/system/MagicPillars.csv',
+          'assets/system/d20/MagicPillars.csv',
           'Name,Description,Keywords\r\n'
               'Matter,"Manipulation of physical substances","Earth, Water, Metal"\r\n'
               'Energy,"Control of raw forces","Fire, Lightning, Kinetic"\r\n'
@@ -99,7 +99,7 @@ void main() {
     });
 
     test('Handles empty MagicPillars.csv gracefully', () async {
-      mockLoader.setResponse('assets/system/MagicPillars.csv',
+      mockLoader.setResponse('assets/system/d20/MagicPillars.csv',
           'Name,Description,Keywords\r\n'); // Empty data, only header
 
       await controller.loadRules(loader: mockLoader);

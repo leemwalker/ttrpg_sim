@@ -14,7 +14,7 @@ void main() {
       final budgets = state.budgets;
       expect(budgets.pointBuyPoints, 42, reason: 'Easy: 42 point buy');
       expect(budgets.originSkills, 4, reason: 'Easy: 4 origin skills');
-      expect(budgets.originFeats, 2, reason: 'Easy: 2 origin feats');
+      expect(budgets.originFeats, 3, reason: 'Easy: 3 origin feats');
       expect(budgets.traitPoints, 6, reason: 'Easy: 6 trait points');
       expect(budgets.maxAttribute, 18, reason: 'Easy: max attribute 18');
     });
@@ -28,7 +28,7 @@ void main() {
       final budgets = state.budgets;
       expect(budgets.pointBuyPoints, 28, reason: 'Medium: 28 point buy');
       expect(budgets.originSkills, 3, reason: 'Medium: 3 origin skills');
-      expect(budgets.originFeats, 1, reason: 'Medium: 1 origin feat');
+      expect(budgets.originFeats, 2, reason: 'Medium: 2 origin feats');
       expect(budgets.traitPoints, 3, reason: 'Medium: 3 trait points');
     });
 
@@ -41,7 +41,7 @@ void main() {
       final budgets = state.budgets;
       expect(budgets.pointBuyPoints, 19, reason: 'Hard: 19 point buy');
       expect(budgets.originSkills, 2, reason: 'Hard: 2 origin skills');
-      expect(budgets.originFeats, 0, reason: 'Hard: 0 origin feats');
+      expect(budgets.originFeats, 1, reason: 'Hard: 1 origin feat');
       expect(budgets.traitPoints, 1, reason: 'Hard: 1 trait point');
     });
 

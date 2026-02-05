@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:flutter/foundation.dart'; // for kDebugMode
 import 'package:ttrpg_sim/features/settings/settings_provider.dart';
 import 'package:ttrpg_sim/features/settings/paid_key_usage_mode.dart';
+import 'package:ttrpg_sim/features/developer/presentation/developer_menu.dart';
+import 'package:ttrpg_sim/core/services/backup_service.dart';
+import 'package:ttrpg_sim/core/providers.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -197,6 +201,65 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               }
             },
           ),
+
+          const SizedBox(height: 24),
+
+          // ===== DATA MANAGEMENT =====
+          _buildSectionHeader('Data Management'),
+          const SizedBox(height: 8),
+          ListTile(
+            title: const Text('Import Campaign'),
+            subtitle: const Text('Restore a backup file (World + Character)'),
+            leading: const Icon(Icons.file_upload),
+            onTap: () async {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (c) =>
+                    const Center(child: CircularProgressIndicator()),
+              );
+
+              try {
+                // Determine DB access
+                // Use databaseProvider directly
+                final db = ref.read(databaseProvider);
+                await BackupService(db).importCampaign();
+
+                if (mounted) {
+                  Navigator.of(context).pop(); // Close loading
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Campaign Imported Successfully!')),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  Navigator.of(context).pop(); // Close loading
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text('Import Failed: $e'),
+                        backgroundColor: Colors.red),
+                  );
+                }
+              }
+            },
+          ),
+
+          if (kDebugMode) ...[
+            const SizedBox(height: 48),
+            const Divider(),
+            ListTile(
+              title: const Text('Developer Tools',
+                  style: TextStyle(color: Colors.red)),
+              leading: const Icon(Icons.bug_report, color: Colors.red),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (context) => const DeveloperMenu()),
+                );
+              },
+            ),
+          ],
         ],
       ),
     );

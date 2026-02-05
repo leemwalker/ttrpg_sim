@@ -24,6 +24,9 @@ dependencies:
   csv: ^6.0.0
   flutter_markdown: ^0.7.7+1
   pdf: ^3.11.3
+  share_plus: ^10.0.0
+  file_picker: ^10.3.10
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
@@ -42,7 +45,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/icon/icon.png"
+  image_path: "assets/icon/app_icon.png"
   remove_alpha_ios: true
 
 # Configuration Block 2: Splash Screen
@@ -59,5 +62,6 @@ flutter_native_splash:
 flutter:
   uses-material-design: true
   assets:
-    - assets/system/
+    - assets/system/d20/
+    - assets/imagin8/
 

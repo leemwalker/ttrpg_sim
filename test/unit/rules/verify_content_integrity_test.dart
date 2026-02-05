@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('Content Integrity', () {
     test('Attributes.csv should load all Core and Genre attributes', () async {
-      final rows = await _loadCsv('assets/system/Attributes.csv');
+      final rows = await _loadCsv('assets/system/d20/Attributes.csv');
       // Should have 6 Core + 4 Genre attributes = 10 rows.
       expect(rows.length, greaterThanOrEqualTo(10),
           reason:
@@ -18,7 +18,7 @@ void main() {
     });
 
     test('Traits.csv should load all initial traits', () async {
-      final rows = await _loadCsv('assets/system/Traits.csv');
+      final rows = await _loadCsv('assets/system/d20/Traits.csv');
       expect(rows.length, greaterThan(15),
           reason: 'Traits CSV parsed too few rows');
 
@@ -28,7 +28,7 @@ void main() {
     });
 
     test('Skills.csv should load all skills', () async {
-      final rows = await _loadCsv('assets/system/Skills.csv');
+      final rows = await _loadCsv('assets/system/d20/Skills.csv');
       expect(rows.length, greaterThan(50),
           reason: 'Skills CSV parsed too few rows');
     });

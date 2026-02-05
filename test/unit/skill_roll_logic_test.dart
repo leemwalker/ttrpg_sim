@@ -44,7 +44,10 @@ void main() {
         maxMana: 0,
         worldId: 1,
         armorClass: 10,
+        xp: 0,
         equipment: '{}',
+        hand: '[]',
+        discardPile: '[]',
       );
 
       // 1. Athletics (Str)

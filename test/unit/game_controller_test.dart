@@ -52,7 +52,10 @@ void main() {
     currentMana: 0,
     maxMana: 10,
     armorClass: 10,
+    xp: 0,
     equipment: '{}',
+    hand: '[]',
+    discardPile: '[]',
   );
 
   final dummyWorld = World(
@@ -60,6 +63,8 @@ void main() {
     name: 'Test World',
     genre: 'Fantasy',
     description: 'A test',
+    system: 'd20',
+    selectedDecks: '[]',
     tone: 'Standard',
     genres: '["Fantasy"]',
     isMagicEnabled: true,

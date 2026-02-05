@@ -35,6 +35,10 @@ class MockGeminiService implements GeminiService {
     List<PointsOfInterestData> pois = const [],
     List<Npc> npcs = const [],
     String? worldKnowledge,
+    String system = 'd20',
+    List<Imagin8Card> hand = const [],
+    List<Imagin8Card> discard = const [], // Keep this list for card tracking
+    bool discardCards = false, // Add this boolean flag matching the interface
   }) async {
     return TurnResult(
       narrative: nextNarrative,

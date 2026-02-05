@@ -17,22 +17,23 @@ class MockRuleDataLoader implements RuleDataLoader {
   }
 
   void setupDefaultRules() {
-    setResponse('assets/system/Species.csv',
+    setResponse('assets/system/d20/Species.csv',
         'Name,Genre,Stats,Free Traits\r\nHuman,Universal,,None\r\nElf,Fantasy,,None');
-    setResponse('assets/system/Genres.csv',
+    setResponse('assets/system/d20/Genres.csv',
         'Name,Description,Currency,Themes\r\nFantasy,Desc,GP,Magic\r\nCustom,Desc,GP,None'); // Added Custom
-    setResponse('assets/system/Attributes.csv',
+    setResponse('assets/system/d20/Attributes.csv',
         'Name,Genre,Type,Desc\r\nStrength,Universal,Physical,Power\r\nDexterity,Universal,Physical,Agility\r\nConstitution,Universal,Physical,Health\r\nIntelligence,Universal,Mental,IQ\r\nWisdom,Universal,Mental,Insight\r\nCharisma,Universal,Mental,Presence');
-    setResponse('assets/system/Skills.csv',
+    setResponse('assets/system/d20/Skills.csv',
         'Name,Genre,Attr,Locked,Desc\r\nAthletics,Universal,STR,FALSE,Run');
-    setResponse('assets/system/Traits.csv', 'Name,Type,Cost,Genre,Desc,Effect');
-    setResponse('assets/system/Origins.csv',
+    setResponse(
+        'assets/system/d20/Traits.csv', 'Name,Type,Cost,Genre,Desc,Effect');
+    setResponse('assets/system/d20/Origins.csv',
         'Name,Genre,Skills,Feat,Items,Desc\r\nRefugee,Universal,Athletics,None,,Survivor');
-    setResponse('assets/system/Feats.csv',
+    setResponse('assets/system/d20/Feats.csv',
         'Name,Genre,Type,Pre,Desc,Effect\r\nNone,Universal,Special,None,No Feat,None');
-    setResponse('assets/system/Items.csv',
+    setResponse('assets/system/d20/Items.csv',
         'Name,Genre,Type,Dice,Type,Prop,Cost,Desc\r\nSword,Universal,Weapon,1d8,Slashing,,10,A sharp blade\r\nPotion,Universal,Consumable,,,Heal,10,Restores HP');
-    setResponse('assets/system/MagicPillars.csv',
+    setResponse('assets/system/d20/MagicPillars.csv',
         'Name,Description,Keywords\r\nMatter,"Manipulation of physical world","Earth, Water"\r\nEnergy,"Manipulation of raw forces","Fire, Lightning"\r\nMind,"Manipulation of thoughts","Telepathy, Illusion"\r\nSpirit,"Manipulation of life force","Life, Death"\r\nCosmos,"Manipulation of space and time","Teleportation, Gravity"');
   }
 
